@@ -1,0 +1,10 @@
+name: cursor
+detect:
+  any_of:
+    - path_exists: ~/.cursor
+    - path_exists: .cursor
+install_targets:
+  user: ~/.cursor/skills
+  project: .cursor/skills
+default_scope: project
+transform: passthrough
