@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-04-17T16:18:08Z",
+  "source": {
+    "repo": "github.com/jjfantini/humblSKILLS",
+    "ref": "phase-1-registry",
+    "sha": "11cba6ebe73047df7a9a2778e90b48cce1b12c15"
+  },
+  "skills": [
+    {
+      "name": "skill-example-hello",
+      "version": "0.1.0",
+      "description": "Minimal seed skill with no dependencies — exercises the registry happy path.",
+      "tags": [
+        "example",
+        "seed"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor"
+      ],
+      "path": "skills/skill-example-hello",
+      "dir_sha": "9f8e7c25ed53a98aefd1bb8aa7c7cb89c74be7dc0d36395615ae23ccc03bd153"
+    },
+    {
+      "name": "skill-example-pinned-dep",
+      "version": "0.1.0",
+      "description": "Seed skill with a minimum-version dependency — exercises @>= constraint parsing.",
+      "tags": [
+        "example",
+        "seed"
+      ],
+      "platforms": [
+        "claude-code"
+      ],
+      "requires": [
+        "skill-example-hello@>=0.1.0"
+      ],
+      "path": "skills/skill-example-pinned-dep",
+      "dir_sha": "e5a7842bc5116fd97cff413a33c0e9e4e68f534f81772669dff59ee1f47f33c9"
+    },
+    {
+      "name": "skill-example-with-dep",
+      "version": "0.1.0",
+      "description": "Seed skill that depends on skill-example-hello — exercises unpinned dependency resolution.",
+      "tags": [
+        "example",
+        "seed"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor"
+      ],
+      "requires": [
+        "skill-example-hello"
+      ],
+      "path": "skills/skill-example-with-dep",
+      "dir_sha": "eeb1e631223930fa5a0cd19033e7ba6b36b53a64b40d820b15e2424b00806b57"
+    }
+  ]
+}

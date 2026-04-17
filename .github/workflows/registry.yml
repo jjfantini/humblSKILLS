@@ -1,0 +1,46 @@
+name: Registry
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "skills/**"
+      - "adapters/**"
+      - "cli/cmd/build-registry/**"
+      - "cli/internal/**"
+      - "cli/go.mod"
+      - "cli/go.sum"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: registry-rebuild
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache-dependency-path: cli/go.sum
+
+      - name: Rebuild registry.json
+        run: make registry
+
+      - name: Commit if changed
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- registry.json; then
+            echo "registry.json already in sync; nothing to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add registry.json
+          git commit -m "chore(registry): regenerate registry.json [skip ci]"
+          git push
