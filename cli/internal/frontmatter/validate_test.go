@@ -1,8 +1,6 @@
 package frontmatter
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -16,21 +14,20 @@ func ctxWith(skills map[string]string, adapters ...string) ValidationContext {
 }
 
 func TestValidate_Happy(t *testing.T) {
-	dir := t.TempDir()
 	fm := Frontmatter{
 		Name:        "foo",
 		Description: "desc",
 		Version:     "0.1.0",
 		Platforms:   []string{"claude-code"},
 	}
-	if err := fm.Validate("foo", dir, ctxWith(nil, "claude-code")); err != nil {
+	if err := fm.Validate("foo", ctxWith(nil, "claude-code")); err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
 }
 
 func TestValidate_NameRegex(t *testing.T) {
 	fm := Frontmatter{Name: "Foo_Bar", Description: "d", Version: "0.1.0"}
-	err := fm.Validate("Foo_Bar", "", ctxWith(nil))
+	err := fm.Validate("Foo_Bar", ctxWith(nil))
 	if err == nil || !strings.Contains(err.Error(), "must match") {
 		t.Fatalf("expected name regex error, got %v", err)
 	}
@@ -38,7 +35,7 @@ func TestValidate_NameRegex(t *testing.T) {
 
 func TestValidate_NameMatchesDir(t *testing.T) {
 	fm := Frontmatter{Name: "foo", Description: "d", Version: "0.1.0"}
-	err := fm.Validate("bar", "", ctxWith(nil))
+	err := fm.Validate("bar", ctxWith(nil))
 	if err == nil || !strings.Contains(err.Error(), "containing directory") {
 		t.Fatalf("expected dir-mismatch error, got %v", err)
 	}
@@ -46,7 +43,7 @@ func TestValidate_NameMatchesDir(t *testing.T) {
 
 func TestValidate_SemverBad(t *testing.T) {
 	fm := Frontmatter{Name: "foo", Description: "d", Version: "1.2"}
-	err := fm.Validate("foo", "", ctxWith(nil))
+	err := fm.Validate("foo", ctxWith(nil))
 	if err == nil || !strings.Contains(err.Error(), "not valid semver") {
 		t.Fatalf("expected semver error, got %v", err)
 	}
@@ -54,7 +51,7 @@ func TestValidate_SemverBad(t *testing.T) {
 
 func TestValidate_DepUnknown(t *testing.T) {
 	fm := Frontmatter{Name: "foo", Description: "d", Version: "0.1.0", Requires: []string{"ghost"}}
-	err := fm.Validate("foo", "", ctxWith(nil))
+	err := fm.Validate("foo", ctxWith(nil))
 	if err == nil || !strings.Contains(err.Error(), `unknown dep "ghost"`) {
 		t.Fatalf("expected unknown dep error, got %v", err)
 	}
@@ -67,7 +64,7 @@ func TestValidate_DepVersionUnsatisfied(t *testing.T) {
 		Version:     "0.1.0",
 		Requires:    []string{"bar@>=0.3.0"},
 	}
-	err := fm.Validate("foo", "", ctxWith(map[string]string{"bar": "0.2.0"}))
+	err := fm.Validate("foo", ctxWith(map[string]string{"bar": "0.2.0"}))
 	if err == nil || !strings.Contains(err.Error(), "unsatisfied") {
 		t.Fatalf("expected unsatisfied error, got %v", err)
 	}
@@ -80,7 +77,7 @@ func TestValidate_DepVersionSatisfied(t *testing.T) {
 		Version:     "0.1.0",
 		Requires:    []string{"bar@>=0.3.0"},
 	}
-	err := fm.Validate("foo", "", ctxWith(map[string]string{"bar": "0.3.1"}))
+	err := fm.Validate("foo", ctxWith(map[string]string{"bar": "0.3.1"}))
 	if err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
@@ -91,51 +88,9 @@ func TestValidate_UnknownPlatform(t *testing.T) {
 		Name: "foo", Description: "d", Version: "0.1.0",
 		Platforms: []string{"claude-code", "atari-2600"},
 	}
-	err := fm.Validate("foo", "", ctxWith(nil, "claude-code"))
+	err := fm.Validate("foo", ctxWith(nil, "claude-code"))
 	if err == nil || !strings.Contains(err.Error(), "atari-2600") {
 		t.Fatalf("expected unknown platform error, got %v", err)
-	}
-}
-
-func TestValidate_PostInstallEscape(t *testing.T) {
-	dir := t.TempDir()
-	fm := Frontmatter{
-		Name: "foo", Description: "d", Version: "0.1.0",
-		PostInstall: "../escape.sh",
-	}
-	err := fm.Validate("foo", dir, ctxWith(nil))
-	if err == nil || !strings.Contains(err.Error(), "inside the skill directory") {
-		t.Fatalf("expected escape error, got %v", err)
-	}
-}
-
-func TestValidate_PostInstallMissing(t *testing.T) {
-	dir := t.TempDir()
-	fm := Frontmatter{
-		Name: "foo", Description: "d", Version: "0.1.0",
-		PostInstall: "scripts/setup.sh",
-	}
-	err := fm.Validate("foo", dir, ctxWith(nil))
-	if err == nil || !strings.Contains(err.Error(), "not found") {
-		t.Fatalf("expected not-found error, got %v", err)
-	}
-}
-
-func TestValidate_PostInstallPresent(t *testing.T) {
-	dir := t.TempDir()
-	sub := filepath.Join(dir, "scripts")
-	if err := os.MkdirAll(sub, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(sub, "setup.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	fm := Frontmatter{
-		Name: "foo", Description: "d", Version: "0.1.0",
-		PostInstall: "scripts/setup.sh",
-	}
-	if err := fm.Validate("foo", dir, ctxWith(nil)); err != nil {
-		t.Fatalf("unexpected: %v", err)
 	}
 }
 
@@ -144,7 +99,7 @@ func TestValidate_SelfDep(t *testing.T) {
 		Name: "foo", Description: "d", Version: "0.1.0",
 		Requires: []string{"foo"},
 	}
-	err := fm.Validate("foo", "", ctxWith(map[string]string{"foo": "0.1.0"}))
+	err := fm.Validate("foo", ctxWith(map[string]string{"foo": "0.1.0"}))
 	if err == nil || !strings.Contains(err.Error(), "cannot require itself") {
 		t.Fatalf("expected self-dep error, got %v", err)
 	}

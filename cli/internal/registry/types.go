@@ -29,6 +29,5 @@ type Skill struct {
 	Platforms   []string `json:"platforms,omitempty"`
 	Requires    []string `json:"requires,omitempty"`
 	Path        string   `json:"path"`
-	PostInstall string   `json:"post_install,omitempty"`
 	DirSHA      string   `json:"dir_sha"`
 }

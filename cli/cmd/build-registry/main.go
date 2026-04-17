@@ -79,7 +79,7 @@ func run(skillsDir, adaptersDir, outFile, repo, ref, sha string, check bool) err
 
 	var verrs []string
 	for _, p := range parsed {
-		if err := p.fm.Validate(p.dirName, p.fullPath, ctx); err != nil {
+		if err := p.fm.Validate(p.dirName, ctx); err != nil {
 			verrs = append(verrs, err.Error())
 		}
 	}
@@ -105,7 +105,6 @@ func run(skillsDir, adaptersDir, outFile, repo, ref, sha string, check bool) err
 			Platforms:   p.fm.Platforms,
 			Requires:    p.fm.Requires,
 			Path:        filepath.ToSlash(filepath.Join(filepath.Base(skillsDir), p.dirName)),
-			PostInstall: p.fm.PostInstall,
 			DirSHA:      dirSha,
 		})
 	}

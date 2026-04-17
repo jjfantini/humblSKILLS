@@ -3,8 +3,6 @@ package frontmatter
 import (
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -104,9 +102,8 @@ type ValidationContext struct {
 }
 
 // Validate checks every humblSKILLS-owned rule except DAG acyclicity (done by
-// the resolver). dirName is the skill directory's basename; skillPath is the
-// absolute path to that directory, used only to stat post_install.
-func (fm Frontmatter) Validate(dirName, skillPath string, ctx ValidationContext) error {
+// the resolver). dirName is the skill directory's basename.
+func (fm Frontmatter) Validate(dirName string, ctx ValidationContext) error {
 	var errs []string
 
 	switch {
@@ -155,18 +152,6 @@ func (fm Frontmatter) Validate(dirName, skillPath string, ctx ValidationContext)
 		}
 		if !dep.Satisfies(registered) {
 			errs = append(errs, fmt.Sprintf("dep %q unsatisfied by registered version %s", raw, registered))
-		}
-	}
-
-	if fm.PostInstall != "" {
-		clean := filepath.Clean(fm.PostInstall)
-		if filepath.IsAbs(clean) || strings.HasPrefix(clean, "..") || clean == ".." {
-			errs = append(errs, fmt.Sprintf("post_install %q must be a relative path inside the skill directory", fm.PostInstall))
-		} else {
-			full := filepath.Join(skillPath, clean)
-			if _, err := os.Stat(full); err != nil {
-				errs = append(errs, fmt.Sprintf("post_install %q not found: %v", fm.PostInstall, err))
-			}
 		}
 	}
 
