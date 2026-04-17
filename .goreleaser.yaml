@@ -41,6 +41,26 @@ archives:
 checksum:
   name_template: checksums.txt
 
+brews:
+  - name: humblskills
+    repository:
+      owner: jjfantini
+      name: homebrew-humbl
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/jjfantini/humblSKILLS
+    description: Install agentskills.io-format skills into Claude Code, Cursor, and friends.
+    license: CC-BY-4.0
+    commit_author:
+      name: goreleaserbot
+      email: goreleaser@users.noreply.github.com
+    commit_msg_template: "humblskills: update to {{ .Tag }}"
+    install: |
+      bin.install "humblskills"
+    test: |
+      system "#{bin}/humblskills", "version"
+
 release:
   github:
     owner: jjfantini
