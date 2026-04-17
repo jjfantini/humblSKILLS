@@ -228,8 +228,10 @@ func marshalStable(reg registry.Registry) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// semanticDiff compares two registries but ignores generated_at and
-// source.sha — those fields track metadata that changes each commit.
+// semanticDiff compares two registries but ignores the generated_at and
+// source fields — those track per-commit metadata (ref, sha, timestamp) that
+// legitimately varies between local runs, PR builds (detached HEAD), and the
+// post-merge auto-commit on main.
 func semanticDiff(a, b []byte) (bool, error) {
 	var ra, rb registry.Registry
 	if err := json.Unmarshal(a, &ra); err != nil {
@@ -239,7 +241,7 @@ func semanticDiff(a, b []byte) (bool, error) {
 		return false, fmt.Errorf("parse new: %w", err)
 	}
 	ra.GeneratedAt, rb.GeneratedAt = "", ""
-	ra.Source.SHA, rb.Source.SHA = "", ""
+	ra.Source, rb.Source = registry.Source{}, registry.Source{}
 	return !reflect.DeepEqual(ra, rb), nil
 }
 
