@@ -22,6 +22,7 @@ type Frontmatter struct {
 	Requires    []string `yaml:"requires,omitempty"`
 	Platforms   []string `yaml:"platforms,omitempty"`
 	Tags        []string `yaml:"tags,omitempty"`
+	Preserve    []string `yaml:"preserve,omitempty"`
 }
 
 // Parse splits the leading `---` YAML frontmatter block from the body and

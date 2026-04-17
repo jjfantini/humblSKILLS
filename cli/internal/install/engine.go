@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/fetch"
@@ -166,10 +167,11 @@ func (e *Engine) installOne(
 	// Pre-compute which targets actually need the extract + copy. If none do,
 	// we skip the tarball fetch entirely so repeated no-op installs are fast.
 	type planTarget struct {
-		pending pending
-		out     Outcome
-		final   string
-		orphan  string // previous install path to clean up (project-scope move)
+		pending      pending
+		out          Outcome
+		final        string
+		orphan       string // previous install path to clean up (project-scope move)
+		existingPath string // manifest-recorded previous path, used as preserve source
 	}
 	var toWrite []planTarget
 	var skipped []TargetResult
@@ -194,6 +196,10 @@ func (e *Engine) installOne(
 			upToDate = false
 		}
 
+		existingPath := ""
+		if existing != nil {
+			existingPath = existing.Path
+		}
 		switch {
 		case upToDate && !opts.Force:
 			skipped = append(skipped, TargetResult{
@@ -201,11 +207,11 @@ func (e *Engine) installOne(
 				Path: dest, Outcome: OutcomeSkipped,
 			})
 		case upToDate && opts.Force:
-			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeForced, final: dest, orphan: orphan})
+			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeForced, final: dest, orphan: orphan, existingPath: existingPath})
 		case existing != nil:
-			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeReplaced, final: dest, orphan: orphan})
+			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeReplaced, final: dest, orphan: orphan, existingPath: existingPath})
 		default:
-			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeInstalled, final: dest, orphan: orphan})
+			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeInstalled, final: dest, orphan: orphan, existingPath: existingPath})
 		}
 	}
 
@@ -236,12 +242,35 @@ func (e *Engine) installOne(
 
 	results := append([]TargetResult(nil), skipped...)
 	for _, pt := range toWrite {
+		// When preserve is active, build a per-target copy of staging with
+		// user content merged in, leaving the shared staging pristine for
+		// sibling targets. pt.existingPath is the authoritative previous
+		// location whether this is a normal replace or a scope move.
+		writeSrc := staging
+		if len(skill.Preserve) > 0 && pt.existingPath != "" {
+			perTarget := filepath.Join(
+				e.StagingDir,
+				skill.Name+"-"+shortSHA(reg.Source.SHA)+"-"+pt.pending.adapter.Name+"-"+pt.pending.target.Scope,
+			)
+			if err := os.RemoveAll(perTarget); err != nil {
+				return nil, fmt.Errorf("clean per-target staging: %w", err)
+			}
+			defer os.RemoveAll(perTarget)
+			if err := copyTree(staging, perTarget); err != nil {
+				return nil, fmt.Errorf("copy per-target staging: %w", err)
+			}
+			if err := applyPreserve(pt.existingPath, perTarget, skill.Preserve); err != nil {
+				return nil, err
+			}
+			writeSrc = perTarget
+		}
+
 		if pt.orphan != "" && pt.orphan != pt.final {
 			if err := os.RemoveAll(pt.orphan); err != nil {
 				return nil, fmt.Errorf("clean old install %s: %w", pt.orphan, err)
 			}
 		}
-		if err := replaceDir(staging, pt.final); err != nil {
+		if err := replaceDir(writeSrc, pt.final); err != nil {
 			return nil, fmt.Errorf("place %s: %w", pt.final, err)
 		}
 		m.Upsert(manifest.Installation{
@@ -361,4 +390,89 @@ func shortSHA(sha string) string {
 		return sha[:12]
 	}
 	return sha
+}
+
+// applyPreserve merges user-owned content from userRoot into stagingRoot
+// according to the preserve list.
+//
+//   - File entry (no trailing "/"): user wins; user's bytes overwrite whatever
+//     staging shipped.
+//   - Directory entry (trailing "/"): deep merge; staging wins on per-file
+//     conflicts. Files only in user land alongside staging's version.
+//
+// Type mismatches (file entry vs user dir, or dir entry vs user file) and
+// symlinks in the user source are rejected rather than silently resolved.
+func applyPreserve(userRoot, stagingRoot string, entries []string) error {
+	for _, raw := range entries {
+		rel := strings.TrimSpace(raw)
+		rel = strings.TrimPrefix(rel, "./")
+		isDir := strings.HasSuffix(rel, "/")
+		relClean := filepath.FromSlash(strings.TrimSuffix(rel, "/"))
+		if relClean == "" || relClean == "." {
+			continue
+		}
+		srcAbs := filepath.Join(userRoot, relClean)
+		dstAbs := filepath.Join(stagingRoot, relClean)
+
+		fi, err := os.Lstat(srcAbs)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return fmt.Errorf("preserve stat %s: %w", srcAbs, err)
+		}
+		if fi.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("preserve: refusing to follow symlink %s", srcAbs)
+		}
+
+		if isDir {
+			if !fi.IsDir() {
+				return fmt.Errorf("preserve: entry %q declares a directory but %s is a file", raw, srcAbs)
+			}
+			if err := preserveMergeDir(srcAbs, dstAbs); err != nil {
+				return err
+			}
+			continue
+		}
+		if fi.IsDir() {
+			return fmt.Errorf("preserve: entry %q declares a file but %s is a directory", raw, srcAbs)
+		}
+		if err := copyFile(srcAbs, dstAbs, fi.Mode()&0o777); err != nil {
+			return fmt.Errorf("preserve copy %s: %w", srcAbs, err)
+		}
+	}
+	return nil
+}
+
+// preserveMergeDir walks userDir and copies every regular file into dstDir
+// only when dstDir does not already have that relative path — staging wins on
+// conflicts. Symlinks anywhere in userDir abort the merge.
+func preserveMergeDir(userDir, dstDir string) error {
+	return filepath.Walk(userDir, func(p string, fi os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		rel, err := filepath.Rel(userDir, p)
+		if err != nil {
+			return err
+		}
+		if rel == "." {
+			return os.MkdirAll(dstDir, fi.Mode()&0o777|0o700)
+		}
+		dst := filepath.Join(dstDir, rel)
+		if fi.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("preserve: refusing to follow symlink %s", p)
+		}
+		if fi.IsDir() {
+			if _, err := os.Stat(dst); err == nil {
+				return nil
+			}
+			return os.MkdirAll(dst, fi.Mode()&0o777|0o700)
+		}
+		if _, err := os.Stat(dst); err == nil {
+			// Staging already ships this file; staging wins.
+			return nil
+		}
+		return copyFile(p, dst, fi.Mode()&0o777)
+	})
 }

@@ -8,7 +8,7 @@ agent platform you use — Claude Code, Cursor, Codex, and friends.
 
 1. **Skill registry** — a monorepo of agent skills authored in the
    agentskills.io format with light humblSKILLS frontmatter extensions
-   (`requires`, `platforms`, `tags`).
+   (`requires`, `platforms`, `tags`, `preserve`).
 2. **`humblskills` CLI** — fetches a skill directory and drops it in the right
    place for your agent platform. Zero servers, zero accounts, zero telemetry.
 
@@ -72,6 +72,45 @@ humblskills uninstall skill-example-hello
 
 Every command accepts `--json` for machine-readable output and `--yes` to
 skip confirmation prompts.
+
+## Preserving user content across updates
+
+Smart skills often accumulate user-owned content over time — raw sources,
+append-only memory (`log.md`, `decisions.md`, `patterns.md`), LLM-curated
+wiki pages. By default `humblskills update` and `humblskills install`
+overwrite the skill directory with whatever the registry ships. Skills that
+need to keep user content around on update can declare a `preserve:` list in
+their SKILL.md frontmatter.
+
+Entries are relative paths inside the skill directory. A trailing `/` makes
+the entry a directory; anything else is a file. Globs are not supported.
+
+| Entry form      | Example              | Meaning on update                                    |
+| --------------- | -------------------- | ---------------------------------------------------- |
+| **File**        | `references/log.md`  | User wins. User's bytes survive the update.          |
+| **Directory**   | `references/wiki/`   | Deep merge. Staging wins per-file; user-only files kept. |
+
+Fresh installs always seed everything from the registry — preserve only kicks
+in when replacing an existing install. Running `humblskills uninstall` wipes
+everything, including preserved content.
+
+```yaml
+---
+name: my-smart-skill
+description: ...
+version: 0.2.0
+preserve:
+  - references/log.md
+  - references/patterns.md
+  - references/decisions.md
+  - references/raw/
+  - references/wiki/
+---
+```
+
+Skill authors who declare a preserve *directory* should note in their skill
+docs that any files shipped inside that directory may be overwritten on
+update — that's the deep-merge contract.
 
 ## Developing the CLI
 

@@ -28,6 +28,7 @@ type Skill struct {
 	Tags        []string `json:"tags,omitempty"`
 	Platforms   []string `json:"platforms,omitempty"`
 	Requires    []string `json:"requires,omitempty"`
+	Preserve    []string `json:"preserve,omitempty"`
 	Path        string   `json:"path"`
 	DirSHA      string   `json:"dir_sha"`
 }
