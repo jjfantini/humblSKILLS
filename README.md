@@ -8,7 +8,7 @@ agent platform you use — Claude Code, Cursor, Codex, and friends.
 
 1. **Skill registry** — a monorepo of agent skills authored in the
    agentskills.io format with light humblSKILLS frontmatter extensions
-   (`requires`, `platforms`, `post_install`, `tags`).
+   (`requires`, `platforms`, `tags`).
 2. **`humblskills` CLI** — fetches a skill directory and drops it in the right
    place for your agent platform. Zero servers, zero accounts, zero telemetry.
 
