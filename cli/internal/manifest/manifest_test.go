@@ -82,6 +82,38 @@ func TestFind(t *testing.T) {
 	}
 }
 
+func TestFindAllFindOneUpsertRemove(t *testing.T) {
+	m := &Manifest{}
+	m.Upsert(Installation{Skill: "a", Platform: "claude-code", Scope: "user", Version: "0.1.0"})
+	m.Upsert(Installation{Skill: "a", Platform: "cursor", Scope: "user", Version: "0.1.0"})
+	m.Upsert(Installation{Skill: "b", Platform: "claude-code", Scope: "project"})
+
+	if all := m.FindAll("a"); len(all) != 2 {
+		t.Fatalf("FindAll(a) = %d", len(all))
+	}
+	if e := m.FindOne("a", "claude-code", "user"); e == nil || e.Version != "0.1.0" {
+		t.Fatalf("FindOne missed: %+v", e)
+	}
+	// Upsert replaces instead of appending.
+	m.Upsert(Installation{Skill: "a", Platform: "claude-code", Scope: "user", Version: "0.2.0"})
+	if len(m.Installations) != 3 {
+		t.Errorf("upsert duplicated: %d", len(m.Installations))
+	}
+	if e := m.FindOne("a", "claude-code", "user"); e == nil || e.Version != "0.2.0" {
+		t.Errorf("upsert didn't replace: %+v", e)
+	}
+
+	if !m.RemoveOne("a", "cursor", "user") {
+		t.Error("RemoveOne returned false")
+	}
+	if got := m.Remove("a"); got != 1 {
+		t.Errorf("Remove(a) = %d", got)
+	}
+	if len(m.Installations) != 1 || m.Installations[0].Skill != "b" {
+		t.Errorf("unexpected state: %+v", m.Installations)
+	}
+}
+
 func TestDefaultPath_NonEmpty(t *testing.T) {
 	p, err := DefaultPath()
 	if err != nil {

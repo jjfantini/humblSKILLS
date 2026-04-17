@@ -102,8 +102,9 @@ func Save(path string, m *Manifest) error {
 	return nil
 }
 
-// Find returns a pointer to the Installation matching the given skill name,
-// or nil if not installed.
+// Find returns a pointer to the first Installation matching the given skill
+// name, or nil if not installed. Use FindAll when a skill may be installed on
+// multiple (platform, scope) pairs.
 func (m *Manifest) Find(skill string) *Installation {
 	for i := range m.Installations {
 		if m.Installations[i].Skill == skill {
@@ -111,4 +112,69 @@ func (m *Manifest) Find(skill string) *Installation {
 		}
 	}
 	return nil
+}
+
+// FindAll returns pointers to every Installation of the given skill, across
+// platforms and scopes.
+func (m *Manifest) FindAll(skill string) []*Installation {
+	var out []*Installation
+	for i := range m.Installations {
+		if m.Installations[i].Skill == skill {
+			out = append(out, &m.Installations[i])
+		}
+	}
+	return out
+}
+
+// FindOne returns the Installation pinned to exactly (skill, platform, scope),
+// or nil if none matches.
+func (m *Manifest) FindOne(skill, platform, scope string) *Installation {
+	for i := range m.Installations {
+		e := &m.Installations[i]
+		if e.Skill == skill && e.Platform == platform && e.Scope == scope {
+			return e
+		}
+	}
+	return nil
+}
+
+// Upsert inserts or replaces the Installation keyed on (skill, platform,
+// scope).
+func (m *Manifest) Upsert(inst Installation) {
+	for i := range m.Installations {
+		e := &m.Installations[i]
+		if e.Skill == inst.Skill && e.Platform == inst.Platform && e.Scope == inst.Scope {
+			m.Installations[i] = inst
+			return
+		}
+	}
+	m.Installations = append(m.Installations, inst)
+}
+
+// Remove drops every Installation matching skill (all platforms and scopes)
+// and returns how many were removed.
+func (m *Manifest) Remove(skill string) int {
+	kept := m.Installations[:0]
+	removed := 0
+	for _, e := range m.Installations {
+		if e.Skill == skill {
+			removed++
+			continue
+		}
+		kept = append(kept, e)
+	}
+	m.Installations = kept
+	return removed
+}
+
+// RemoveOne drops exactly the Installation pinned to (skill, platform, scope).
+// Returns true if an entry was removed.
+func (m *Manifest) RemoveOne(skill, platform, scope string) bool {
+	for i, e := range m.Installations {
+		if e.Skill == skill && e.Platform == platform && e.Scope == scope {
+			m.Installations = append(m.Installations[:i], m.Installations[i+1:]...)
+			return true
+		}
+	}
+	return false
 }
