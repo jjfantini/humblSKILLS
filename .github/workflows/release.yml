@@ -8,6 +8,11 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v0.2.0)"
+        required: true
 
 permissions:
   contents: write
@@ -15,21 +20,33 @@ permissions:
 jobs:
   tag-cli-module:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Resolve tag name
+        id: resolve
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Push sibling cli/* tag for go install
         run: |
           set -eu
-          ver="${GITHUB_REF_NAME}"                # e.g. v0.1.0
-          sibling="cli/${ver}"                    # e.g. cli/v0.1.0
+          ver="${{ steps.resolve.outputs.tag }}"
+          sibling="cli/${ver}"
           if git rev-parse -q --verify "refs/tags/${sibling}" >/dev/null; then
             echo "sibling tag ${sibling} already exists — skipping"
             exit 0
           fi
-          git tag "${sibling}" "${GITHUB_SHA}"
+          git tag "${sibling}" HEAD
           git push origin "${sibling}"
 
   goreleaser:
@@ -42,6 +59,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ needs.tag-cli-module.outputs.tag }}
 
       - uses: actions/setup-go@v5
         with:
