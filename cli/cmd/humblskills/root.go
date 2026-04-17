@@ -17,6 +17,7 @@ import (
 // App is the shared context wired onto every subcommand via PersistentPreRunE.
 type App struct {
 	UI       *ui.Printer
+	Prompt   *ui.Prompter
 	Config   Config
 	Adapters func() ([]platform.Adapter, error)
 }
@@ -31,6 +32,7 @@ type Config struct {
 	NoColor      bool
 	Verbose      bool
 	Quiet        bool
+	Yes          bool
 }
 
 type globalFlags struct {
@@ -42,6 +44,7 @@ type globalFlags struct {
 	noColor     bool
 	verbose     bool
 	quiet       bool
+	yes         bool
 }
 
 func newRootCmd() *cobra.Command {
@@ -68,6 +71,7 @@ func newRootCmd() *cobra.Command {
 	f.BoolVar(&g.noColor, "no-color", false, "disable ANSI colour output")
 	f.BoolVarP(&g.verbose, "verbose", "v", false, "print extra detail")
 	f.BoolVarP(&g.quiet, "quiet", "q", false, "suppress non-error output")
+	f.BoolVarP(&g.yes, "yes", "y", false, "skip confirmation prompts (auto-accept)")
 
 	cmd.AddCommand(
 		newVersionCmd(app),
@@ -75,6 +79,7 @@ func newRootCmd() *cobra.Command {
 		newRegistryCmd(app),
 		newInstallCmd(app),
 		newUninstallCmd(app),
+		newUpdateCmd(app),
 		newListCmd(app),
 		newSearchCmd(app),
 	)
@@ -100,14 +105,17 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 		NoColor: g.noColor,
 		JSON:    g.json,
 	})
+	// JSON mode is inherently non-interactive; callers get machine output.
+	app.Prompt = ui.NewPrompter(g.yes || g.json)
 
 	cfg := Config{
-		RegistryURL:  firstNonEmpty(g.registry, os.Getenv("HUMBLSKILLS_REGISTRY"), registry.DefaultURL),
-		AdaptersDir:  g.adaptersDir,
-		JSON:         g.json,
-		NoColor:      g.noColor,
-		Verbose:      g.verbose,
-		Quiet:        g.quiet,
+		RegistryURL: firstNonEmpty(g.registry, os.Getenv("HUMBLSKILLS_REGISTRY"), registry.DefaultURL),
+		AdaptersDir: g.adaptersDir,
+		JSON:        g.json,
+		NoColor:     g.noColor,
+		Verbose:     g.verbose,
+		Quiet:       g.quiet,
+		Yes:         g.yes,
 	}
 
 	cacheDir, err := resolveCacheDir(firstNonEmpty(g.cacheDir, os.Getenv("HUMBLSKILLS_CACHE_DIR")))
