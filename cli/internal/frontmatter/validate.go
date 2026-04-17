@@ -3,11 +3,15 @@ package frontmatter
 import (
 	"errors"
 	"fmt"
+	"path"
 	"regexp"
 	"strings"
 
 	"golang.org/x/mod/semver"
 )
+
+// winDriveRegex matches Windows drive-prefixed paths like "C:\foo" or "c:/bar".
+var winDriveRegex = regexp.MustCompile(`^[A-Za-z]:`)
 
 // NameRegex is the allowed shape for a skill name.
 var NameRegex = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -135,6 +139,10 @@ func (fm Frontmatter) Validate(dirName string, ctx ValidationContext) error {
 		}
 	}
 
+	if perrs := validatePreserve(fm.Preserve); len(perrs) > 0 {
+		errs = append(errs, perrs...)
+	}
+
 	for _, raw := range fm.Requires {
 		dep, err := ParseDep(raw)
 		if err != nil {
@@ -163,4 +171,109 @@ func (fm Frontmatter) Validate(dirName string, ctx ValidationContext) error {
 		label = dirName
 	}
 	return fmt.Errorf("%s: %s", label, strings.Join(errs, "; "))
+}
+
+// normalizePreserve returns the canonical form used for dedup/overlap checks.
+// It preserves the trailing slash (semantically: dir vs file) but strips
+// leading "./" and collapses repeated internal slashes. The return does not
+// attempt to resolve ".." — those are rejected earlier.
+func normalizePreserve(raw string) string {
+	s := strings.TrimSpace(raw)
+	s = strings.TrimPrefix(s, "./")
+	trailing := strings.HasSuffix(s, "/")
+	// path.Clean drops a trailing slash; recover it if present.
+	cleaned := path.Clean(s)
+	if cleaned == "." {
+		return ""
+	}
+	if trailing {
+		cleaned += "/"
+	}
+	return cleaned
+}
+
+// validatePreserve checks every entry in fm.Preserve for shape violations and
+// returns a list of error strings (empty on success).
+func validatePreserve(entries []string) []string {
+	var errs []string
+	seen := map[string]struct{}{}
+	// dirs accumulates normalized directory entries (with trailing slash kept)
+	// for overlap checks.
+	type norm struct{ raw, clean string }
+	var normalized []norm
+
+	for _, raw := range entries {
+		trimmed := strings.TrimSpace(raw)
+		if trimmed == "" {
+			errs = append(errs, fmt.Sprintf("preserve entry %q is empty", raw))
+			continue
+		}
+		if strings.HasPrefix(trimmed, "/") {
+			errs = append(errs, fmt.Sprintf("preserve entry %q must be a relative path (no leading /)", raw))
+			continue
+		}
+		if winDriveRegex.MatchString(trimmed) {
+			errs = append(errs, fmt.Sprintf("preserve entry %q must not be an absolute path", raw))
+			continue
+		}
+		// Reject ".." segments.
+		segments := strings.Split(trimmed, "/")
+		badSeg := false
+		for _, seg := range segments {
+			if seg == ".." {
+				errs = append(errs, fmt.Sprintf("preserve entry %q must not contain '..' segments", raw))
+				badSeg = true
+				break
+			}
+		}
+		if badSeg {
+			continue
+		}
+
+		clean := normalizePreserve(trimmed)
+		if clean == "" {
+			errs = append(errs, fmt.Sprintf("preserve entry %q normalizes to empty path", raw))
+			continue
+		}
+		if _, dup := seen[clean]; dup {
+			errs = append(errs, fmt.Sprintf("preserve entry %q is a duplicate", raw))
+			continue
+		}
+		seen[clean] = struct{}{}
+		normalized = append(normalized, norm{raw: raw, clean: clean})
+	}
+
+	// Overlap detection: one entry's path is a prefix of another's.
+	for i := 0; i < len(normalized); i++ {
+		for j := i + 1; j < len(normalized); j++ {
+			a, b := normalized[i], normalized[j]
+			if preserveOverlaps(a.clean, b.clean) {
+				errs = append(errs, fmt.Sprintf("preserve entries %q and %q overlap", a.raw, b.raw))
+			}
+		}
+	}
+
+	return errs
+}
+
+// preserveOverlaps reports whether a and b are in a prefix relationship (one
+// covers the other), using normalized forms (trailing slash preserved). Equal
+// strings are not considered overlapping here (dedup catches that).
+func preserveOverlaps(a, b string) bool {
+	if a == b {
+		return false
+	}
+	aPath := strings.TrimSuffix(a, "/")
+	bPath := strings.TrimSuffix(b, "/")
+	if aPath == bPath {
+		// One is "foo", the other "foo/". Treat as overlap.
+		return true
+	}
+	if strings.HasPrefix(bPath, aPath+"/") {
+		return true
+	}
+	if strings.HasPrefix(aPath, bPath+"/") {
+		return true
+	}
+	return false
 }

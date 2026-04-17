@@ -140,6 +140,51 @@ func TestParseDep_Forms(t *testing.T) {
 	}
 }
 
+func TestValidate_PreserveHappy(t *testing.T) {
+	fm := Frontmatter{
+		Name:        "foo",
+		Description: "d",
+		Version:     "0.1.0",
+		Preserve:    []string{"references/log.md", "references/raw/", "references/wiki/"},
+	}
+	if err := fm.Validate("foo", ctxWith(nil)); err != nil {
+		t.Fatalf("unexpected: %v", err)
+	}
+}
+
+func TestValidate_PreserveRejects(t *testing.T) {
+	cases := []struct {
+		name    string
+		entries []string
+		want    string
+	}{
+		{"empty", []string{""}, "is empty"},
+		{"whitespace", []string{"   "}, "is empty"},
+		{"absolute", []string{"/abs/path"}, "relative path"},
+		{"parent-dir", []string{"../x"}, "'..' segments"},
+		{"parent-mid", []string{"foo/../bar"}, "'..' segments"},
+		{"windows-drive", []string{"C:\\x"}, "absolute path"},
+		{"duplicate", []string{"foo.md", "foo.md"}, "duplicate"},
+		{"overlap-dir-file", []string{"wiki/", "wiki/x.md"}, "overlap"},
+		{"overlap-file-dir", []string{"wiki", "wiki/"}, "overlap"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			fm := Frontmatter{
+				Name: "foo", Description: "d", Version: "0.1.0",
+				Preserve: c.entries,
+			}
+			err := fm.Validate("foo", ctxWith(nil))
+			if err == nil {
+				t.Fatalf("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("error %q missing %q", err, c.want)
+			}
+		})
+	}
+}
+
 func TestDepSatisfies(t *testing.T) {
 	cases := []struct {
 		dep        string

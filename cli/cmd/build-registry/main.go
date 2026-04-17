@@ -104,6 +104,7 @@ func run(skillsDir, adaptersDir, outFile, repo, ref, sha string, check bool) err
 			Tags:        p.fm.Tags,
 			Platforms:   p.fm.Platforms,
 			Requires:    p.fm.Requires,
+			Preserve:    p.fm.Preserve,
 			Path:        filepath.ToSlash(filepath.Join(filepath.Base(skillsDir), p.dirName)),
 			DirSHA:      dirSha,
 		})
