@@ -1,0 +1,45 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/cli/humblskills
+/cli/dist/
+/dist/
+coverage.out
+coverage.html
+vendor/
+
+# Build artifacts
+/bin/
+/build/
+
+# goreleaser
+/dist/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Env / local
+.env
+.env.local
+*.local
+
+# Claude Code
+.claude/settings.local.json
