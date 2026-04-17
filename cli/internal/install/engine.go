@@ -169,16 +169,27 @@ func (e *Engine) installOne(
 		pending pending
 		out     Outcome
 		final   string
+		orphan  string // previous install path to clean up (project-scope move)
 	}
 	var toWrite []planTarget
 	var skipped []TargetResult
 	for _, pg := range pendings {
 		dest := filepath.Join(pg.target.Path, skill.Name)
 		existing := m.FindOne(skill.Name, pg.adapter.Name, pg.target.Scope)
+		// Project-scope installs are pinned to the CWD that installed them.
+		// When the manifest entry's path differs from the current resolved
+		// target, treat it as a move: clean up the old location before we
+		// write the new one.
+		orphan := ""
+		if existing != nil && existing.Path != dest {
+			orphan = existing.Path
+		}
+
 		upToDate := existing != nil &&
 			existing.Version == skill.Version &&
 			existing.SourceSHA == reg.Source.SHA &&
-			existing.RegistryRef == skill.DirSHA
+			existing.RegistryRef == skill.DirSHA &&
+			existing.Path == dest
 		if _, err := os.Stat(dest); err != nil {
 			upToDate = false
 		}
@@ -190,11 +201,11 @@ func (e *Engine) installOne(
 				Path: dest, Outcome: OutcomeSkipped,
 			})
 		case upToDate && opts.Force:
-			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeForced, final: dest})
+			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeForced, final: dest, orphan: orphan})
 		case existing != nil:
-			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeReplaced, final: dest})
+			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeReplaced, final: dest, orphan: orphan})
 		default:
-			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeInstalled, final: dest})
+			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeInstalled, final: dest, orphan: orphan})
 		}
 	}
 
@@ -225,6 +236,11 @@ func (e *Engine) installOne(
 
 	results := append([]TargetResult(nil), skipped...)
 	for _, pt := range toWrite {
+		if pt.orphan != "" && pt.orphan != pt.final {
+			if err := os.RemoveAll(pt.orphan); err != nil {
+				return nil, fmt.Errorf("clean old install %s: %w", pt.orphan, err)
+			}
+		}
 		if err := replaceDir(staging, pt.final); err != nil {
 			return nil, fmt.Errorf("place %s: %w", pt.final, err)
 		}

@@ -8,16 +8,23 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/platform"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 )
 
 type doctorReport struct {
-	Adapters  []adapterReport  `json:"adapters"`
-	Manifest  manifestReport   `json:"manifest"`
-	Registry  registryReport   `json:"registry"`
-	Issues    []string         `json:"issues,omitempty"`
+	Adapters []adapterReport `json:"adapters"`
+	Manifest manifestReport  `json:"manifest"`
+	Registry registryReport  `json:"registry"`
+	Updates  updatesReport   `json:"updates"`
+	Issues   []string        `json:"issues,omitempty"`
+}
+
+type updatesReport struct {
+	Count  int      `json:"count"`
+	Skills []string `json:"skills,omitempty"`
 }
 
 type adapterReport struct {
@@ -112,6 +119,14 @@ func runDoctor(app *App) error {
 	rr.Age = info.Age
 	report.Registry = rr
 
+	if mErr == nil && rErr == nil {
+		plans := install.PlanUpdates(reg, m, nil)
+		report.Updates.Count = len(plans)
+		for _, p := range plans {
+			report.Updates.Skills = append(report.Updates.Skills, p.Skill)
+		}
+	}
+
 	if app.Config.JSON {
 		if err := app.UI.JSON(report); err != nil {
 			return err
@@ -183,6 +198,14 @@ func printDoctor(app *App, r doctorReport) {
 		}
 		for _, issue := range r.Registry.DepIssues {
 			app.UI.Warn("dep issue: %s", issue)
+		}
+	}
+
+	if r.Updates.Count > 0 {
+		app.UI.Info("")
+		app.UI.Warn("%d skill%s can be updated — run 'humblskills update'", r.Updates.Count, plural(r.Updates.Count))
+		for _, name := range r.Updates.Skills {
+			app.UI.Detail("  %s", name)
 		}
 	}
 

@@ -182,6 +182,92 @@ func TestEngine_InstallReplaceSkipForce(t *testing.T) {
 	}
 }
 
+func TestEngine_ProjectScopeMovesOldInstall(t *testing.T) {
+	root := t.TempDir()
+	cacheDir := filepath.Join(root, "cache")
+	oldRoot := filepath.Join(root, "old-project", ".claude", "skills")
+	newRoot := filepath.Join(root, "new-project", ".claude", "skills")
+	manifestPath := filepath.Join(root, "manifest.json")
+
+	skillFiles := map[string]string{
+		"skills/foo/SKILL.md": "# foo\n",
+	}
+	onlyFoo := map[string]string{"SKILL.md": "# foo\n"}
+	dirSHA := expectedDirSHA(t, onlyFoo)
+
+	owner, name, sha := "example", "repo", "abcd00000000"
+	seedTarball(t, cacheDir, owner, name, sha, owner+"-"+name+"-abc1234", skillFiles)
+
+	reg := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/example/repo", SHA: sha},
+		Skills: []registry.Skill{{
+			Name: "foo", Version: "0.1.0", Path: "skills/foo",
+			Platforms: []string{"test"}, DirSHA: dirSHA,
+		}},
+	}
+
+	// Pre-seed manifest and on-disk content at an old project location.
+	oldPath := filepath.Join(oldRoot, "foo")
+	if err := os.MkdirAll(oldPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(oldPath, "SKILL.md"), []byte("# foo\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m := &manifest.Manifest{SchemaVersion: manifest.SchemaVersion}
+	m.Upsert(manifest.Installation{
+		Skill: "foo", Version: "0.1.0", Platform: "test", Scope: "project",
+		Path: oldPath, InstalledAt: time.Unix(1700000000, 0).UTC(),
+		SourceSHA: sha, RegistryRef: dirSHA,
+	})
+	if err := manifest.Save(manifestPath, m); err != nil {
+		t.Fatal(err)
+	}
+
+	// Adapter now resolves project-scope to a DIFFERENT path (simulates
+	// running from a new CWD).
+	adapter := platform.Adapter{
+		Name:           "test",
+		InstallTargets: map[string]string{"project": newRoot},
+		DefaultScope:   "project",
+	}
+
+	engine := NewEngine(cacheDir, manifestPath)
+	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
+	plan, err := Plan(reg, "foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := engine.Execute(reg, plan, ExecuteOpts{
+		Adapters:  []platform.Adapter{adapter},
+		Platforms: []string{"test"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Results) != 1 {
+		t.Fatalf("expected 1 result, got %+v", res.Results)
+	}
+	// Old path should be gone.
+	if _, err := os.Stat(oldPath); err == nil {
+		t.Error("old install path should have been removed")
+	}
+	// New path should contain the skill.
+	if _, err := os.Stat(filepath.Join(newRoot, "foo", "SKILL.md")); err != nil {
+		t.Errorf("new install path not written: %v", err)
+	}
+	// Manifest entry should point at the new path.
+	m2, err := manifest.Load(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inst := m2.FindOne("foo", "test", "project")
+	if inst == nil || inst.Path != filepath.Join(newRoot, "foo") {
+		t.Errorf("manifest path not migrated: %+v", inst)
+	}
+}
+
 func TestEngine_DirSHAMismatchFails(t *testing.T) {
 	root := t.TempDir()
 	cacheDir := filepath.Join(root, "cache")
