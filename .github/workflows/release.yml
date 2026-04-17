@@ -1,0 +1,54 @@
+name: Release
+
+# We tag releases as plain semver (e.g. `v0.1.0`). The workflow also pushes a
+# sibling tag `cli/v0.1.0` on the same commit so Go's nested-module
+# resolution works for `go install github.com/jjfantini/humblSKILLS/cli/...`.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  tag-cli-module:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push sibling cli/* tag for go install
+        run: |
+          set -eu
+          ver="${GITHUB_REF_NAME}"                # e.g. v0.1.0
+          sibling="cli/${ver}"                    # e.g. cli/v0.1.0
+          if git rev-parse -q --verify "refs/tags/${sibling}" >/dev/null; then
+            echo "sibling tag ${sibling} already exists — skipping"
+            exit 0
+          fi
+          git tag "${sibling}" "${GITHUB_SHA}"
+          git push origin "${sibling}"
+
+  goreleaser:
+    needs: tag-cli-module
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache-dependency-path: cli/go.sum
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

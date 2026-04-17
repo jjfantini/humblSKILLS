@@ -1,0 +1,66 @@
+version: 2
+
+project_name: humblskills
+
+before:
+  hooks:
+    - go -C cli mod tidy
+
+builds:
+  - id: humblskills
+    # The CLI lives in a nested Go module (cli/go.mod); run the build from
+    # inside it so module resolution works.
+    dir: cli
+    main: ./cmd/humblskills
+    binary: humblskills
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .ShortCommit }}
+
+archives:
+  - id: default
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_
+      {{- if eq .Os "darwin" }}macos
+      {{- else }}{{ .Os }}{{ end }}_
+      {{- .Arch }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: checksums.txt
+
+release:
+  github:
+    owner: jjfantini
+    name: humblSKILLS
+  draft: false
+  prerelease: auto
+  header: |
+    ## humblskills {{ .Version }}
+
+    Install:
+    - Shell: `curl -fsSL https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/scripts/install.sh | sh`
+    - Go: `go install github.com/jjfantini/humblSKILLS/cli/cmd/humblskills@v{{ .Version }}`
+    - Or download an archive for your platform below.
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore:"
+      - "^test:"
+      - "Merge pull request"
