@@ -35,6 +35,9 @@ jobs:
   goreleaser:
     needs: tag-cli-module
     runs-on: ubuntu-latest
+    # The `release` environment gates the Homebrew tap PAT. Add
+    # HOMEBREW_TAP_TOKEN as an environment secret in repo settings.
+    environment: release
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,3 +55,4 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}

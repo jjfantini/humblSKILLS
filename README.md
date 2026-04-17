@@ -49,9 +49,14 @@ Grab the archive for your platform from the
 
 Each release also publishes `checksums.txt` with SHA-256 sums.
 
-### Homebrew
+### Homebrew (Linux/macOS)
 
-Coming soon.
+```sh
+brew install jjfantini/humbl/humblskills
+```
+
+Formulas live in [`jjfantini/homebrew-humbl`](https://github.com/jjfantini/homebrew-humbl)
+and are bumped automatically by the release workflow.
 
 ## Quickstart
 
