@@ -1,47 +1,90 @@
-name: Release
+name: release
 
-# We tag releases as plain semver (e.g. `v0.1.0`). The workflow also pushes a
-# sibling tag `cli/v0.1.0` on the same commit so Go's nested-module
-# resolution works for `go install github.com/jjfantini/humblSKILLS/cli/...`.
+# Single entry-point release pipeline.
+#
+# Automated path (push: main):
+#   release-please accumulates conventional commits into a Release PR. When
+#   that Release PR is merged, release-please creates the `vX.Y.Z` tag and
+#   this same workflow run continues into goreleaser - publishing binaries
+#   and updating the `jjfantini/homebrew-humbl` tap.
+#
+# Manual backfill (workflow_dispatch):
+#   Re-run goreleaser against an existing tag. Skips release-please so no
+#   spurious Release PR is opened.
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)release, e.g. v0.2.0. Used to backfill binaries + Homebrew formula."
+        required: true
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
-  tag-cli-module:
+  release_please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.rp.outputs.release_created }}
+      tag_name: ${{ steps.rp.outputs.tag_name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: googleapis/release-please-action@v4
+        id: rp
         with:
-          fetch-depth: 0
-
-      - name: Push sibling cli/* tag for go install
-        run: |
-          set -eu
-          ver="${GITHUB_REF_NAME}"                # e.g. v0.1.0
-          sibling="cli/${ver}"                    # e.g. cli/v0.1.0
-          if git rev-parse -q --verify "refs/tags/${sibling}" >/dev/null; then
-            echo "sibling tag ${sibling} already exists — skipping"
-            exit 0
-          fi
-          git tag "${sibling}" "${GITHUB_SHA}"
-          git push origin "${sibling}"
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
 
   goreleaser:
-    needs: tag-cli-module
+    needs: release_please
+    # `always()` is required so this job still runs when `release_please` is
+    # skipped on the workflow_dispatch path; otherwise a skipped need would
+    # propagate as skipped here too.
+    if: |
+      always() && (
+        (github.event_name == 'push' && needs.release_please.outputs.release_created == 'true') ||
+        github.event_name == 'workflow_dispatch'
+      )
     runs-on: ubuntu-latest
-    # The `release` environment gates the Homebrew tap PAT. Add
-    # HOMEBREW_TAP_TOKEN as an environment secret in repo settings.
+    # The `release` environment gates the Homebrew tap PAT. HOMEBREW_TAP_TOKEN
+    # is configured as an environment secret in repo settings.
     environment: release
+    permissions:
+      contents: write
     steps:
+      - name: Resolve tag
+        id: resolve
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ needs.release_please.outputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ steps.resolve.outputs.tag }}
+
+      - name: Push sibling cli/* tag for go install
+        # Go's nested-module resolution requires `cli/vX.Y.Z` to exist on the
+        # same commit as `vX.Y.Z` so `go install github.com/jjfantini/humblSKILLS/cli/...`
+        # works.
+        run: |
+          set -eu
+          ver="${{ steps.resolve.outputs.tag }}"
+          sibling="cli/${ver}"
+          if git rev-parse -q --verify "refs/tags/${sibling}" >/dev/null; then
+            echo "sibling tag ${sibling} already exists - skipping"
+            exit 0
+          fi
+          git tag "${sibling}" HEAD
+          git push origin "${sibling}"
 
       - uses: actions/setup-go@v5
         with:
