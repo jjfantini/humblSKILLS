@@ -197,10 +197,7 @@ func normalizePreserve(raw string) string {
 func validatePreserve(entries []string) []string {
 	var errs []string
 	seen := map[string]struct{}{}
-	// dirs accumulates normalized directory entries (with trailing slash kept)
-	// for overlap checks.
-	type norm struct{ raw, clean string }
-	var normalized []norm
+	var normalized []struct{ raw, clean string }
 
 	for _, raw := range entries {
 		trimmed := strings.TrimSpace(raw)
@@ -240,7 +237,7 @@ func validatePreserve(entries []string) []string {
 			continue
 		}
 		seen[clean] = struct{}{}
-		normalized = append(normalized, norm{raw: raw, clean: clean})
+		normalized = append(normalized, struct{ raw, clean string }{raw: raw, clean: clean})
 	}
 
 	// Overlap detection: one entry's path is a prefix of another's.

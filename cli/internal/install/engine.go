@@ -167,11 +167,11 @@ func (e *Engine) installOne(
 	// Pre-compute which targets actually need the extract + copy. If none do,
 	// we skip the tarball fetch entirely so repeated no-op installs are fast.
 	type planTarget struct {
-		pending  pending
-		out      Outcome
-		final    string
-		orphan   string // previous install path to clean up (project-scope move)
-		existing *manifest.Installation
+		pending      pending
+		out          Outcome
+		final        string
+		orphan       string // previous install path to clean up (project-scope move)
+		existingPath string // manifest-recorded previous path, used as preserve source
 	}
 	var toWrite []planTarget
 	var skipped []TargetResult
@@ -196,6 +196,10 @@ func (e *Engine) installOne(
 			upToDate = false
 		}
 
+		existingPath := ""
+		if existing != nil {
+			existingPath = existing.Path
+		}
 		switch {
 		case upToDate && !opts.Force:
 			skipped = append(skipped, TargetResult{
@@ -203,11 +207,11 @@ func (e *Engine) installOne(
 				Path: dest, Outcome: OutcomeSkipped,
 			})
 		case upToDate && opts.Force:
-			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeForced, final: dest, orphan: orphan, existing: existing})
+			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeForced, final: dest, orphan: orphan, existingPath: existingPath})
 		case existing != nil:
-			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeReplaced, final: dest, orphan: orphan, existing: existing})
+			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeReplaced, final: dest, orphan: orphan, existingPath: existingPath})
 		default:
-			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeInstalled, final: dest, orphan: orphan, existing: existing})
+			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeInstalled, final: dest, orphan: orphan, existingPath: existingPath})
 		}
 	}
 
@@ -238,46 +242,25 @@ func (e *Engine) installOne(
 
 	results := append([]TargetResult(nil), skipped...)
 	for _, pt := range toWrite {
-		preserveActive := len(skill.Preserve) > 0 && pt.existing != nil
-
-		// Pick the source root for preserved content. For scope moves the
-		// previous path is cleaned up below, so we need to snapshot from
-		// there before removal. Otherwise the current final path is the
-		// on-disk version the user has been editing.
-		preserveSrc := ""
-		if preserveActive {
-			if pt.orphan != "" && pt.orphan != pt.final {
-				if _, err := os.Stat(pt.orphan); err == nil {
-					preserveSrc = pt.orphan
-				}
-			}
-			if preserveSrc == "" {
-				if _, err := os.Stat(pt.final); err == nil {
-					preserveSrc = pt.final
-				}
-			}
-		}
-
-		// When preserve is active, copy the shared staging into a
-		// per-target staging dir and merge preserved content into it,
-		// leaving the shared staging untouched for subsequent targets.
+		// When preserve is active, build a per-target copy of staging with
+		// user content merged in, leaving the shared staging pristine for
+		// sibling targets. pt.existingPath is the authoritative previous
+		// location whether this is a normal replace or a scope move.
 		writeSrc := staging
-		var perTarget string
-		if preserveActive {
-			perTarget = filepath.Join(
+		if len(skill.Preserve) > 0 && pt.existingPath != "" {
+			perTarget := filepath.Join(
 				e.StagingDir,
 				skill.Name+"-"+shortSHA(reg.Source.SHA)+"-"+pt.pending.adapter.Name+"-"+pt.pending.target.Scope,
 			)
 			if err := os.RemoveAll(perTarget); err != nil {
 				return nil, fmt.Errorf("clean per-target staging: %w", err)
 			}
+			defer os.RemoveAll(perTarget)
 			if err := copyTree(staging, perTarget); err != nil {
 				return nil, fmt.Errorf("copy per-target staging: %w", err)
 			}
-			if preserveSrc != "" {
-				if err := applyPreserve(preserveSrc, perTarget, skill.Preserve); err != nil {
-					return nil, err
-				}
+			if err := applyPreserve(pt.existingPath, perTarget, skill.Preserve); err != nil {
+				return nil, err
 			}
 			writeSrc = perTarget
 		}
@@ -289,9 +272,6 @@ func (e *Engine) installOne(
 		}
 		if err := replaceDir(writeSrc, pt.final); err != nil {
 			return nil, fmt.Errorf("place %s: %w", pt.final, err)
-		}
-		if perTarget != "" {
-			_ = os.RemoveAll(perTarget)
 		}
 		m.Upsert(manifest.Installation{
 			Skill:       skill.Name,
@@ -457,9 +437,6 @@ func applyPreserve(userRoot, stagingRoot string, entries []string) error {
 		if fi.IsDir() {
 			return fmt.Errorf("preserve: entry %q declares a file but %s is a directory", raw, srcAbs)
 		}
-		if err := os.MkdirAll(filepath.Dir(dstAbs), 0o755); err != nil {
-			return fmt.Errorf("preserve mkdir %s: %w", filepath.Dir(dstAbs), err)
-		}
 		if err := copyFile(srcAbs, dstAbs, fi.Mode()&0o777); err != nil {
 			return fmt.Errorf("preserve copy %s: %w", srcAbs, err)
 		}
@@ -487,8 +464,6 @@ func preserveMergeDir(userDir, dstDir string) error {
 			return fmt.Errorf("preserve: refusing to follow symlink %s", p)
 		}
 		if fi.IsDir() {
-			// Only create the dir if it does not already exist — leave
-			// staging-shipped dirs (and their contents) intact.
 			if _, err := os.Stat(dst); err == nil {
 				return nil
 			}
@@ -497,9 +472,6 @@ func preserveMergeDir(userDir, dstDir string) error {
 		if _, err := os.Stat(dst); err == nil {
 			// Staging already ships this file; staging wins.
 			return nil
-		}
-		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-			return err
 		}
 		return copyFile(p, dst, fi.Mode()&0o777)
 	})
