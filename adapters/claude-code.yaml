@@ -1,0 +1,10 @@
+name: claude-code
+detect:
+  any_of:
+    - path_exists: ~/.claude
+    - env: CLAUDE_HOME
+install_targets:
+  user: ~/.claude/skills
+  project: .claude/skills
+default_scope: user
+transform: passthrough
