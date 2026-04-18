@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/jjfantini/humblSKILLS/compare/v0.5.0...v0.6.0) (2026-04-18)
+
+
+### Features
+
+* **cli:** unify every command on the Tokyo Night two-pane TUI ([#18](https://github.com/jjfantini/humblSKILLS/issues/18)) ([d2803be](https://github.com/jjfantini/humblSKILLS/commit/d2803befc279a4ab22f1aa04e268db253a27f670))
+
 ## [0.5.0](https://github.com/jjfantini/humblSKILLS/compare/v0.4.0...v0.5.0) (2026-04-18)
 
 
