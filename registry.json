@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-17T22:14:20Z",
+  "generated_at": "2026-04-17T22:52:21Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "0c5f845097bd65903c682b8a38f0ebb8663b1247"
+    "sha": "9f86db4214c0fcc7e776bc699f4ba122c639a540"
   },
   "skills": [
     {
@@ -56,6 +56,28 @@
       ],
       "path": "skills/skill-example-with-dep",
       "dir_sha": "eeb1e631223930fa5a0cd19033e7ba6b36b53a64b40d820b15e2424b00806b57"
+    },
+    {
+      "name": "use-smart-skill",
+      "version": "1.0.0",
+      "description": "Create new Smart Skills (CCCCC-structured: Core / Context / Category / Concept / Command) with an embedded self-learning brain. Provides scaffold and lint scripts, templates, and step-by-step workflows. Use when creating a skill, scaffolding a skill, migrating a flat skill, refactoring skill structure, adding self-learning memory to a skill, or when a SKILL.md exceeds ~300 lines.\n",
+      "tags": [
+        "meta",
+        "skill-authoring",
+        "smart-skill",
+        "scaffolding"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor"
+      ],
+      "preserve": [
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/use-smart-skill",
+      "dir_sha": "81b3994dc9768b5d8461acf744026e3605d5c50434969d54f475d2bdc00ae64b"
     }
   ]
 }
