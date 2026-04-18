@@ -299,7 +299,9 @@ func (m Model) View() string {
 	if m.cfg.FocusedLabel != nil {
 		focused = m.cfg.FocusedLabel(m.items, m.cursor)
 	} else if len(m.items) > 0 {
-		focused = "focused: " + m.items[m.cursor].Key()
+		// "focused:" stays muted; the value (item key) renders in the
+		// magenta brand colour to match the design.
+		focused = th.Meta.Render("focused: ") + th.Brand.Render(m.items[m.cursor].Key())
 	}
 	footer := Footer(th, m.hints(), focused, m.width)
 
@@ -315,37 +317,58 @@ func (m Model) renderBody(leftW, rightW int) string {
 	divider := m.renderDivider()
 	right := m.renderRight(rightW)
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, "  "+left, " "+divider+" ", right)
+	return lipgloss.JoinHorizontal(lipgloss.Top, left, " "+divider+" ", right)
 }
 
 func (m Model) renderLeft(width int) string {
 	th := m.cfg.Theme
 
+	// Every line in the left block is padded to exactly `width` cells so
+	// lipgloss.JoinHorizontal lines the divider up at a fixed x regardless of
+	// which row has the longest content.
+	pad := func(s string) string {
+		w := lipgloss.Width(s)
+		if w >= width {
+			return s
+		}
+		return s + strings.Repeat(" ", width-w)
+	}
+
 	var title string
 	if m.filtOn {
 		m.filter.Width = width - 2
-		title = m.filter.View()
+		title = "  " + m.filter.View()
 	} else {
-		title = th.SectionTitle.Render(spacedUpper(m.cfg.LeftTitle))
+		title = "  " + th.SectionTitle.Render(spacedUpper(m.cfg.LeftTitle))
 	}
 
 	if len(m.items) == 0 {
-		empty := th.Detail.Render(firstNonEmpty(m.cfg.EmptyMsg, "— no items —"))
-		return title + "\n\n" + padLeft(empty, width)
+		empty := "  " + th.Detail.Render(firstNonEmpty(m.cfg.EmptyMsg, "— no items —"))
+		return pad(title) + "\n\n" + pad(empty)
 	}
 
 	var sb strings.Builder
-	sb.WriteString(title)
+	sb.WriteString(pad(title))
 	sb.WriteString("\n\n")
 	for i, it := range m.items {
 		selected := i == m.cursor
 		row := it.Row(th, width-2, selected)
+		// Pad the row body (minus the leading bar/gutter) to width-2.
+		rowW := lipgloss.Width(row)
+		if rowW < width-2 {
+			row += strings.Repeat(" ", width-2-rowW)
+		}
+		var line string
 		if selected {
 			bar := th.Bullet.Render("▌")
-			sb.WriteString(bar + " " + row)
+			// Wrap the content + padding in RowBg so the highlight fills
+			// every cell from just after the bar to the divider. The bar
+			// itself sits outside the highlight band, matching the design.
+			line = bar + th.RowBg.Render(" "+row)
 		} else {
-			sb.WriteString("  " + row)
+			line = "  " + row
 		}
+		sb.WriteString(line)
 		if i < len(m.items)-1 {
 			sb.WriteString("\n")
 		}

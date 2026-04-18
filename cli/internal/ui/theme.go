@@ -104,9 +104,10 @@ type Theme struct {
 	SectionTitle lipgloss.Style // uppercase comment header in each pane
 
 	// Row rendering.
-	RowSelected   lipgloss.Style // bg-hl bg, magenta fg, bold
+	RowSelected   lipgloss.Style // magenta fg, bold (inherits parent bg)
 	RowUnselected lipgloss.Style
 	RowDim        lipgloss.Style // comment-colour (missing/unavailable)
+	RowBg         lipgloss.Style // bg-hl full-row background for the cursor row
 	Bullet        lipgloss.Style // magenta ▌ bar
 	DotOK         lipgloss.Style // green ●
 	DotNo         lipgloss.Style // red ●
@@ -182,10 +183,12 @@ func buildTheme(p Palette, r *lipgloss.Renderer) *Theme {
 	t.Divider = r.NewStyle().Foreground(p.Border)
 	t.SectionTitle = r.NewStyle().Foreground(p.Comment).Bold(true)
 
-	// Rows.
-	t.RowSelected = r.NewStyle().Background(p.BGHL).Foreground(p.Magenta).Bold(true)
+	// Rows. RowSelected is applied to the name text only; RowBg wraps the
+	// full row so the highlight fills edge-to-edge through any padding gaps.
+	t.RowSelected = r.NewStyle().Foreground(p.Magenta).Bold(true)
 	t.RowUnselected = r.NewStyle().Foreground(p.FG)
 	t.RowDim = r.NewStyle().Foreground(p.Comment)
+	t.RowBg = r.NewStyle().Background(p.BGHL)
 	t.Bullet = r.NewStyle().Foreground(p.Magenta).Bold(true)
 	t.DotOK = r.NewStyle().Foreground(p.Green)
 	t.DotNo = r.NewStyle().Foreground(p.Red)
