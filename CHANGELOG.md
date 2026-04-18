@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/jjfantini/humblSKILLS/compare/v0.6.0...v0.6.1) (2026-04-18)
+
+
+### Bug Fixes
+
+* **cli:** align two-pane divider and fill selected row ([#20](https://github.com/jjfantini/humblSKILLS/issues/20)) ([cbdc6cb](https://github.com/jjfantini/humblSKILLS/commit/cbdc6cbb36b2f52ffcb6c04f2a3988676bfc428c))
+
 ## [0.6.0](https://github.com/jjfantini/humblSKILLS/compare/v0.5.0...v0.6.0) (2026-04-18)
 
 
