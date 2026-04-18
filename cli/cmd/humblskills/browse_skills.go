@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
+
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
@@ -36,6 +38,25 @@ func (s skillItem) FilterValue() string {
 	return strings.ToLower(s.s.Name + " " + strings.Join(s.s.Tags, " ") + " " + s.s.Description)
 }
 
+// NaturalWidth reports the row's display width: dot + space + name + 2-gap
+// + version + (optional: 2-gap + badge). Kept in lockstep with Row so the
+// two-pane model can size the left column to actual content.
+func (s skillItem) NaturalWidth(th *ui.Theme) int {
+	versionW := lipgloss.Width("v" + s.s.Version)
+	// 1 (dot) + 1 (space) + name + 2 (gap) + version.
+	w := 1 + 1 + lipgloss.Width(s.s.Name) + 2 + versionW
+	var badge string
+	if s.outdated {
+		badge = tui.Badge(th, tui.BadgeRO, "outdated")
+	} else if s.installed != nil {
+		badge = tui.Badge(th, tui.BadgeDetected, "installed")
+	}
+	if badge != "" {
+		w += 2 + lipgloss.Width(badge)
+	}
+	return w
+}
+
 func (s skillItem) Row(th *ui.Theme, width int, selected bool) string {
 	var dot string
 	if s.installed != nil {
@@ -60,7 +81,14 @@ func (s skillItem) Row(th *ui.Theme, width int, selected bool) string {
 		badge = tui.Badge(th, tui.BadgeDetected, "installed")
 	}
 	if badge == "" {
-		return left
+		// Pad to width so unbadged rows end at the same column as badged
+		// ones — otherwise the divider snaps to the widest row and loses
+		// alignment between the header rule and the body divider.
+		lw := lipgloss.Width(left)
+		if lw >= width {
+			return left
+		}
+		return left + strings.Repeat(" ", width-lw)
 	}
 	return rowWithTrailingBadge(left, badge, width)
 }

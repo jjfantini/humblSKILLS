@@ -30,6 +30,21 @@ type Item interface {
 	FilterValue() string
 }
 
+// SizedItem is an optional Item extension that reports the item's *natural*
+// left-pane width (in display cells, NOT including the 2-cell gutter the
+// model prepends). Items that implement it let the pane snug the divider to
+// the content; items that don't fall back to a safe default.
+//
+// Why an interface instead of measuring Row output: Row() renders with ANSI
+// styling (badges with Padding/Background leave trailing `\x1b[0m` rather
+// than literal spaces), so strings.TrimRight can't recover the natural width
+// from a padded render. Letting the item compute its own width directly
+// sidesteps that entirely.
+type SizedItem interface {
+	Item
+	NaturalWidth(theme *ui.Theme) int
+}
+
 // ActionSpec binds a key to a caller-named action. Pressing Key while an item
 // is highlighted exits the model with Result{Action, Item}.
 type ActionSpec struct {
@@ -250,27 +265,35 @@ func (m Model) paneWidths() (left, right int) {
 	return left, right
 }
 
-// measureLeftWidth computes the natural width of the widest row (dot + name
-// + trailing badge), adds 2 cells for the leading gutter, and caps the result
-// at a sensible upper bound. This keeps the divider snug against the content
-// instead of parking it at a fixed 32-col offset regardless of how short the
-// rows actually are.
+// measureLeftWidth computes the natural left-pane width in display cells:
+// the max of (section-title width, widest item's NaturalWidth), plus a
+// 2-cell gutter, clamped to [minW, maxW].
+//
+// Items that don't implement SizedItem contribute the fallback width — we
+// can't infer their natural width from Row() because the rendered string
+// includes ANSI reset sequences that defeat trailing-space trimming. Every
+// Item type in this codebase implements SizedItem; the fallback only matters
+// for third-party embedders.
 func (m Model) measureLeftWidth() int {
 	th := m.cfg.Theme
-	const minW, maxW = 22, 32
+	const (
+		minW     = 22
+		maxW     = 36
+		fallback = 30
+		gutter   = 2 // "  " or "▌ " before the row body
+	)
 	widest := minW
-	// Include the section title so very short rows still leave room for the
-	// "ADAPTERS" / "CHECKS" / "SKILLS" header.
-	if w := lipgloss.Width(th.SectionTitle.Render(spacedUpper(m.cfg.LeftTitle))) + 4; w > widest {
+	if w := lipgloss.Width(th.SectionTitle.Render(spacedUpper(m.cfg.LeftTitle))) + gutter; w > widest {
 		widest = w
 	}
-	// Call each Row with a generous width; the item pads to the requested
-	// width via rowWithTrailingBadge, so the rendered string IS the natural
-	// width when trimmed of trailing spaces.
 	for _, it := range m.cfg.Items {
-		r := it.Row(th, 120, false)
-		r = strings.TrimRight(r, " ")
-		if w := lipgloss.Width(r) + 2; w > widest {
+		var natural int
+		if si, ok := it.(SizedItem); ok {
+			natural = si.NaturalWidth(th)
+		} else {
+			natural = fallback
+		}
+		if w := natural + gutter; w > widest {
 			widest = w
 		}
 	}

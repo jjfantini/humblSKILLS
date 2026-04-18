@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
@@ -207,6 +208,12 @@ type updatePlanItem struct{ p install.UpdatePlan }
 func (u updatePlanItem) Key() string { return u.p.Skill }
 func (u updatePlanItem) FilterValue() string {
 	return strings.ToLower(u.p.Skill)
+}
+func (u updatePlanItem) NaturalWidth(th *ui.Theme) int {
+	ver := u.p.FromVersion + " → " + u.p.ToVersion
+	badge := tui.Badge(th, tui.BadgeRO, fmt.Sprintf("%d target%s", len(u.p.Targets), plural(len(u.p.Targets))))
+	// 1 (arrow) + 1 (space) + skill + 2 (gap) + version + 2 (gap) + badge.
+	return 1 + 1 + lipgloss.Width(u.p.Skill) + 2 + lipgloss.Width(ver) + 2 + lipgloss.Width(badge)
 }
 func (u updatePlanItem) Row(th *ui.Theme, width int, selected bool) string {
 	arrow := th.DotWarn.Render("↑")

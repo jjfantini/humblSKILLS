@@ -265,6 +265,10 @@ type adapterItem struct{ a adapterReport }
 
 func (a adapterItem) Key() string         { return a.a.Name }
 func (a adapterItem) FilterValue() string { return a.a.Name + " " + a.a.Reason }
+func (a adapterItem) NaturalWidth(th *ui.Theme) int {
+	badge := tui.Badge(th, tui.BadgeMissing, "detected") // both "detected" and "missing" are 8 glyphs; pad puts them at identical width
+	return rowNaturalWidth(a.a.Name, lipgloss.Width(badge))
+}
 func (a adapterItem) Row(th *ui.Theme, width int, selected bool) string {
 	var dot, badge string
 	if a.a.Detected {
@@ -311,6 +315,10 @@ type manifestItem struct {
 
 func (m manifestItem) Key() string         { return "manifest" }
 func (m manifestItem) FilterValue() string { return "manifest " + m.m.Path }
+func (m manifestItem) NaturalWidth(th *ui.Theme) int {
+	badge := tui.Badge(th, tui.BadgeMissing, "error") // "error" is the wider of {"ok","error"}
+	return rowNaturalWidth("manifest", lipgloss.Width(badge))
+}
 func (m manifestItem) Row(th *ui.Theme, width int, selected bool) string {
 	ok := m.issue == ""
 	var dot, badge string
@@ -343,6 +351,18 @@ type registryItem struct{ reg registryReport }
 
 func (r registryItem) Key() string         { return "registry" }
 func (r registryItem) FilterValue() string { return "registry " + r.reg.URL }
+func (r registryItem) NaturalWidth(th *ui.Theme) int {
+	var badge string
+	switch {
+	case r.reg.Error != "":
+		badge = tui.Badge(th, tui.BadgeMissing, "unreachable")
+	case len(r.reg.DepIssues) > 0:
+		badge = tui.Badge(th, tui.BadgeRO, "issues")
+	default:
+		badge = tui.Badge(th, tui.BadgeDetected, fmt.Sprintf("%d skills", r.reg.Skills))
+	}
+	return rowNaturalWidth("registry", lipgloss.Width(badge))
+}
 func (r registryItem) Row(th *ui.Theme, width int, selected bool) string {
 	ok := r.reg.Error == "" && len(r.reg.DepIssues) == 0
 	var dot, badge string
@@ -381,6 +401,15 @@ type updatesItem struct{ u updatesReport }
 
 func (u updatesItem) Key() string         { return "updates" }
 func (u updatesItem) FilterValue() string { return "updates" }
+func (u updatesItem) NaturalWidth(th *ui.Theme) int {
+	var badge string
+	if u.u.Count == 0 {
+		badge = tui.Badge(th, tui.BadgeDetected, "up-to-date")
+	} else {
+		badge = tui.Badge(th, tui.BadgeRO, fmt.Sprintf("%d outdated", u.u.Count))
+	}
+	return rowNaturalWidth("updates", lipgloss.Width(badge))
+}
 func (u updatesItem) Row(th *ui.Theme, width int, selected bool) string {
 	var dot, badge string
 	if u.u.Count == 0 {
@@ -423,6 +452,16 @@ func rowName(th *ui.Theme, name string, selected, enabled bool) string {
 	default:
 		return th.RowUnselected.Render(name)
 	}
+}
+
+// rowNaturalWidth returns the natural display width of a left-pane row whose
+// body reads `● <label>  <badge>`: 1 dot + 1 space + the label's display
+// width + 2 gap + the badge's display width. Items pass this up through
+// SizedItem.NaturalWidth so the two-pane model can size the left column to
+// the actual content instead of clamping to a hard-coded width.
+func rowNaturalWidth(label string, badgeWidth int) int {
+	// 1 (dot) + 1 (space) + label + 2 (gap) + badge.
+	return 1 + 1 + lipgloss.Width(label) + 2 + badgeWidth
 }
 
 // rowWithTrailingBadge lays out a left-anchored label and a right-anchored
