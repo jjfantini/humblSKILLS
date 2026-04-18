@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/jjfantini/humblSKILLS/compare/v0.6.1...v0.6.2) (2026-04-18)
+
+
+### Bug Fixes
+
+* **cli:** tighten left pane + transparent selection for light mode ([#22](https://github.com/jjfantini/humblSKILLS/issues/22)) ([a12ccf1](https://github.com/jjfantini/humblSKILLS/commit/a12ccf14d735f51d4d013c511c82c66e2424ac7f))
+
 ## [0.6.1](https://github.com/jjfantini/humblSKILLS/compare/v0.6.0...v0.6.1) (2026-04-18)
 
 
