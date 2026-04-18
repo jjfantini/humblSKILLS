@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/jjfantini/humblSKILLS/compare/v0.2.0...v0.3.0) (2026-04-18)
+
+
+### Features
+
+* **skills:** add use-smart-skill ([6e65535](https://github.com/jjfantini/humblSKILLS/commit/6e65535dec39388e4bcbb38d251596f60e3cb6dc))
+
 ## [0.2.0](https://github.com/jjfantini/humblSKILLS/compare/v0.1.1...v0.2.0) (2026-04-17)
 
 
