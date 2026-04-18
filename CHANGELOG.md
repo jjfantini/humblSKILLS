@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.3](https://github.com/jjfantini/humblSKILLS/compare/v0.6.2...v0.6.3) (2026-04-18)
+
+
+### Bug Fixes
+
+* **cli:** size left pane via SizedItem natural width ([#24](https://github.com/jjfantini/humblSKILLS/issues/24)) ([9fc6fb6](https://github.com/jjfantini/humblSKILLS/commit/9fc6fb60797790a4aee09a8468d4f83e7eb684c4))
+
 ## [0.6.2](https://github.com/jjfantini/humblSKILLS/compare/v0.6.1...v0.6.2) (2026-04-18)
 
 
