@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/jjfantini/humblSKILLS/compare/v0.4.0...v0.5.0) (2026-04-18)
+
+
+### Features
+
+* **cli:** unified TUI chrome with bubbletea browse, wizards, and progress ([#16](https://github.com/jjfantini/humblSKILLS/issues/16)) ([9fd5b09](https://github.com/jjfantini/humblSKILLS/commit/9fd5b09cccc773ff1f8e185a530a765a4acf9efe))
+
 ## [0.4.0](https://github.com/jjfantini/humblSKILLS/compare/v0.3.0...v0.4.0) (2026-04-18)
 
 
