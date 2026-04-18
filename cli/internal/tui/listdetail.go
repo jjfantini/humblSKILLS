@@ -241,8 +241,10 @@ func (m *Model) resize() {
 		bodyH = 5
 	}
 	_, rightW := m.paneWidths()
-	m.preview.Width = rightW
-	m.preview.Height = bodyH - 1 // leave a line for the right-pane section title
+	// Right pane reserves its first 2 cols for `│ ` — the body divider and
+	// a 1-cell gutter before the actual detail content.
+	m.preview.Width = rightW - 2
+	m.preview.Height = bodyH - 2 // title row + blank row under the title
 }
 
 func (m Model) paneWidths() (left, right int) {
@@ -257,8 +259,12 @@ func (m Model) paneWidths() (left, right int) {
 	if left < 22 {
 		left = 22
 	}
-	// Separator is " │ " (3 cols): 1 space, divider, 1 space.
-	right = m.width - left - 3
+	// No separator column between panes: the right pane owns its own `│`
+	// prefix, so col `leftW` is *the* divider column for every body row
+	// AND the column where `DETAIL` starts on the title row. That's the
+	// alignment the user asked for: one continuous vertical line from the
+	// D of DETAIL down through every `│` below it.
+	right = m.width - left
 	if right < 20 {
 		right = 20
 	}
@@ -278,9 +284,11 @@ func (m Model) measureLeftWidth() int {
 	th := m.cfg.Theme
 	const (
 		minW     = 22
-		maxW     = 36
+		maxW     = 40
 		fallback = 30
-		gutter   = 2 // "  " or "▌ " before the row body
+		// 2 leading + 1 trailing: "  row " so the widest row ends one cell
+		// before `│` and the divider column gets a sliver of breathing room.
+		gutter = 3
 	)
 	widest := minW
 	if w := lipgloss.Width(th.SectionTitle.Render(spacedUpper(m.cfg.LeftTitle))) + gutter; w > widest {
@@ -375,10 +383,11 @@ func (m Model) View() string {
 
 func (m Model) renderBody(leftW, rightW int) string {
 	left := m.renderLeft(leftW)
-	divider := m.renderDivider()
 	right := m.renderRight(rightW)
-
-	return lipgloss.JoinHorizontal(lipgloss.Top, left, " "+divider+" ", right)
+	// No separator block: the right pane renders its own `│` prefix at col
+	// 0 on every body row, and `DETAIL` occupies col 0 on the title row.
+	// Joining directly puts both at the same absolute column `leftW`.
+	return lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 }
 
 func (m Model) renderLeft(width int) string {
@@ -437,25 +446,33 @@ func (m Model) renderLeft(width int) string {
 	return sb.String()
 }
 
-func (m Model) renderDivider() string {
-	th := m.cfg.Theme
-	// Height = section title (1) + preview area. Matches the right-pane block
-	// exactly so the divider doesn't stick out into the footer.
-	h := m.preview.Height + 1
-	if h < 3 {
-		h = 3
-	}
-	line := strings.Repeat(th.Divider.Render("│")+"\n", h)
-	return strings.TrimRight(line, "\n")
-}
-
 func (m Model) renderRight(width int) string {
 	th := m.cfg.Theme
+	bar := th.Divider.Render("│")
 	title := th.SectionTitle.Render(spacedUpper(m.cfg.RightTitle))
+
+	// Title row has NO `│` prefix — `DETAIL` itself sits in col 0 of the
+	// right pane (absolute col `leftW`). Every row below gets a `│` in that
+	// same col, so the eye reads `D` at the top as the cap of one unbroken
+	// vertical line running down through the body. This is literally the
+	// alignment requested: "the split line from the left and right pane
+	// lines up with the line that splits SKILLS and DETAIL".
 	if len(m.items) == 0 {
 		return title
 	}
-	return title + "\n" + m.preview.View()
+
+	preview := m.preview.View()
+	lines := strings.Split(preview, "\n")
+	out := make([]string, 0, len(lines)+2)
+	out = append(out, title)
+	// Blank row between title and preview — mirrors the blank row under
+	// `SKILLS` in the left pane so the two panes stay row-synced.
+	out = append(out, bar)
+	for _, ln := range lines {
+		out = append(out, bar+" "+ln)
+	}
+	_ = width
+	return strings.Join(out, "\n")
 }
 
 func (m Model) hints() []KeyHint {
