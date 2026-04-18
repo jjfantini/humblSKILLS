@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/jjfantini/humblSKILLS/compare/v0.3.0...v0.4.0) (2026-04-18)
+
+
+### Features
+
+* **cli:** polish search UI and add interactive install picker ([#14](https://github.com/jjfantini/humblSKILLS/issues/14)) ([7c9dfec](https://github.com/jjfantini/humblSKILLS/commit/7c9dfec69c18b5e4d25fc4034d787281edf2b162))
+
 ## [0.3.0](https://github.com/jjfantini/humblSKILLS/compare/v0.2.0...v0.3.0) (2026-04-18)
 
 
