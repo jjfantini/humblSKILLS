@@ -426,17 +426,18 @@ func rowName(th *ui.Theme, name string, selected, enabled bool) string {
 }
 
 // rowWithTrailingBadge lays out a left-anchored label and a right-anchored
-// badge within `width` cells. If the row can't fit, the badge is omitted.
+// badge within `width` cells. When the badge can't fit it's dropped, but the
+// label is still padded so every row ends at the same column — otherwise the
+// divider snaps to the widest row and loses alignment.
 func rowWithTrailingBadge(label, badge string, width int) string {
-	if width < 10 {
-		return label
-	}
 	lw := lipgloss.Width(label)
-	bw := lipgloss.Width(badge)
-	gap := width - lw - bw
-	if gap < 1 {
-		return label
+	if width < 10 || width-lw < lipgloss.Width(badge)+1 {
+		if lw >= width {
+			return label
+		}
+		return label + strings.Repeat(" ", width-lw)
 	}
+	gap := width - lw - lipgloss.Width(badge)
 	return label + strings.Repeat(" ", gap) + badge
 }
 

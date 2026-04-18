@@ -64,11 +64,9 @@ func Footer(theme *ui.Theme, hints []KeyHint, right string, width int) string {
 		parts = append(parts, theme.KbdKey.Render(h.Keys)+" "+theme.KbdLabel.Render(h.Label))
 	}
 	left := strings.Join(parts, "  ")
-	rightR := ""
-	if right != "" {
-		rightR = theme.Meta.Render(right)
-	}
-	line := padBetween(left, rightR, width-2)
+	// `right` is passed through unchanged so callers can compose mixed
+	// styles (e.g. muted label + magenta value for `focused: <name>`).
+	line := padBetween(left, right, width-2)
 	rule := DashedRule(theme, width-2)
 	return "  " + rule + "\n  " + line
 }
