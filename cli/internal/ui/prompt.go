@@ -38,6 +38,11 @@ func NewPrompter(yes bool) *Prompter {
 	return p
 }
 
+// theme is the shared huh theme for every interactive prompt. Catppuccin
+// gives the CLI a consistent, modern look and respects NO_COLOR via huh's
+// internal colour handling.
+func theme() *huh.Theme { return huh.ThemeCatppuccin() }
+
 // Confirm asks a yes/no question. When non-interactive, returns dflt.
 func (p *Prompter) Confirm(title string, dflt bool) (bool, error) {
 	if p.Yes {
@@ -52,6 +57,7 @@ func (p *Prompter) Confirm(title string, dflt bool) (bool, error) {
 		Affirmative("Yes").
 		Negative("No").
 		Value(&v).
+		WithTheme(theme()).
 		Run()
 	if err != nil {
 		return dflt, err
@@ -98,9 +104,58 @@ func (p *Prompter) MultiSelect(title string, options []MultiSelectOption) ([]str
 		Title(title).
 		Options(opts...).
 		Value(&selected).
+		WithTheme(theme()).
 		Run()
 	if err != nil {
 		return nil, fmt.Errorf("prompt: %w", err)
 	}
 	return selected, nil
+}
+
+// SelectOption is one entry shown in a Select.
+type SelectOption struct {
+	// Label is the visible text. Falls back to Value when empty.
+	Label string
+	// Value is returned from Select when this entry is picked.
+	Value string
+}
+
+// Select shows a single-select picker with type-to-filter. It returns the
+// chosen option's Value. Requires an interactive TTY: returns
+// ErrNonInteractive (or a usage-style error via --yes) when a selection can't
+// be made for the user.
+func (p *Prompter) Select(title, description string, options []SelectOption) (string, error) {
+	if len(options) == 0 {
+		return "", nil
+	}
+	if p.Yes {
+		// --yes can't pick for the user — a single-select has no safe default.
+		return "", ErrNonInteractive
+	}
+	if !p.Interactive {
+		return "", ErrNonInteractive
+	}
+
+	opts := make([]huh.Option[string], 0, len(options))
+	for _, o := range options {
+		label := o.Label
+		if label == "" {
+			label = o.Value
+		}
+		opts = append(opts, huh.NewOption(label, o.Value))
+	}
+	var picked string
+	sel := huh.NewSelect[string]().
+		Title(title).
+		Options(opts...).
+		Filtering(true).
+		Height(12).
+		Value(&picked)
+	if description != "" {
+		sel = sel.Description(description)
+	}
+	if err := sel.WithTheme(theme()).Run(); err != nil {
+		return "", fmt.Errorf("prompt: %w", err)
+	}
+	return picked, nil
 }

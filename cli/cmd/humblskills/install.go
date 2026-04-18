@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/platform"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
 type installFlags struct {
@@ -20,11 +22,17 @@ type installFlags struct {
 func newInstallCmd(app *App) *cobra.Command {
 	var f installFlags
 	cmd := &cobra.Command{
-		Use:   "install <skill>",
+		Use:   "install [skill]",
 		Short: "Install a skill (and its deps) onto every detected platform",
-		Args:  cobra.ExactArgs(1),
+		Long: "install <skill> installs a named skill. With no arg, it opens " +
+			"an interactive, filterable picker listing every skill in the registry.",
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runInstall(app, args[0], f)
+			skill := ""
+			if len(args) == 1 {
+				skill = args[0]
+			}
+			return runInstall(app, skill, f)
 		},
 	}
 	cmd.Flags().StringSliceVar(&f.platforms, "platform", nil, "restrict install to these adapters (default: all detected)")
@@ -42,6 +50,13 @@ func runInstall(app *App, skill string, f installFlags) error {
 	reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
 	if err != nil {
 		return fmt.Errorf("load registry: %w", err)
+	}
+
+	if skill == "" {
+		skill, err = pickSkill(app, reg)
+		if err != nil {
+			return err
+		}
 	}
 
 	selected, err := selectPlatforms(adapters, f.platforms)
@@ -145,4 +160,40 @@ func printInstall(app *App, r install.Result) {
 	if len(installed)+len(replaced)+len(forced) == 0 {
 		app.UI.Info("%d target%s already up-to-date (use --force to reinstall)", len(skipped), plural(len(skipped)))
 	}
+}
+
+// pickSkill opens an interactive, filterable picker listing every skill in
+// the registry. Each option shows "name  vX.Y.Z  —  description" so the user
+// can judge skills at a glance. Returns a usage-style error when the caller
+// isn't on an interactive TTY (or passed --yes/--json) so the missing arg is
+// surfaced clearly rather than hanging on a prompt.
+func pickSkill(app *App, reg *registry.Registry) (string, error) {
+	if len(reg.Skills) == 0 {
+		return "", fmt.Errorf("registry is empty")
+	}
+
+	skills := append([]registry.Skill(nil), reg.Skills...)
+	sort.Slice(skills, func(i, j int) bool { return skills[i].Name < skills[j].Name })
+
+	opts := make([]ui.SelectOption, 0, len(skills))
+	for _, s := range skills {
+		label := fmt.Sprintf("%s  v%s  —  %s", s.Name, s.Version, s.Description)
+		opts = append(opts, ui.SelectOption{Label: label, Value: s.Name})
+	}
+
+	picked, err := app.Prompt.Select(
+		"Pick a skill to install",
+		"type to filter · ↑↓ to navigate · enter to install",
+		opts,
+	)
+	if err != nil {
+		if errors.Is(err, ui.ErrNonInteractive) {
+			return "", fmt.Errorf("skill name required — usage: humblskills install <skill>")
+		}
+		return "", err
+	}
+	if picked == "" {
+		return "", fmt.Errorf("no skill selected")
+	}
+	return picked, nil
 }
