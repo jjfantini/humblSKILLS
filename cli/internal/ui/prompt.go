@@ -38,10 +38,11 @@ func NewPrompter(yes bool) *Prompter {
 	return p
 }
 
-// theme is the shared huh theme for every interactive prompt. Catppuccin
-// gives the CLI a consistent, modern look and respects NO_COLOR via huh's
-// internal colour handling.
-func theme() *huh.Theme { return huh.ThemeCatppuccin() }
+// theme is the shared huh theme for every interactive prompt. It's derived
+// from the CLI's Palette so prompts share colours with every other surface
+// (Printer messages, search listings, TUI chrome). huh handles NO_COLOR
+// internally.
+func theme() *huh.Theme { return HuhTheme(DefaultTheme()) }
 
 // Confirm asks a yes/no question. When non-interactive, returns dflt.
 func (p *Prompter) Confirm(title string, dflt bool) (bool, error) {

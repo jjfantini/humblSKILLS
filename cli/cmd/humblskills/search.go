@@ -7,11 +7,12 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
+	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
 func newSearchCmd(app *App) *cobra.Command {
@@ -47,7 +48,16 @@ func newSearchCmd(app *App) *cobra.Command {
 				app.UI.Warn("no skills matched %q", query)
 				return nil
 			}
-			app.UI.Println(renderSearchResults(hits, query, app.Config.NoColor))
+
+			// With no query and an interactive terminal, drop into the TUI
+			// browser so the user can filter + preview + install without
+			// leaving the CLI.
+			useTUI := query == "" && tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
+			if useTUI {
+				return runSearchTUI(app, hits)
+			}
+
+			app.UI.Println(renderSearchResults(app.UI.Theme(), hits, query))
 			return nil
 		},
 	}
@@ -68,16 +78,87 @@ func matches(s registry.Skill, q string) bool {
 	return false
 }
 
-// renderSearchResults returns a multi-line, styled string listing every
-// skill. Layout is terminal-width-aware and degrades to plain ASCII when
-// noColor is set.
-func renderSearchResults(hits []registry.Skill, query string, noColor bool) string {
-	r := lipgloss.DefaultRenderer()
-	if noColor {
-		r = lipgloss.NewRenderer(os.Stdout)
-		r.SetColorProfile(termenv.Ascii)
+// runSearchTUI launches the bubbletea browser over hits. When the user exits
+// with the install action, the selected skill is handed straight to
+// runInstall so one TUI flows into the next.
+func runSearchTUI(app *App, hits []registry.Skill) error {
+	items := make([]tui.BrowseItem, 0, len(hits))
+	for _, s := range hits {
+		items = append(items, skillBrowseItem{Skill: s})
 	}
+	m, err := tui.Run(tui.NewBrowser(tui.BrowserConfig{
+		Command:  "search",
+		Theme:    app.UI.Theme(),
+		Items:    items,
+		Actions:  []tui.BrowseAction{tui.ActionInstall},
+		EmptyMsg: "no skills in registry",
+	}))
+	if err != nil {
+		return err
+	}
+	browser, ok := m.(tui.Browser)
+	if !ok {
+		return nil
+	}
+	res := browser.Selected()
+	if res.Action != tui.ActionInstall {
+		return nil
+	}
+	it, ok := res.Item.(skillBrowseItem)
+	if !ok {
+		return nil
+	}
+	app.UI.Info("installing %s…", app.UI.Theme().Name.Render(it.Name))
+	return runInstall(app, it.Name, installFlags{})
+}
 
+// skillBrowseItem adapts registry.Skill to the tui.BrowseItem contract.
+type skillBrowseItem struct {
+	registry.Skill
+}
+
+func (s skillBrowseItem) FilterValue() string {
+	return s.Name + " " + strings.Join(s.Tags, " ") + " " + s.Skill.Description
+}
+func (s skillBrowseItem) Title() string { return s.Name + "  v" + s.Version }
+func (s skillBrowseItem) Description() string {
+	return s.Skill.Description
+}
+func (s skillBrowseItem) Preview(theme *ui.Theme, width int) string {
+	var sb strings.Builder
+	sb.WriteString(theme.Name.Render(s.Name))
+	sb.WriteString("  ")
+	sb.WriteString(theme.Version.Render("v" + s.Version))
+	sb.WriteString("\n\n")
+	if s.Skill.Description != "" {
+		sb.WriteString(theme.Desc.Width(width).Render(s.Skill.Description))
+		sb.WriteString("\n\n")
+	}
+	if len(s.Tags) > 0 {
+		chips := make([]string, 0, len(s.Tags))
+		for _, t := range s.Tags {
+			chips = append(chips, theme.Tag.Render("#"+t))
+		}
+		sb.WriteString(theme.Label.Render("tags    ") + strings.Join(chips, "  ") + "\n")
+	}
+	if len(s.Platforms) > 0 {
+		plats := make([]string, 0, len(s.Platforms))
+		for _, p := range s.Platforms {
+			plats = append(plats, theme.Platform.Render(p))
+		}
+		sb.WriteString(theme.Label.Render("target  ") + strings.Join(plats, "  ") + "\n")
+	}
+	if len(s.Requires) > 0 {
+		sb.WriteString(theme.Label.Render("deps    ") +
+			theme.Detail.Render(strings.Join(s.Requires, ", ")) + "\n")
+	}
+	return sb.String()
+}
+
+// renderSearchResults returns a multi-line, themed string listing every hit.
+// Layout is terminal-width-aware; every colour token is sourced from the
+// shared Theme so styling stays in sync with every other surface.
+func renderSearchResults(theme *ui.Theme, hits []registry.Skill, query string) string {
 	width := termWidth()
 	if width > 96 {
 		width = 96
@@ -85,37 +166,19 @@ func renderSearchResults(hits []registry.Skill, query string, noColor bool) stri
 	if width < 48 {
 		width = 48
 	}
-	inner := width - 4 // gutter on each side
-
-	var (
-		brand     = r.NewStyle().Bold(true).Foreground(lipgloss.Color("#A78BFA"))
-		crumb     = r.NewStyle().Foreground(lipgloss.Color("244"))
-		count     = r.NewStyle().Foreground(lipgloss.Color("244")).Italic(true)
-		rule      = r.NewStyle().Foreground(lipgloss.Color("238"))
-		bullet    = r.NewStyle().Foreground(lipgloss.Color("#A78BFA"))
-		nameStyle = r.NewStyle().Bold(true).Foreground(lipgloss.Color("#5EEAD4"))
-		version   = r.NewStyle().Foreground(lipgloss.Color("244"))
-		descStyle = r.NewStyle().Foreground(lipgloss.Color("252"))
-		tag       = r.NewStyle().Foreground(lipgloss.Color("#93C5FD"))
-		platform  = r.NewStyle().Foreground(lipgloss.Color("#F0ABFC"))
-		hit       = r.NewStyle().Bold(true).Foreground(lipgloss.Color("#FDE68A"))
-		label     = r.NewStyle().Foreground(lipgloss.Color("244"))
-	)
+	inner := width - 4
 
 	var sb strings.Builder
-
-	// Header: "  humblskills › search  "foo""
-	header := "  " + brand.Render("humblskills") + crumb.Render("  ›  search")
+	header := "  " + theme.Brand.Render("humblskills") + theme.Crumb.Render("  ›  search")
 	if query != "" {
-		header += crumb.Render("  ›  ") + hit.Render(fmt.Sprintf("%q", query))
+		header += theme.Crumb.Render("  ›  ") + theme.Hit.Render(fmt.Sprintf("%q", query))
 	}
 	sb.WriteString("\n")
 	sb.WriteString(header)
 	sb.WriteString("\n  ")
-	sb.WriteString(rule.Render(strings.Repeat("─", inner)))
+	sb.WriteString(theme.RuleLine.Render(strings.Repeat("─", inner)))
 	sb.WriteString("\n")
 
-	// Count line
 	noun := "skill"
 	if len(hits) != 1 {
 		noun = "skills"
@@ -127,41 +190,37 @@ func renderSearchResults(hits []registry.Skill, query string, noColor bool) stri
 		summary = fmt.Sprintf("%d %s in registry", len(hits), noun)
 	}
 	sb.WriteString("  ")
-	sb.WriteString(count.Render(summary))
+	sb.WriteString(theme.Count.Render(summary))
 	sb.WriteString("\n\n")
 
 	for i, s := range hits {
-		// Title line: ▸ name-with-highlight                              v0.1.0
-		left := bullet.Render("▸ ") + highlightName(s.Name, query, nameStyle, hit)
-		right := version.Render("v" + s.Version)
+		left := theme.Bullet.Render("▸ ") + highlightName(s.Name, query, theme.Name, theme.Hit)
+		right := theme.Version.Render("v" + s.Version)
 		pad := inner - lipgloss.Width(left) - lipgloss.Width(right)
 		if pad < 1 {
 			pad = 1
 		}
 		sb.WriteString("  " + left + strings.Repeat(" ", pad) + right + "\n")
 
-		// Description, soft-wrapped to inner-2 and indented.
 		if s.Description != "" {
-			wrapped := descStyle.Width(inner - 2).Render(s.Description)
+			wrapped := theme.Desc.Width(inner - 2).Render(s.Description)
 			for _, line := range strings.Split(wrapped, "\n") {
 				sb.WriteString("    " + line + "\n")
 			}
 		}
-
-		// Metadata: tags + platforms on one or two lines.
 		if len(s.Tags) > 0 {
 			chips := make([]string, 0, len(s.Tags))
 			for _, t := range s.Tags {
-				chips = append(chips, tag.Render("#"+t))
+				chips = append(chips, theme.Tag.Render("#"+t))
 			}
-			sb.WriteString("    " + label.Render("tags    ") + strings.Join(chips, "  ") + "\n")
+			sb.WriteString("    " + theme.Label.Render("tags    ") + strings.Join(chips, "  ") + "\n")
 		}
 		if len(s.Platforms) > 0 {
 			plats := make([]string, 0, len(s.Platforms))
 			for _, pl := range s.Platforms {
-				plats = append(plats, platform.Render(pl))
+				plats = append(plats, theme.Platform.Render(pl))
 			}
-			sb.WriteString("    " + label.Render("target  ") + strings.Join(plats, "  ") + "\n")
+			sb.WriteString("    " + theme.Label.Render("target  ") + strings.Join(plats, "  ") + "\n")
 		}
 
 		if i < len(hits)-1 {
@@ -169,20 +228,18 @@ func renderSearchResults(hits []registry.Skill, query string, noColor bool) stri
 		}
 	}
 
-	// Hint footer.
 	sb.WriteString("\n  ")
-	sb.WriteString(rule.Render(strings.Repeat("─", inner)))
+	sb.WriteString(theme.RuleLine.Render(strings.Repeat("─", inner)))
 	sb.WriteString("\n  ")
-	sb.WriteString(crumb.Render("install with  "))
-	sb.WriteString(nameStyle.Render("humblskills install <name>"))
+	sb.WriteString(theme.Crumb.Render("install with  "))
+	sb.WriteString(theme.Name.Render("humblskills install <name>"))
 	sb.WriteString("\n")
 
 	return sb.String()
 }
 
-// highlightName returns the skill name with case-insensitive query matches
-// wrapped in the hit style. The non-matching parts are rendered with base.
-// If query is empty, the name is returned under base untouched.
+// highlightName wraps every case-insensitive query match inside hit style,
+// leaving non-matching segments in base. Empty query → untouched name.
 func highlightName(name, query string, base, hit lipgloss.Style) string {
 	if query == "" {
 		return base.Render(name)
@@ -214,8 +271,6 @@ func highlightName(name, query string, base, hit lipgloss.Style) string {
 	return sb.String()
 }
 
-// termWidth returns a sensible content width, falling back to 80 when stdout
-// isn't a TTY (piped output, CI, tests).
 func termWidth() int {
 	if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && w > 0 {
 		return w
