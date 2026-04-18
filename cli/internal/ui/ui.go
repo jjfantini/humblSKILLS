@@ -91,6 +91,16 @@ func New(opts Options) *Printer {
 	}
 }
 
+// Println writes a pre-rendered string to stdout with a trailing newline.
+// Use when the caller has already composed styled output (e.g. via lipgloss)
+// and just needs it emitted. Suppressed in JSON / quiet mode.
+func (p *Printer) Println(s string) {
+	if p.jsonMode || p.level < LevelNormal {
+		return
+	}
+	fmt.Fprintln(p.out, s)
+}
+
 // Info prints at LevelNormal+. Suppressed in JSON mode.
 func (p *Printer) Info(format string, args ...any) {
 	if p.jsonMode || p.level < LevelNormal {
