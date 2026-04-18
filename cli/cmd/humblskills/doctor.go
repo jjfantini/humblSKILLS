@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
 	"github.com/spf13/cobra"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
@@ -15,6 +15,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/platform"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
+	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
 type doctorReport struct {
@@ -71,11 +72,50 @@ func newDoctorCmd(app *App) *cobra.Command {
 }
 
 func runDoctor(app *App) error {
-	report := doctorReport{}
+	report, err := buildDoctorReport(app)
+	if err != nil {
+		return err
+	}
 
+	if app.Config.JSON {
+		if err := app.UI.JSON(report); err != nil {
+			return err
+		}
+		if hasFailures(report) {
+			return errDoctorFailed
+		}
+		return nil
+	}
+
+	if tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
+		for {
+			rerun, err := runDoctorTUI(app, report)
+			if err != nil {
+				return err
+			}
+			if !rerun {
+				break
+			}
+			report, err = buildDoctorReport(app)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		printDoctorStatic(app, report)
+	}
+
+	if hasFailures(report) {
+		return errDoctorFailed
+	}
+	return nil
+}
+
+func buildDoctorReport(app *App) (doctorReport, error) {
+	report := doctorReport{}
 	adapters, err := app.Adapters()
 	if err != nil {
-		return fmt.Errorf("load adapters: %w", err)
+		return report, fmt.Errorf("load adapters: %w", err)
 	}
 
 	results := platform.Detect(adapters)
@@ -110,10 +150,9 @@ func runDoctor(app *App) error {
 		origin registry.Origin
 		rErr   error
 	)
+	// Don't spin during the TUI; buildDoctorReport is called outside alt-screen.
 	_ = tui.RunWithSpinner(app.UI.Theme(), "loading registry…", func() error {
 		reg, origin, rErr = f.Load()
-		// Return nil so the spinner never treats a registry miss as a hard
-		// failure — rErr is surfaced below via the Registry section.
 		return nil
 	})
 	rr := registryReport{URL: app.Config.RegistryURL, Source: string(origin)}
@@ -140,21 +179,7 @@ func runDoctor(app *App) error {
 		}
 	}
 
-	if app.Config.JSON {
-		if err := app.UI.JSON(report); err != nil {
-			return err
-		}
-		if hasFailures(report) {
-			return errDoctorFailed
-		}
-		return nil
-	}
-
-	printDoctor(app, report)
-	if hasFailures(report) {
-		return errDoctorFailed
-	}
-	return nil
+	return report, nil
 }
 
 var errDoctorFailed = errors.New("doctor found issues")
@@ -169,55 +194,318 @@ func hasFailures(r doctorReport) bool {
 	return false
 }
 
-func printDoctor(app *App, r doctorReport) {
+// runDoctorTUI drives the two-pane listdetail surface for `doctor`. Returns
+// rerun=true if the user pressed `r` (rescan) so the caller can rebuild the
+// report and re-enter the TUI.
+func runDoctorTUI(app *App, r doctorReport) (bool, error) {
+	th := app.UI.Theme()
+	ver := resolveVersion().Version
+
+	items := make([]tui.Item, 0, len(r.Adapters)+3)
+	for _, a := range r.Adapters {
+		items = append(items, adapterItem{a: a})
+	}
+	items = append(items,
+		manifestItem{m: r.Manifest, issue: firstIssue(r.Issues, "manifest:")},
+		registryItem{reg: r.Registry},
+		updatesItem{u: r.Updates},
+	)
+
+	detected := 0
+	for _, a := range r.Adapters {
+		if a.Detected {
+			detected++
+		}
+	}
+	meta := func(_ []tui.Item, _ int) string {
+		parts := []string{
+			fmt.Sprintf("%d / %d detected", detected, len(r.Adapters)),
+		}
+		if r.Registry.Error == "" {
+			parts = append(parts, fmt.Sprintf("%d skills", r.Registry.Skills))
+		} else {
+			parts = append(parts, "registry error")
+		}
+		if r.Updates.Count > 0 {
+			parts = append(parts, fmt.Sprintf("%d update%s", r.Updates.Count, plural(r.Updates.Count)))
+		}
+		return strings.Join(parts, " · ")
+	}
+
+	res, err := tui.RunListDetail(tui.Config{
+		Theme:      th,
+		Version:    ver,
+		Section:    "Doctor",
+		Meta:       meta,
+		Items:      items,
+		LeftTitle:  "CHECKS",
+		RightTitle: "DETAIL",
+		Actions: []tui.ActionSpec{
+			{Key: "r", Label: "rescan", Action: "rescan"},
+		},
+	})
+	if err != nil {
+		return false, err
+	}
+	return res.Action == "rescan", nil
+}
+
+func firstIssue(issues []string, prefix string) string {
+	for _, i := range issues {
+		if strings.HasPrefix(i, prefix) {
+			return strings.TrimSpace(strings.TrimPrefix(i, prefix))
+		}
+	}
+	return ""
+}
+
+// ---- items -----------------------------------------------------------------
+
+type adapterItem struct{ a adapterReport }
+
+func (a adapterItem) Key() string         { return a.a.Name }
+func (a adapterItem) FilterValue() string { return a.a.Name + " " + a.a.Reason }
+func (a adapterItem) Row(th *ui.Theme, width int, selected bool) string {
+	var dot, badge string
+	if a.a.Detected {
+		dot = th.DotOK.Render("●")
+		badge = tui.Badge(th, tui.BadgeDetected, "detected")
+	} else {
+		dot = th.DotNo.Render("●")
+		badge = tui.Badge(th, tui.BadgeMissing, "missing")
+	}
+	name := rowName(th, a.a.Name, selected, a.a.Detected)
+	return rowWithTrailingBadge(dot+" "+name, badge, width)
+}
+func (a adapterItem) Detail(th *ui.Theme, width int) string {
+	var sb strings.Builder
+	title := th.DetailTitle.Render(a.a.Name)
+	sub := th.DetailSub.Render(ternary(a.a.Detected, "detected", "not detected"))
+	sb.WriteString(title + "  " + sub + "\n\n")
+
+	sb.WriteString(kvRow(th, "status", ternary(a.a.Detected,
+		th.Success.Render("detected"),
+		th.Error.Render("missing"))))
+	if a.a.Reason != "" {
+		sb.WriteString(kvRow(th, "matched on", th.KVValue.Render(a.a.Reason)))
+	}
+
+	if len(a.a.Targets) > 0 {
+		sb.WriteString("\n")
+		sb.WriteString(th.SectionTitle.Render("PATHS"))
+		sb.WriteString("\n")
+		for i, t := range a.a.Targets {
+			if i > 0 {
+				sb.WriteString(tui.DashedRule(th, width) + "\n")
+			}
+			sb.WriteString(pathRow(th, t) + "\n")
+		}
+	}
+	return sb.String()
+}
+
+type manifestItem struct {
+	m     manifestReport
+	issue string
+}
+
+func (m manifestItem) Key() string         { return "manifest" }
+func (m manifestItem) FilterValue() string { return "manifest " + m.m.Path }
+func (m manifestItem) Row(th *ui.Theme, width int, selected bool) string {
+	ok := m.issue == ""
+	var dot, badge string
+	if ok {
+		dot = th.DotOK.Render("●")
+		badge = tui.Badge(th, tui.BadgeDetected, "ok")
+	} else {
+		dot = th.DotNo.Render("●")
+		badge = tui.Badge(th, tui.BadgeMissing, "error")
+	}
+	return rowWithTrailingBadge(dot+" "+rowName(th, "manifest", selected, true), badge, width)
+}
+func (m manifestItem) Detail(th *ui.Theme, width int) string {
+	var sb strings.Builder
+	sb.WriteString(th.DetailTitle.Render("manifest") + "  " +
+		th.DetailSub.Render(m.m.Path) + "\n\n")
+	sb.WriteString(kvRow(th, "schema", th.KVValue.Render(fmt.Sprintf("v%d", m.m.SchemaVersion))))
+	sb.WriteString(kvRow(th, "installs", th.KVValue.Render(fmt.Sprintf("%d", m.m.Installs))))
+	sb.WriteString(kvRow(th, "path", th.KVValue.Render(m.m.Path)))
+	if m.issue != "" {
+		sb.WriteString("\n" + th.Error.Render("! "+m.issue) + "\n")
+	} else if _, err := os.Stat(m.m.Path); err != nil {
+		sb.WriteString("\n" + th.Detail.Render("(file not yet created)") + "\n")
+	}
+	_ = width
+	return sb.String()
+}
+
+type registryItem struct{ reg registryReport }
+
+func (r registryItem) Key() string         { return "registry" }
+func (r registryItem) FilterValue() string { return "registry " + r.reg.URL }
+func (r registryItem) Row(th *ui.Theme, width int, selected bool) string {
+	ok := r.reg.Error == "" && len(r.reg.DepIssues) == 0
+	var dot, badge string
+	if r.reg.Error != "" {
+		dot = th.DotNo.Render("●")
+		badge = tui.Badge(th, tui.BadgeMissing, "unreachable")
+	} else if len(r.reg.DepIssues) > 0 {
+		dot = th.DotWarn.Render("●")
+		badge = tui.Badge(th, tui.BadgeRO, "issues")
+	} else {
+		dot = th.DotOK.Render("●")
+		badge = tui.Badge(th, tui.BadgeDetected, fmt.Sprintf("%d skills", r.reg.Skills))
+	}
+	return rowWithTrailingBadge(dot+" "+rowName(th, "registry", selected, ok), badge, width)
+}
+func (r registryItem) Detail(th *ui.Theme, width int) string {
+	var sb strings.Builder
+	sb.WriteString(th.DetailTitle.Render("registry") + "  " +
+		th.DetailSub.Render(r.reg.URL) + "\n\n")
+	sb.WriteString(kvRow(th, "source", th.KVValue.Render(r.reg.Source)))
+	sb.WriteString(kvRow(th, "skills", th.KVValue.Render(fmt.Sprintf("%d", r.reg.Skills))))
+	if r.reg.Cached {
+		sb.WriteString(kvRow(th, "cached", th.KVValue.Render(r.reg.Age.Round(time.Second).String()+" ago")))
+	}
+	if r.reg.Error != "" {
+		sb.WriteString("\n" + th.Error.Render("! "+r.reg.Error) + "\n")
+	}
+	for _, issue := range r.reg.DepIssues {
+		sb.WriteString(th.Warn.Render("! "+issue) + "\n")
+	}
+	_ = width
+	return sb.String()
+}
+
+type updatesItem struct{ u updatesReport }
+
+func (u updatesItem) Key() string         { return "updates" }
+func (u updatesItem) FilterValue() string { return "updates" }
+func (u updatesItem) Row(th *ui.Theme, width int, selected bool) string {
+	var dot, badge string
+	if u.u.Count == 0 {
+		dot = th.DotOK.Render("●")
+		badge = tui.Badge(th, tui.BadgeDetected, "up-to-date")
+	} else {
+		dot = th.DotWarn.Render("●")
+		badge = tui.Badge(th, tui.BadgeRO, fmt.Sprintf("%d outdated", u.u.Count))
+	}
+	return rowWithTrailingBadge(dot+" "+rowName(th, "updates", selected, true), badge, width)
+}
+func (u updatesItem) Detail(th *ui.Theme, width int) string {
+	var sb strings.Builder
+	sb.WriteString(th.DetailTitle.Render("updates") + "\n\n")
+	if u.u.Count == 0 {
+		sb.WriteString(th.Detail.Render("every installed skill matches the registry version."))
+		return sb.String()
+	}
+	sb.WriteString(kvRow(th, "drifted", th.KVValue.Render(fmt.Sprintf("%d", u.u.Count))))
+	sb.WriteString("\n")
+	for _, name := range u.u.Skills {
+		sb.WriteString("  " + th.KVValue.Render("• "+name) + "\n")
+	}
+	sb.WriteString("\n" + th.Detail.Render("run 'humblskills update' to apply"))
+	_ = width
+	return sb.String()
+}
+
+// ---- shared detail helpers -------------------------------------------------
+
+// rowName renders an item's name in the correct palette for the left pane:
+// selected → magenta bold; dimmed (missing/unavailable) → comment; otherwise
+// fg.
+func rowName(th *ui.Theme, name string, selected, enabled bool) string {
+	switch {
+	case selected:
+		return th.RowSelected.Render(name)
+	case !enabled:
+		return th.RowDim.Render(name)
+	default:
+		return th.RowUnselected.Render(name)
+	}
+}
+
+// rowWithTrailingBadge lays out a left-anchored label and a right-anchored
+// badge within `width` cells. If the row can't fit, the badge is omitted.
+func rowWithTrailingBadge(label, badge string, width int) string {
+	if width < 10 {
+		return label
+	}
+	lw := lipgloss.Width(label)
+	bw := lipgloss.Width(badge)
+	gap := width - lw - bw
+	if gap < 1 {
+		return label
+	}
+	return label + strings.Repeat(" ", gap) + badge
+}
+
+// kvRow formats one key/value pair as `  label    value` with the label padded
+// to 11 cells (matching the design's 110px label column, in mono-font terms).
+func kvRow(th *ui.Theme, key, value string) string {
+	label := th.KVKey.Render(key)
+	pad := 11 - lipgloss.Width(label)
+	if pad < 1 {
+		pad = 1
+	}
+	return "  " + label + strings.Repeat(" ", pad) + value + "\n"
+}
+
+// pathRow formats one target as `scope  [rw]  path`, matching the PATHS stack
+// in the design's detail pane.
+func pathRow(th *ui.Theme, t targetReport) string {
+	scope := th.PathLabel.Render(padRight(t.Scope, 7))
+	var rw string
+	if t.Writable {
+		rw = tui.Badge(th, tui.BadgeRW, "rw")
+	} else {
+		rw = tui.Badge(th, tui.BadgeRO, "ro")
+	}
+	path := th.PathValue.Render(t.Path)
+	return "  " + scope + "  " + rw + "  " + path
+}
+
+func padRight(s string, n int) string {
+	if len(s) >= n {
+		return s
+	}
+	return s + strings.Repeat(" ", n-len(s))
+}
+
+func ternary(c bool, a, b string) string {
+	if c {
+		return a
+	}
+	return b
+}
+
+// ---- non-TTY static render -------------------------------------------------
+
+// printDoctorStatic writes the report as stacked sections. Fits 80 cols, works
+// in pipes, keeps colour.
+func printDoctorStatic(app *App, r doctorReport) {
 	th := app.UI.Theme()
 	app.UI.Header("doctor")
 
 	app.UI.Section("Adapters")
 	anyDetected := false
-	rows := make([][]string, 0, len(r.Adapters))
 	for _, a := range r.Adapters {
 		if a.Detected {
 			anyDetected = true
 		}
-		status := th.Success.Render("● detected")
+		dot := th.DotOK.Render("●")
+		badge := tui.Badge(th, tui.BadgeDetected, "detected")
 		if !a.Detected {
-			status = th.Detail.Render("○ missing")
+			dot = th.DotNo.Render("●")
+			badge = tui.Badge(th, tui.BadgeMissing, "missing")
 		}
-		targets := "—"
-		if len(a.Targets) > 0 {
-			parts := make([]string, 0, len(a.Targets))
-			for _, t := range a.Targets {
-				mark := "rw"
-				if !t.Writable {
-					mark = "ro"
-				}
-				parts = append(parts,
-					th.Platform.Render(t.Scope)+th.Detail.Render(" ["+mark+"] "+t.Path),
-				)
-			}
-			targets = joinLines(parts)
+		fmt.Fprintf(app.UI.Out(), "  %s %s  %s\n", dot, th.DetailTitle.Render(a.Name), badge)
+		if a.Reason != "" {
+			fmt.Fprintf(app.UI.Out(), "    %s %s\n", th.KVKey.Render("matched on"), th.KVValue.Render(a.Reason))
 		}
-		rows = append(rows, []string{
-			th.Name.Render(a.Name),
-			status,
-			th.Detail.Render(a.Reason),
-			targets,
-		})
-	}
-	if len(rows) > 0 {
-		tbl := table.New().
-			Border(lipgloss.RoundedBorder()).
-			BorderStyle(th.RuleLine).
-			Headers("Adapter", "Status", "Reason", "Targets").
-			Rows(rows...).
-			StyleFunc(func(row, _ int) lipgloss.Style {
-				if row == table.HeaderRow {
-					return th.Label.Padding(0, 1).Bold(true)
-				}
-				return lipgloss.NewStyle().Padding(0, 1)
-			})
-		fmt.Fprintln(app.UI.Out(), tbl.Render())
+		for _, t := range a.Targets {
+			fmt.Fprintln(app.UI.Out(), "    "+pathRow(th, t))
+		}
 	}
 	if !anyDetected {
 		app.UI.Warn("no agent platform detected — run inside a project that uses Claude Code, Cursor, etc.")
@@ -258,20 +546,6 @@ func printDoctor(app *App, r doctorReport) {
 	for _, i := range r.Issues {
 		app.UI.Warn(i)
 	}
-}
-
-// joinLines concatenates target strings using literal newlines — lipgloss
-// tables soft-wrap cells on newlines, so each target ends up on its own line
-// without manual row duplication.
-func joinLines(lines []string) string {
-	s := ""
-	for i, l := range lines {
-		if i > 0 {
-			s += "\n"
-		}
-		s += l
-	}
-	return s
 }
 
 func plural(n int) string {

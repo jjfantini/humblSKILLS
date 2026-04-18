@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
@@ -49,9 +50,8 @@ func newSearchCmd(app *App) *cobra.Command {
 				return nil
 			}
 
-			// With no query and an interactive terminal, drop into the TUI
-			// browser so the user can filter + preview + install without
-			// leaving the CLI.
+			// With no query and an interactive terminal, drop into the shared
+			// two-pane browser so search == install-picker visually.
 			useTUI := query == "" && tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
 			if useTUI {
 				return runSearchTUI(app, hits)
@@ -78,86 +78,27 @@ func matches(s registry.Skill, q string) bool {
 	return false
 }
 
-// runSearchTUI launches the bubbletea browser over hits. When the user exits
-// with the install action, the selected skill is handed straight to
-// runInstall so one TUI flows into the next.
+// runSearchTUI opens the shared skill browser over hits and, if the user picks
+// one, hands the skill to runInstall so one TUI flows into the next.
 func runSearchTUI(app *App, hits []registry.Skill) error {
-	items := make([]tui.BrowseItem, 0, len(hits))
-	for _, s := range hits {
-		items = append(items, skillBrowseItem{Skill: s})
+	m, err := manifest.Load(app.Config.ManifestPath)
+	if err != nil {
+		m = &manifest.Manifest{}
 	}
-	m, err := tui.Run(tui.NewBrowser(tui.BrowserConfig{
-		Command:  "search",
-		Theme:    app.UI.Theme(),
-		Items:    items,
-		Actions:  []tui.BrowseAction{tui.ActionInstall},
-		EmptyMsg: "no skills in registry",
-	}))
+	items := buildSkillItems(hits, m)
+
+	skill, action, err := runSkillBrowser(app, "Search", items, modeSearch, "no skills match")
 	if err != nil {
 		return err
 	}
-	browser, ok := m.(tui.Browser)
-	if !ok {
+	if action != "install" || skill == "" {
 		return nil
 	}
-	res := browser.Selected()
-	if res.Action != tui.ActionInstall {
-		return nil
-	}
-	it, ok := res.Item.(skillBrowseItem)
-	if !ok {
-		return nil
-	}
-	app.UI.Info("installing %s…", app.UI.Theme().Name.Render(it.Name))
-	return runInstall(app, it.Name, installFlags{})
-}
-
-// skillBrowseItem adapts registry.Skill to the tui.BrowseItem contract.
-type skillBrowseItem struct {
-	registry.Skill
-}
-
-func (s skillBrowseItem) FilterValue() string {
-	return s.Name + " " + strings.Join(s.Tags, " ") + " " + s.Skill.Description
-}
-func (s skillBrowseItem) Title() string { return s.Name + "  v" + s.Version }
-func (s skillBrowseItem) Description() string {
-	return s.Skill.Description
-}
-func (s skillBrowseItem) Preview(theme *ui.Theme, width int) string {
-	var sb strings.Builder
-	sb.WriteString(theme.Name.Render(s.Name))
-	sb.WriteString("  ")
-	sb.WriteString(theme.Version.Render("v" + s.Version))
-	sb.WriteString("\n\n")
-	if s.Skill.Description != "" {
-		sb.WriteString(theme.Desc.Width(width).Render(s.Skill.Description))
-		sb.WriteString("\n\n")
-	}
-	if len(s.Tags) > 0 {
-		chips := make([]string, 0, len(s.Tags))
-		for _, t := range s.Tags {
-			chips = append(chips, theme.Tag.Render("#"+t))
-		}
-		sb.WriteString(theme.Label.Render("tags    ") + strings.Join(chips, "  ") + "\n")
-	}
-	if len(s.Platforms) > 0 {
-		plats := make([]string, 0, len(s.Platforms))
-		for _, p := range s.Platforms {
-			plats = append(plats, theme.Platform.Render(p))
-		}
-		sb.WriteString(theme.Label.Render("target  ") + strings.Join(plats, "  ") + "\n")
-	}
-	if len(s.Requires) > 0 {
-		sb.WriteString(theme.Label.Render("deps    ") +
-			theme.Detail.Render(strings.Join(s.Requires, ", ")) + "\n")
-	}
-	return sb.String()
+	return runInstall(app, skill, installFlags{})
 }
 
 // renderSearchResults returns a multi-line, themed string listing every hit.
-// Layout is terminal-width-aware; every colour token is sourced from the
-// shared Theme so styling stays in sync with every other surface.
+// Used for non-TTY and explicit-query paths.
 func renderSearchResults(theme *ui.Theme, hits []registry.Skill, query string) string {
 	width := termWidth()
 	if width > 96 {
@@ -169,14 +110,14 @@ func renderSearchResults(theme *ui.Theme, hits []registry.Skill, query string) s
 	inner := width - 4
 
 	var sb strings.Builder
-	header := "  " + theme.Brand.Render("humblskills") + theme.Crumb.Render("  ›  search")
+	header := "  " + theme.Brand.Render("humblskills") + theme.Crumb.Render("  ·  search")
 	if query != "" {
-		header += theme.Crumb.Render("  ›  ") + theme.Hit.Render(fmt.Sprintf("%q", query))
+		header += theme.Crumb.Render("  ·  ") + theme.Hit.Render(fmt.Sprintf("%q", query))
 	}
 	sb.WriteString("\n")
 	sb.WriteString(header)
 	sb.WriteString("\n  ")
-	sb.WriteString(theme.RuleLine.Render(strings.Repeat("─", inner)))
+	sb.WriteString(theme.RuleLine.Render(strings.Repeat("╌", inner)))
 	sb.WriteString("\n")
 
 	noun := "skill"
@@ -194,7 +135,7 @@ func renderSearchResults(theme *ui.Theme, hits []registry.Skill, query string) s
 	sb.WriteString("\n\n")
 
 	for i, s := range hits {
-		left := theme.Bullet.Render("▸ ") + highlightName(s.Name, query, theme.Name, theme.Hit)
+		left := theme.Bullet.Render("▌ ") + highlightName(s.Name, query, theme.Name, theme.Hit)
 		right := theme.Version.Render("v" + s.Version)
 		pad := inner - lipgloss.Width(left) - lipgloss.Width(right)
 		if pad < 1 {
@@ -229,7 +170,7 @@ func renderSearchResults(theme *ui.Theme, hits []registry.Skill, query string) s
 	}
 
 	sb.WriteString("\n  ")
-	sb.WriteString(theme.RuleLine.Render(strings.Repeat("─", inner)))
+	sb.WriteString(theme.RuleLine.Render(strings.Repeat("╌", inner)))
 	sb.WriteString("\n  ")
 	sb.WriteString(theme.Crumb.Render("install with  "))
 	sb.WriteString(theme.Name.Render("humblskills install <name>"))
@@ -238,8 +179,7 @@ func renderSearchResults(theme *ui.Theme, hits []registry.Skill, query string) s
 	return sb.String()
 }
 
-// highlightName wraps every case-insensitive query match inside hit style,
-// leaving non-matching segments in base. Empty query → untouched name.
+// highlightName wraps every case-insensitive query match inside hit style.
 func highlightName(name, query string, base, hit lipgloss.Style) string {
 	if query == "" {
 		return base.Render(name)
