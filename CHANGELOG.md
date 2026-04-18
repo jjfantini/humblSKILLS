@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.4](https://github.com/jjfantini/humblSKILLS/compare/v0.6.3...v0.6.4) (2026-04-18)
+
+
+### Bug Fixes
+
+* **cli:** align body divider with DETAIL title column ([#26](https://github.com/jjfantini/humblSKILLS/issues/26)) ([879a441](https://github.com/jjfantini/humblSKILLS/commit/879a44129a8cc77884d17c435c113dbdbad39180))
+
 ## [0.6.3](https://github.com/jjfantini/humblSKILLS/compare/v0.6.2...v0.6.3) (2026-04-18)
 
 
