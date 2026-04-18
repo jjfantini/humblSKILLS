@@ -75,6 +75,10 @@ type ExecuteOpts struct {
 	// Force causes existing targets to be replaced even when the manifest
 	// shows they're up-to-date.
 	Force bool
+	// OnEvent, when set, receives progress notifications as the run proceeds.
+	// Callers that don't need progress (tests, --json, scripts) can leave it
+	// nil. See events.go for Phase semantics.
+	OnEvent EventSink
 }
 
 // Execute runs the plan: fetch each skill, verify its content hash, and place
@@ -103,18 +107,58 @@ func (e *Engine) Execute(reg *registry.Registry, plan []Step, opts ExecuteOpts) 
 		return res, fmt.Errorf("load manifest: %w", err)
 	}
 
+	total := countTargets(plan, opts.Platforms)
+	opts.OnEvent.emit(Event{Phase: PhaseRunStart, Total: total})
+
 	for _, step := range plan {
+		opts.OnEvent.emit(Event{
+			Phase: PhaseStepStart,
+			Skill: step.Skill.Name,
+			IsDep: step.IsDep,
+		})
 		stepRes, err := e.installOne(reg, step, opts, adapterIndex, m)
 		if err != nil {
+			opts.OnEvent.emit(Event{
+				Phase: PhaseError,
+				Skill: step.Skill.Name,
+				Err:   err,
+			})
 			return res, fmt.Errorf("%s: %w", step.Skill.Name, err)
 		}
 		res.Results = append(res.Results, stepRes...)
 	}
 
 	if err := manifest.Save(e.ManifestPath, m); err != nil {
+		opts.OnEvent.emit(Event{Phase: PhaseError, Err: err})
 		return res, fmt.Errorf("save manifest: %w", err)
 	}
+	opts.OnEvent.emit(Event{Phase: PhaseRunDone, Total: total})
 	return res, nil
+}
+
+// countTargets walks plan and totals the (skill, platform, scope) triples the
+// run will visit, honouring each skill's platforms[] allow-list. Cheap, keeps
+// progress denominators honest without guesswork.
+func countTargets(plan []Step, platforms []string) int {
+	total := 0
+	for _, step := range plan {
+		allow := map[string]struct{}{}
+		if len(step.Skill.Platforms) == 0 {
+			for _, p := range platforms {
+				allow[p] = struct{}{}
+			}
+		} else {
+			for _, p := range step.Skill.Platforms {
+				allow[p] = struct{}{}
+			}
+		}
+		for _, p := range platforms {
+			if _, ok := allow[p]; ok {
+				total++
+			}
+		}
+	}
+	return total
 }
 
 func (e *Engine) installOne(
@@ -202,9 +246,17 @@ func (e *Engine) installOne(
 		}
 		switch {
 		case upToDate && !opts.Force:
+			opts.OnEvent.emit(Event{
+				Phase: PhaseTargetStart, Skill: skill.Name, IsDep: step.IsDep,
+				Platform: pg.adapter.Name, Scope: pg.target.Scope,
+			})
 			skipped = append(skipped, TargetResult{
 				Skill: skill.Name, Platform: pg.adapter.Name, Scope: pg.target.Scope,
 				Path: dest, Outcome: OutcomeSkipped,
+			})
+			opts.OnEvent.emit(Event{
+				Phase: PhaseTargetDone, Skill: skill.Name, IsDep: step.IsDep,
+				Platform: pg.adapter.Name, Scope: pg.target.Scope, Outcome: OutcomeSkipped,
 			})
 		case upToDate && opts.Force:
 			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeForced, final: dest, orphan: orphan, existingPath: existingPath})
@@ -242,6 +294,10 @@ func (e *Engine) installOne(
 
 	results := append([]TargetResult(nil), skipped...)
 	for _, pt := range toWrite {
+		opts.OnEvent.emit(Event{
+			Phase: PhaseTargetStart, Skill: skill.Name, IsDep: step.IsDep,
+			Platform: pt.pending.adapter.Name, Scope: pt.pending.target.Scope,
+		})
 		// When preserve is active, build a per-target copy of staging with
 		// user content merged in, leaving the shared staging pristine for
 		// sibling targets. pt.existingPath is the authoritative previous
@@ -289,6 +345,11 @@ func (e *Engine) installOne(
 			Scope:    pt.pending.target.Scope,
 			Path:     pt.final,
 			Outcome:  pt.out,
+		})
+		opts.OnEvent.emit(Event{
+			Phase: PhaseTargetDone, Skill: skill.Name, IsDep: step.IsDep,
+			Platform: pt.pending.adapter.Name, Scope: pt.pending.target.Scope,
+			Outcome: pt.out,
 		})
 	}
 	return results, nil

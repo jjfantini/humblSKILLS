@@ -6,12 +6,15 @@ import (
 	"os"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/spf13/cobra"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/platform"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
 type doctorReport struct {
@@ -102,7 +105,17 @@ func runDoctor(app *App) error {
 	}
 
 	f := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir)
-	reg, origin, rErr := f.Load()
+	var (
+		reg    *registry.Registry
+		origin registry.Origin
+		rErr   error
+	)
+	_ = tui.RunWithSpinner(app.UI.Theme(), "loading registry…", func() error {
+		reg, origin, rErr = f.Load()
+		// Return nil so the spinner never treats a registry miss as a hard
+		// failure — rErr is surfaced below via the Registry section.
+		return nil
+	})
 	rr := registryReport{URL: app.Config.RegistryURL, Source: string(origin)}
 	if rErr != nil {
 		rr.Error = rErr.Error()
@@ -157,38 +170,71 @@ func hasFailures(r doctorReport) bool {
 }
 
 func printDoctor(app *App, r doctorReport) {
-	app.UI.Info("Adapters:")
+	th := app.UI.Theme()
+	app.UI.Header("doctor")
+
+	app.UI.Section("Adapters")
 	anyDetected := false
+	rows := make([][]string, 0, len(r.Adapters))
 	for _, a := range r.Adapters {
 		if a.Detected {
 			anyDetected = true
-			app.UI.Success("%s — %s", a.Name, a.Reason)
-		} else {
-			app.UI.Detail("  %s (not detected): %s", a.Name, a.Reason)
 		}
-		for _, t := range a.Targets {
-			mark := "rw"
-			if !t.Writable {
-				mark = "ro"
+		status := th.Success.Render("● detected")
+		if !a.Detected {
+			status = th.Detail.Render("○ missing")
+		}
+		targets := "—"
+		if len(a.Targets) > 0 {
+			parts := make([]string, 0, len(a.Targets))
+			for _, t := range a.Targets {
+				mark := "rw"
+				if !t.Writable {
+					mark = "ro"
+				}
+				parts = append(parts,
+					th.Platform.Render(t.Scope)+th.Detail.Render(" ["+mark+"] "+t.Path),
+				)
 			}
-			app.UI.Detail("    %s [%s] %s", t.Scope, mark, t.Path)
+			targets = joinLines(parts)
 		}
+		rows = append(rows, []string{
+			th.Name.Render(a.Name),
+			status,
+			th.Detail.Render(a.Reason),
+			targets,
+		})
+	}
+	if len(rows) > 0 {
+		tbl := table.New().
+			Border(lipgloss.RoundedBorder()).
+			BorderStyle(th.RuleLine).
+			Headers("Adapter", "Status", "Reason", "Targets").
+			Rows(rows...).
+			StyleFunc(func(row, _ int) lipgloss.Style {
+				if row == table.HeaderRow {
+					return th.Label.Padding(0, 1).Bold(true)
+				}
+				return lipgloss.NewStyle().Padding(0, 1)
+			})
+		fmt.Fprintln(app.UI.Out(), tbl.Render())
 	}
 	if !anyDetected {
 		app.UI.Warn("no agent platform detected — run inside a project that uses Claude Code, Cursor, etc.")
 	}
 
-	app.UI.Info("")
-	app.UI.Info("Manifest:")
+	app.UI.Section("Manifest")
 	if _, err := os.Stat(r.Manifest.Path); err == nil {
-		app.UI.Info("  %s (%d install%s)", r.Manifest.Path, r.Manifest.Installs, plural(r.Manifest.Installs))
+		app.UI.Info("  %s %s",
+			th.Name.Render(r.Manifest.Path),
+			th.Detail.Render(fmt.Sprintf("(%d install%s)", r.Manifest.Installs, plural(r.Manifest.Installs))),
+		)
 	} else {
 		app.UI.Detail("  %s (not yet created)", r.Manifest.Path)
 	}
 
-	app.UI.Info("")
-	app.UI.Info("Registry:")
-	app.UI.Info("  URL: %s", r.Registry.URL)
+	app.UI.Section("Registry")
+	app.UI.Info("  %s %s", th.Label.Render("url"), th.Name.Render(r.Registry.URL))
 	if r.Registry.Error != "" {
 		app.UI.Error("registry unreachable: %s", r.Registry.Error)
 	} else {
@@ -202,16 +248,30 @@ func printDoctor(app *App, r doctorReport) {
 	}
 
 	if r.Updates.Count > 0 {
-		app.UI.Info("")
+		app.UI.Section("Updates")
 		app.UI.Warn("%d skill%s can be updated — run 'humblskills update'", r.Updates.Count, plural(r.Updates.Count))
 		for _, name := range r.Updates.Skills {
-			app.UI.Detail("  %s", name)
+			app.UI.Detail("  • %s", name)
 		}
 	}
 
 	for _, i := range r.Issues {
 		app.UI.Warn(i)
 	}
+}
+
+// joinLines concatenates target strings using literal newlines — lipgloss
+// tables soft-wrap cells on newlines, so each target ends up on its own line
+// without manual row duplication.
+func joinLines(lines []string) string {
+	s := ""
+	for i, l := range lines {
+		if i > 0 {
+			s += "\n"
+		}
+		s += l
+	}
+	return s
 }
 
 func plural(n int) string {

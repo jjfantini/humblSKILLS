@@ -10,6 +10,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/platform"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
@@ -72,24 +73,41 @@ func runInstall(app *App, skill string, f installFlags) error {
 		return err
 	}
 
-	app.UI.Detail("plan:")
-	for _, s := range plan {
-		tag := "root"
-		if s.IsDep {
-			tag = "dep"
+	engine := install.NewEngine(app.Config.CacheDir, app.Config.ManifestPath)
+	useTUI := tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
+
+	if !useTUI {
+		app.UI.Detail("plan:")
+		for _, s := range plan {
+			tag := "root"
+			if s.IsDep {
+				tag = "dep"
+			}
+			app.UI.Detail("  %s %s@%s", tag, s.Skill.Name, s.Skill.Version)
 		}
-		app.UI.Detail("  %s %s@%s", tag, s.Skill.Name, s.Skill.Version)
 	}
 
-	engine := install.NewEngine(app.Config.CacheDir, app.Config.ManifestPath)
-	res, err := engine.Execute(reg, plan, install.ExecuteOpts{
-		Adapters:  adapters,
-		Platforms: selected,
-		Scope:     f.scope,
-		Force:     f.force,
-	})
-	if err != nil {
+	var res install.Result
+	run := func(sink install.EventSink) error {
+		r, err := engine.Execute(reg, plan, install.ExecuteOpts{
+			Adapters:  adapters,
+			Platforms: selected,
+			Scope:     f.scope,
+			Force:     f.force,
+			OnEvent:   sink,
+		})
+		res = r
 		return err
+	}
+
+	if useTUI {
+		if err := tui.ExecuteWithProgress(app.UI.Theme(), "install", run); err != nil {
+			return err
+		}
+	} else {
+		if err := run(nil); err != nil {
+			return err
+		}
 	}
 
 	if app.Config.JSON {

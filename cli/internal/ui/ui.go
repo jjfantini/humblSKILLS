@@ -8,9 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-
-	"github.com/charmbracelet/lipgloss"
-	"github.com/muesli/termenv"
 )
 
 // Level controls how much Printer prints.
@@ -43,15 +40,7 @@ type Printer struct {
 	out, err io.Writer
 	level    Level
 	jsonMode bool
-	styles   styles
-}
-
-type styles struct {
-	info    lipgloss.Style
-	success lipgloss.Style
-	warn    lipgloss.Style
-	errS    lipgloss.Style
-	detail  lipgloss.Style
+	theme    *Theme
 }
 
 // New returns a Printer configured by opts. It honours the NO_COLOR env var in
@@ -68,28 +57,19 @@ func New(opts Options) *Printer {
 
 	noColor := opts.NoColor || os.Getenv("NO_COLOR") != ""
 
-	r := lipgloss.DefaultRenderer()
-	if noColor {
-		r = lipgloss.NewRenderer(out)
-		r.SetColorProfile(termenv.Ascii)
-	}
-
-	s := styles{
-		info:    r.NewStyle(),
-		success: r.NewStyle().Foreground(lipgloss.Color("10")).Bold(true),
-		warn:    r.NewStyle().Foreground(lipgloss.Color("11")).Bold(true),
-		errS:    r.NewStyle().Foreground(lipgloss.Color("9")).Bold(true),
-		detail:  r.NewStyle().Foreground(lipgloss.Color("8")),
-	}
-
 	return &Printer{
 		out:      out,
 		err:      errW,
 		level:    opts.Level,
 		jsonMode: opts.JSON,
-		styles:   s,
+		theme:    NewTheme(DefaultPalette(), out, noColor),
 	}
 }
+
+// Theme returns the Printer's underlying theme, so commands rendering ad-hoc
+// lipgloss layouts (search, doctor, TUIs) share the same palette + renderer
+// and honour --no-color without reaching for their own state.
+func (p *Printer) Theme() *Theme { return p.theme }
 
 // Println writes a pre-rendered string to stdout with a trailing newline.
 // Use when the caller has already composed styled output (e.g. via lipgloss)
@@ -106,7 +86,7 @@ func (p *Printer) Info(format string, args ...any) {
 	if p.jsonMode || p.level < LevelNormal {
 		return
 	}
-	fmt.Fprintln(p.out, p.styles.info.Render(fmt.Sprintf(format, args...)))
+	fmt.Fprintln(p.out, p.theme.Info.Render(fmt.Sprintf(format, args...)))
 }
 
 // Success prints a styled success line. Suppressed in JSON / quiet mode.
@@ -114,7 +94,7 @@ func (p *Printer) Success(format string, args ...any) {
 	if p.jsonMode || p.level < LevelNormal {
 		return
 	}
-	fmt.Fprintln(p.out, p.styles.success.Render("✓ ")+fmt.Sprintf(format, args...))
+	fmt.Fprintln(p.out, p.theme.Success.Render("✓ ")+fmt.Sprintf(format, args...))
 }
 
 // Warn prints a styled warning. Suppressed in JSON / quiet mode.
@@ -122,13 +102,13 @@ func (p *Printer) Warn(format string, args ...any) {
 	if p.jsonMode || p.level < LevelNormal {
 		return
 	}
-	fmt.Fprintln(p.err, p.styles.warn.Render("! ")+fmt.Sprintf(format, args...))
+	fmt.Fprintln(p.err, p.theme.Warn.Render("! ")+fmt.Sprintf(format, args...))
 }
 
 // Error prints a styled error. Always emitted (even in quiet / JSON mode) so
 // failures aren't silent.
 func (p *Printer) Error(format string, args ...any) {
-	fmt.Fprintln(p.err, p.styles.errS.Render("✗ ")+fmt.Sprintf(format, args...))
+	fmt.Fprintln(p.err, p.theme.Error.Render("✗ ")+fmt.Sprintf(format, args...))
 }
 
 // Detail prints at LevelVerbose. Suppressed otherwise.
@@ -136,7 +116,7 @@ func (p *Printer) Detail(format string, args ...any) {
 	if p.jsonMode || p.level < LevelVerbose {
 		return
 	}
-	fmt.Fprintln(p.out, p.styles.detail.Render(fmt.Sprintf(format, args...)))
+	fmt.Fprintln(p.out, p.theme.Detail.Render(fmt.Sprintf(format, args...)))
 }
 
 // JSON marshals v and prints it to Out. Intended for --json output.
@@ -149,3 +129,35 @@ func (p *Printer) JSON(v any) error {
 
 // IsJSON reports whether the printer is in JSON mode.
 func (p *Printer) IsJSON() bool { return p.jsonMode }
+
+// Out / Err expose the configured writers so commands that compose their own
+// lipgloss layouts can emit directly while the Printer still governs colour +
+// level semantics.
+func (p *Printer) Out() io.Writer { return p.out }
+func (p *Printer) Err() io.Writer { return p.err }
+
+// Header prints the shared breadcrumb used above command output:
+//
+//	  humblskills › <command>
+//	  ────────────────────────
+//
+// Suppressed in JSON / quiet mode.
+func (p *Printer) Header(command string) {
+	if p.jsonMode || p.level < LevelNormal {
+		return
+	}
+	line := "  " + p.theme.Brand.Render("humblskills") +
+		p.theme.Crumb.Render("  ›  "+command)
+	fmt.Fprintln(p.out)
+	fmt.Fprintln(p.out, line)
+}
+
+// Section prints a muted label used to group related lines in static output
+// (e.g. "Adapters:", "Registry:"). Suppressed in JSON / quiet mode.
+func (p *Printer) Section(label string) {
+	if p.jsonMode || p.level < LevelNormal {
+		return
+	}
+	fmt.Fprintln(p.out)
+	fmt.Fprintln(p.out, p.theme.Label.Render(label))
+}

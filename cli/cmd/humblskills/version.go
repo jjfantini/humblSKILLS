@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"runtime/debug"
 
 	"github.com/spf13/cobra"
@@ -27,11 +28,18 @@ func newVersionCmd(app *App) *cobra.Command {
 			if app.Config.JSON {
 				return app.UI.JSON(info)
 			}
+			th := app.UI.Theme()
 			suffix := ""
 			if info.Dirty {
-				suffix = " (dirty)"
+				suffix = th.Warn.Render(" (dirty)")
 			}
-			app.UI.Info("humblskills %s  commit %s%s", info.Version, info.Commit, suffix)
+			wordmark := th.Brand.Bold(true).Render("humblskills")
+			ver := th.Name.Render(info.Version)
+			sha := th.Detail.Render("commit " + info.Commit)
+			fmt.Fprintln(app.UI.Out(), "")
+			fmt.Fprintln(app.UI.Out(), "  "+wordmark+"  "+ver+suffix)
+			fmt.Fprintln(app.UI.Out(), "  "+sha)
+			fmt.Fprintln(app.UI.Out(), "")
 			return nil
 		},
 	}

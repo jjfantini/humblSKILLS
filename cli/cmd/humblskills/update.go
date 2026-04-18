@@ -9,6 +9,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
@@ -85,44 +86,60 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 	}
 
 	engine := install.NewEngine(app.Config.CacheDir, app.Config.ManifestPath)
+	useTUI := tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
 	var aggregate install.Result
-	for _, plan := range selected {
-		stepPlan, err := install.Plan(reg, plan.Skill)
-		if err != nil {
+
+	run := func(sink install.EventSink) error {
+		for _, plan := range selected {
+			stepPlan, err := install.Plan(reg, plan.Skill)
+			if err != nil {
+				return err
+			}
+
+			// Group existing targets by scope; within each scope, the set of
+			// platforms is exactly the adapters this skill is currently installed
+			// onto. Skip platforms the binary no longer knows about (warn once).
+			byScope := map[string][]string{}
+			for _, t := range plan.Targets {
+				if _, ok := adapterKnown[t.Platform]; !ok {
+					app.UI.Warn("skipping unknown platform %q in manifest for %s", t.Platform, plan.Skill)
+					continue
+				}
+				byScope[t.Scope] = append(byScope[t.Scope], t.Platform)
+			}
+
+			scopes := make([]string, 0, len(byScope))
+			for s := range byScope {
+				scopes = append(scopes, s)
+			}
+			sort.Strings(scopes)
+
+			for _, scope := range scopes {
+				plats := byScope[scope]
+				sort.Strings(plats)
+				res, err := engine.Execute(reg, stepPlan, install.ExecuteOpts{
+					Adapters:  adapters,
+					Platforms: plats,
+					Scope:     scope,
+					Force:     true,
+					OnEvent:   sink,
+				})
+				if err != nil {
+					return fmt.Errorf("%s: %w", plan.Skill, err)
+				}
+				aggregate.Results = append(aggregate.Results, res.Results...)
+			}
+		}
+		return nil
+	}
+
+	if useTUI {
+		if err := tui.ExecuteWithProgress(app.UI.Theme(), "update", run); err != nil {
 			return err
 		}
-
-		// Group existing targets by scope; within each scope, the set of
-		// platforms is exactly the adapters this skill is currently installed
-		// onto. Skip platforms the binary no longer knows about (warn once).
-		byScope := map[string][]string{}
-		for _, t := range plan.Targets {
-			if _, ok := adapterKnown[t.Platform]; !ok {
-				app.UI.Warn("skipping unknown platform %q in manifest for %s", t.Platform, plan.Skill)
-				continue
-			}
-			byScope[t.Scope] = append(byScope[t.Scope], t.Platform)
-		}
-
-		scopes := make([]string, 0, len(byScope))
-		for s := range byScope {
-			scopes = append(scopes, s)
-		}
-		sort.Strings(scopes)
-
-		for _, scope := range scopes {
-			plats := byScope[scope]
-			sort.Strings(plats)
-			res, err := engine.Execute(reg, stepPlan, install.ExecuteOpts{
-				Adapters:  adapters,
-				Platforms: plats,
-				Scope:     scope,
-				Force:     true,
-			})
-			if err != nil {
-				return fmt.Errorf("%s: %w", plan.Skill, err)
-			}
-			aggregate.Results = append(aggregate.Results, res.Results...)
+	} else {
+		if err := run(nil); err != nil {
+			return err
 		}
 	}
 

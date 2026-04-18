@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
 type refreshResult struct {
@@ -31,7 +32,15 @@ func newRegistryRefreshCmd(app *App) *cobra.Command {
 		Short: "Force a refresh of the cached registry",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			f := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir)
-			reg, origin, err := f.Refresh()
+			var (
+				reg    *registry.Registry
+				origin registry.Origin
+			)
+			err := tui.RunWithSpinner(app.UI.Theme(), "refreshing registry…", func() error {
+				r, o, e := f.Refresh()
+				reg, origin = r, o
+				return e
+			})
 			if err != nil {
 				return err
 			}
