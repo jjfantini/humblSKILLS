@@ -50,6 +50,10 @@ type Config struct {
 	RightTitle string // "DETAIL"
 	Actions    []ActionSpec
 	EmptyMsg   string
+	// LeftWidth overrides the computed left-pane width (in cells, including
+	// the leading gutter). When 0 the model sizes it to the widest rendered
+	// row, capped at width/3. Use this to force a tighter (or wider) column.
+	LeftWidth int
 	// FocusedLabel overrides the default "focused: <key>" right-anchored footer
 	// context. Return "" for no context.
 	FocusedLabel func(items []Item, cursor int) string
@@ -227,19 +231,53 @@ func (m *Model) resize() {
 }
 
 func (m Model) paneWidths() (left, right int) {
-	left = 32
-	if l := m.width / 3; l < left {
-		left = l
+	left = m.cfg.LeftWidth
+	if left == 0 {
+		left = m.measureLeftWidth()
+	}
+	// Never let the left pane eat more than a third of the screen.
+	if cap := m.width / 3; cap > 0 && left > cap {
+		left = cap
 	}
 	if left < 22 {
 		left = 22
 	}
-	// Leave: 2-col gutter, left pane, 3-col divider ("  │ " => 1 divider + pads), right pane.
-	right = m.width - left - 5
+	// Separator is " │ " (3 cols): 1 space, divider, 1 space.
+	right = m.width - left - 3
 	if right < 20 {
 		right = 20
 	}
 	return left, right
+}
+
+// measureLeftWidth computes the natural width of the widest row (dot + name
+// + trailing badge), adds 2 cells for the leading gutter, and caps the result
+// at a sensible upper bound. This keeps the divider snug against the content
+// instead of parking it at a fixed 32-col offset regardless of how short the
+// rows actually are.
+func (m Model) measureLeftWidth() int {
+	th := m.cfg.Theme
+	const minW, maxW = 22, 32
+	widest := minW
+	// Include the section title so very short rows still leave room for the
+	// "ADAPTERS" / "CHECKS" / "SKILLS" header.
+	if w := lipgloss.Width(th.SectionTitle.Render(spacedUpper(m.cfg.LeftTitle))) + 4; w > widest {
+		widest = w
+	}
+	// Call each Row with a generous width; the item pads to the requested
+	// width via rowWithTrailingBadge, so the rendered string IS the natural
+	// width when trimmed of trailing spaces.
+	for _, it := range m.cfg.Items {
+		r := it.Row(th, 120, false)
+		r = strings.TrimRight(r, " ")
+		if w := lipgloss.Width(r) + 2; w > widest {
+			widest = w
+		}
+	}
+	if widest > maxW {
+		widest = maxW
+	}
+	return widest
 }
 
 func (m *Model) applyFilter() {
@@ -360,11 +398,11 @@ func (m Model) renderLeft(width int) string {
 		}
 		var line string
 		if selected {
+			// Transparent highlight: just a magenta ▌ bar + magenta-bold
+			// name (styled by the Item itself). No background fill so the
+			// row stays legible on both dark and light terminal themes.
 			bar := th.Bullet.Render("▌")
-			// Wrap the content + padding in RowBg so the highlight fills
-			// every cell from just after the bar to the divider. The bar
-			// itself sits outside the highlight band, matching the design.
-			line = bar + th.RowBg.Render(" "+row)
+			line = bar + " " + row
 		} else {
 			line = "  " + row
 		}
@@ -378,7 +416,9 @@ func (m Model) renderLeft(width int) string {
 
 func (m Model) renderDivider() string {
 	th := m.cfg.Theme
-	h := m.preview.Height + 2
+	// Height = section title (1) + preview area. Matches the right-pane block
+	// exactly so the divider doesn't stick out into the footer.
+	h := m.preview.Height + 1
 	if h < 3 {
 		h = 3
 	}
