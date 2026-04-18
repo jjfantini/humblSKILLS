@@ -2,12 +2,23 @@ package tui
 
 import (
 	"fmt"
-	"strings"
+	"os"
 
 	"github.com/charmbracelet/huh"
+	"golang.org/x/term"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
+
+// termWidth returns the width of stdout, falling back to fallback when stdout
+// isn't a TTY (piped output, CI) so the dashed rule still has a sensible length.
+func termWidth(fallback int) int {
+	w, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil || w <= 0 {
+		return fallback
+	}
+	return w
+}
 
 // ConfirmWithSummary renders a framed summary panel listing the items being
 // acted on, then asks the user to confirm via the shared huh theme. Use it for
@@ -23,14 +34,17 @@ func ConfirmWithSummary(
 	dflt bool,
 	interactive bool,
 ) (bool, error) {
+	width := termWidth(72)
 	fmt.Println()
 	fmt.Println("  " + theme.Brand.Render(title))
-	fmt.Println()
+	fmt.Println("  " + DashedRule(theme, width-4))
 	if len(lines) > 0 {
-		body := strings.Join(lines, "\n")
-		fmt.Println(theme.Panel.Render(body))
-		fmt.Println()
+		for _, ln := range lines {
+			fmt.Println("  " + ln)
+		}
+		fmt.Println("  " + DashedRule(theme, width-4))
 	}
+	fmt.Println()
 
 	if !interactive {
 		return dflt, nil

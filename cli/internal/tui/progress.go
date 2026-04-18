@@ -158,7 +158,7 @@ func (m ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m ProgressModel) View() string {
 	th := m.theme
-	header := Header(th, m.command, "", m.width)
+	header := Header(th, HeaderSpec{Section: m.command}, m.width)
 
 	var sb strings.Builder
 	if m.running {
@@ -174,8 +174,13 @@ func (m ProgressModel) View() string {
 	sb.WriteString("  " + m.bar.View() + "\n\n")
 
 	for _, it := range m.items {
-		line := m.renderEntry(it)
-		sb.WriteString("  " + line + "\n")
+		active := m.running && m.current == it && !it.done && !it.errored
+		line := m.renderEntry(it, active)
+		prefix := "  "
+		if active {
+			prefix = th.Bullet.Render("▌") + " "
+		}
+		sb.WriteString(prefix + line + "\n")
 	}
 
 	if m.err != nil {
@@ -184,9 +189,9 @@ func (m ProgressModel) View() string {
 
 	var footer string
 	if m.running {
-		footer = Footer(th, []KeyHint{{Keys: "ctrl+c", Label: "abort"}})
+		footer = Footer(th, []KeyHint{{Keys: "ctrl+c", Label: "abort"}}, "", m.width)
 	} else {
-		footer = Footer(th, []KeyHint{{Keys: "enter/q", Label: "close"}})
+		footer = Footer(th, []KeyHint{{Keys: "enter/q", Label: "close"}}, "", m.width)
 	}
 	return header + "\n\n" + sb.String() + "\n" + footer
 }
@@ -229,30 +234,29 @@ func (m *ProgressModel) upsert(ev install.Event) *progressEntry {
 	return it
 }
 
-func (m ProgressModel) renderEntry(it *progressEntry) string {
+func (m ProgressModel) renderEntry(it *progressEntry, active bool) string {
 	th := m.theme
 	var icon, label string
 	switch {
 	case it.errored:
-		icon = th.Error.Render("✗")
+		icon = th.DotNo.Render("●")
 		label = th.Error.Render("error")
 	case it.done:
-		icon = th.Success.Render("✓")
+		icon = th.DotOK.Render("●")
 		label = th.Detail.Render(string(it.outcome))
 	default:
-		icon = th.Brand.Render("…")
+		icon = th.DotWarn.Render("●")
 		label = th.Detail.Render("running")
+	}
+	name := th.Name.Render(it.skill)
+	if active {
+		name = th.RowSelected.Render(it.skill)
 	}
 	where := ""
 	if it.platform != "" {
 		where = th.Platform.Render("[" + it.platform + "/" + it.scope + "]")
 	}
-	return fmt.Sprintf("%s %s %s %s",
-		icon,
-		th.Name.Render(it.skill),
-		where,
-		label,
-	)
+	return fmt.Sprintf("%s %s %s %s", icon, name, where, label)
 }
 
 // ExecuteWithProgress runs fn in a goroutine while a ProgressModel UI shows

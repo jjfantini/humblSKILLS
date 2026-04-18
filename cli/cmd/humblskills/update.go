@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -23,8 +24,8 @@ func newUpdateCmd(app *App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update [<skill>...]",
 		Short: "Upgrade installed skills to the latest registry version",
-		Long: "update with no args presents a picker of every skill that has " +
-			"drifted from the registry. Names can be passed to narrow the set. " +
+		Long: "update with no args opens an interactive picker of every skill that " +
+			"has drifted from the registry. Names can be passed to narrow the set. " +
 			"--all (or --yes) skips the picker and upgrades every drifted skill. " +
 			"--check prints the diff and exits without changing anything.",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -96,9 +97,6 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 				return err
 			}
 
-			// Group existing targets by scope; within each scope, the set of
-			// platforms is exactly the adapters this skill is currently installed
-			// onto. Skip platforms the binary no longer knows about (warn once).
 			byScope := map[string][]string{}
 			for _, t := range plan.Targets {
 				if _, ok := adapterKnown[t.Platform]; !ok {
@@ -150,34 +148,94 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 	return nil
 }
 
+// chooseUpdates is the pre-execute picker. With --all / --yes it returns every
+// plan. On an interactive TTY it opens the two-pane listdetail so the user can
+// inspect each drifted skill before applying. Non-interactive (pipe, --json)
+// returns every plan so scripts that don't pass --all still work — matching
+// the pre-refactor behaviour.
 func chooseUpdates(app *App, plans []install.UpdatePlan, all bool) ([]install.UpdatePlan, error) {
 	if all || app.Config.Yes {
 		return plans, nil
 	}
-
-	opts := make([]ui.MultiSelectOption, 0, len(plans))
-	for _, p := range plans {
-		opts = append(opts, ui.MultiSelectOption{
-			Label:    fmt.Sprintf("%s  %s → %s", p.Skill, p.FromVersion, p.ToVersion),
-			Value:    p.Skill,
-			Selected: true,
-		})
+	if !tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
+		return plans, nil
 	}
-	picked, err := app.Prompt.MultiSelect("Select skills to update", opts)
+
+	items := make([]tui.Item, 0, len(plans))
+	for _, p := range plans {
+		items = append(items, updatePlanItem{p: p})
+	}
+
+	meta := func(items []tui.Item, _ int) string {
+		return fmt.Sprintf("%d drifted", len(items))
+	}
+
+	res, err := tui.RunListDetail(tui.Config{
+		Theme:      app.UI.Theme(),
+		Version:    resolveVersion().Version,
+		Section:    "Update",
+		Meta:       meta,
+		Items:      items,
+		LeftTitle:  "DRIFTED",
+		RightTitle: "DETAIL",
+		Actions: []tui.ActionSpec{
+			{Key: "u", Label: "apply all", Action: "all"},
+			{Key: "enter", Label: "apply one", Action: "one"},
+		},
+		EmptyMsg: "all skills are up-to-date",
+	})
 	if err != nil {
 		return nil, err
 	}
-	pickedSet := map[string]struct{}{}
-	for _, v := range picked {
-		pickedSet[v] = struct{}{}
+
+	switch res.Action {
+	case "all":
+		return plans, nil
+	case "one":
+		it, ok := res.Item.(updatePlanItem)
+		if !ok {
+			return nil, nil
+		}
+		return []install.UpdatePlan{it.p}, nil
 	}
-	out := make([]install.UpdatePlan, 0, len(picked))
-	for _, p := range plans {
-		if _, ok := pickedSet[p.Skill]; ok {
-			out = append(out, p)
+	return nil, nil
+}
+
+// updatePlanItem adapts install.UpdatePlan to tui.Item.
+type updatePlanItem struct{ p install.UpdatePlan }
+
+func (u updatePlanItem) Key() string { return u.p.Skill }
+func (u updatePlanItem) FilterValue() string {
+	return strings.ToLower(u.p.Skill)
+}
+func (u updatePlanItem) Row(th *ui.Theme, width int, selected bool) string {
+	arrow := th.DotWarn.Render("↑")
+	name := rowName(th, u.p.Skill, selected, true)
+	ver := th.Version.Render(u.p.FromVersion + " → " + u.p.ToVersion)
+	badge := tui.Badge(th, tui.BadgeRO, fmt.Sprintf("%d target%s", len(u.p.Targets), plural(len(u.p.Targets))))
+	return rowWithTrailingBadge(arrow+" "+name+"  "+ver, badge, width)
+}
+func (u updatePlanItem) Detail(th *ui.Theme, width int) string {
+	var sb strings.Builder
+	sb.WriteString(th.DetailTitle.Render(u.p.Skill) + "  " +
+		th.DetailSub.Render("v"+u.p.FromVersion+" → v"+u.p.ToVersion) + "\n\n")
+	sb.WriteString(kvRow(th, "from", th.KVValue.Render("v"+u.p.FromVersion)))
+	sb.WriteString(kvRow(th, "to", th.KVValue.Render("v"+u.p.ToVersion)))
+	sb.WriteString(kvRow(th, "targets", th.KVValue.Render(fmt.Sprintf("%d", len(u.p.Targets)))))
+
+	if len(u.p.Targets) > 0 {
+		sb.WriteString("\n" + th.SectionTitle.Render("TARGETS") + "\n")
+		for i, t := range u.p.Targets {
+			if i > 0 {
+				sb.WriteString(tui.DashedRule(th, width) + "\n")
+			}
+			scope := th.PathLabel.Render(padRight(t.Scope, 7))
+			plat := th.Platform.Render(t.Platform)
+			path := th.PathValue.Render(t.Path)
+			sb.WriteString("  " + scope + "  " + plat + "  " + path + "\n")
 		}
 	}
-	return out, nil
+	return sb.String()
 }
 
 func printUpdateCheck(app *App, plans []install.UpdatePlan) error {

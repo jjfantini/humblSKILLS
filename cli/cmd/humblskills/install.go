@@ -1,17 +1,16 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 
 	"github.com/spf13/cobra"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
+	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/platform"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
 type installFlags struct {
@@ -180,38 +179,32 @@ func printInstall(app *App, r install.Result) {
 	}
 }
 
-// pickSkill opens an interactive, filterable picker listing every skill in
-// the registry. Each option shows "name  vX.Y.Z  —  description" so the user
-// can judge skills at a glance. Returns a usage-style error when the caller
-// isn't on an interactive TTY (or passed --yes/--json) so the missing arg is
-// surfaced clearly rather than hanging on a prompt.
+// pickSkill opens the shared two-pane skill browser over the registry and
+// returns the chosen skill's name. Matches the search surface 1:1 so the user
+// can't tell them apart — a zero-arg install IS a searchable picker.
 func pickSkill(app *App, reg *registry.Registry) (string, error) {
 	if len(reg.Skills) == 0 {
 		return "", fmt.Errorf("registry is empty")
+	}
+	if !tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
+		return "", fmt.Errorf("skill name required — usage: humblskills install <skill>")
 	}
 
 	skills := append([]registry.Skill(nil), reg.Skills...)
 	sort.Slice(skills, func(i, j int) bool { return skills[i].Name < skills[j].Name })
 
-	opts := make([]ui.SelectOption, 0, len(skills))
-	for _, s := range skills {
-		label := fmt.Sprintf("%s  v%s  —  %s", s.Name, s.Version, s.Description)
-		opts = append(opts, ui.SelectOption{Label: label, Value: s.Name})
-	}
-
-	picked, err := app.Prompt.Select(
-		"Pick a skill to install",
-		"type to filter · ↑↓ to navigate · enter to install",
-		opts,
-	)
+	m, err := manifest.Load(app.Config.ManifestPath)
 	if err != nil {
-		if errors.Is(err, ui.ErrNonInteractive) {
-			return "", fmt.Errorf("skill name required — usage: humblskills install <skill>")
-		}
+		m = &manifest.Manifest{}
+	}
+	items := buildSkillItems(skills, m)
+
+	skill, action, err := runSkillBrowser(app, "Install", items, modeSearch, "registry is empty")
+	if err != nil {
 		return "", err
 	}
-	if picked == "" {
+	if action != "install" || skill == "" {
 		return "", fmt.Errorf("no skill selected")
 	}
-	return picked, nil
+	return skill, nil
 }

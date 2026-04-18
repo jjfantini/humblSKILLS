@@ -7,23 +7,71 @@ import (
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
 func newUninstallCmd(app *App) *cobra.Command {
 	return &cobra.Command{
-		Use:   "uninstall <skill>",
+		Use:   "uninstall [skill]",
 		Short: "Remove an installed skill from every target",
-		Args:  cobra.ExactArgs(1),
+		Long: "uninstall <skill> removes a named skill. With no arg, it opens " +
+			"an interactive picker listing every installed skill.",
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runUninstall(app, args[0])
+			if len(args) == 1 {
+				return runUninstall(app, args[0])
+			}
+			return runUninstallPicker(app)
 		},
 	}
 }
 
-// runUninstall performs the interactive uninstall flow. Extracted from the
-// cobra RunE so the list TUI can route an 'x' action back through exactly the
-// same confirm + engine + print path.
+// runUninstallPicker opens the shared two-pane browser over installed skills
+// so the user can pick-and-remove without leaving the TUI.
+func runUninstallPicker(app *App) error {
+	if !tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
+		return fmt.Errorf("skill name required — usage: humblskills uninstall <skill>")
+	}
+
+	m, err := manifest.Load(app.Config.ManifestPath)
+	if err != nil {
+		return fmt.Errorf("load manifest: %w", err)
+	}
+	if len(m.Installations) == 0 {
+		app.UI.Info("no skills installed — nothing to uninstall")
+		return nil
+	}
+
+	reg, _, _ := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+
+	installedNames := uniqueSkillsFromManifest(m)
+	skills := make([]registry.Skill, 0, len(installedNames))
+	for _, name := range installedNames {
+		if s := findRegistrySkill(reg, name); s != nil {
+			skills = append(skills, *s)
+			continue
+		}
+		inst := m.FindAll(name)
+		if len(inst) == 0 {
+			continue
+		}
+		skills = append(skills, registry.Skill{Name: name, Version: inst[0].Version})
+	}
+	items := buildSkillItems(skills, m)
+
+	skill, action, err := runSkillBrowser(app, "Uninstall", items, modeInstalledOnly, "no skills installed")
+	if err != nil {
+		return err
+	}
+	if action != "uninstall" || skill == "" {
+		return nil
+	}
+	return runUninstall(app, skill)
+}
+
+// runUninstall performs the confirm → engine → print flow for a named skill.
+// Extracted so list/uninstall TUIs can route straight into it.
 func runUninstall(app *App, skill string) error {
 	m, err := manifest.Load(app.Config.ManifestPath)
 	if err != nil {
@@ -35,7 +83,6 @@ func runUninstall(app *App, skill string) error {
 		return nil
 	}
 
-	// Show exactly what's about to be removed before asking.
 	theme := app.UI.Theme()
 	lines := make([]string, 0, len(entries))
 	for _, e := range entries {

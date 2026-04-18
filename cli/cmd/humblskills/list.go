@@ -3,15 +3,14 @@ package main
 import (
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/spf13/cobra"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
 func newListCmd(app *App) *cobra.Command {
@@ -42,7 +41,7 @@ func newListCmd(app *App) *cobra.Command {
 			})
 
 			if tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
-				return runListTUI(app, installs)
+				return runListTUI(app, m)
 			}
 			renderListTable(app, installs)
 			return nil
@@ -51,7 +50,7 @@ func newListCmd(app *App) *cobra.Command {
 }
 
 // renderListTable prints installs as a bordered table using the shared theme.
-// Used in non-TTY / piped / --json-less paths.
+// Used in non-TTY / piped paths.
 func renderListTable(app *App, installs []manifest.Installation) {
 	th := app.UI.Theme()
 	app.UI.Header("list")
@@ -82,66 +81,71 @@ func renderListTable(app *App, installs []manifest.Installation) {
 		"%d install%s total", len(installs), plural(len(installs)))))
 }
 
-// runListTUI launches the shared browser in "installed" mode. Actions: update,
-// uninstall, or quit. After the browser exits, the appropriate command is
-// routed back through runUpdate / Uninstall so the user stays in one flow.
-func runListTUI(app *App, installs []manifest.Installation) error {
-	items := make([]tui.BrowseItem, 0, len(installs))
-	for _, inst := range installs {
-		items = append(items, installedBrowseItem{Installation: inst})
+// runListTUI opens the shared two-pane browser in installed-only mode so list
+// looks identical to search, differing only in which skills are shown and
+// which actions are wired up.
+func runListTUI(app *App, m *manifest.Manifest) error {
+	// Pull the registry to know whether each installed skill has drifted. If
+	// the registry is unreachable, fall back to the manifest versions.
+	reg, _, _ := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+
+	// Build a "virtual" registry view of only the skills we have installed,
+	// preferring the registry version when available so `outdated` can render.
+	installedSkills := uniqueSkillsFromManifest(m)
+	skills := make([]registry.Skill, 0, len(installedSkills))
+	for _, name := range installedSkills {
+		if s := findRegistrySkill(reg, name); s != nil {
+			skills = append(skills, *s)
+			continue
+		}
+		// Registry missing this skill — synthesise from the manifest entry so
+		// it still shows in the browser.
+		inst := m.FindAll(name)
+		if len(inst) == 0 {
+			continue
+		}
+		skills = append(skills, registry.Skill{
+			Name:    name,
+			Version: inst[0].Version,
+		})
 	}
-	m, err := tui.Run(tui.NewBrowser(tui.BrowserConfig{
-		Command:  "installed",
-		Theme:    app.UI.Theme(),
-		Items:    items,
-		Actions:  []tui.BrowseAction{tui.ActionUpdate, tui.ActionUninstall},
-		EmptyMsg: "no skills installed",
-	}))
+
+	items := buildSkillItems(skills, m)
+
+	skill, action, err := runSkillBrowser(app, "Installed", items, modeInstalledOnly, "no skills installed")
 	if err != nil {
 		return err
 	}
-	browser, ok := m.(tui.Browser)
-	if !ok {
-		return nil
-	}
-	res := browser.Selected()
-	it, ok := res.Item.(installedBrowseItem)
-	if !ok {
-		return nil
-	}
-	switch res.Action {
-	case tui.ActionUpdate:
-		return runUpdate(app, []string{it.Skill}, updateFlags{})
-	case tui.ActionUninstall:
-		return runUninstall(app, it.Skill)
+	switch action {
+	case "update":
+		return runUpdate(app, []string{skill}, updateFlags{})
+	case "uninstall":
+		return runUninstall(app, skill)
 	}
 	return nil
 }
 
-// installedBrowseItem adapts manifest.Installation to the BrowseItem contract.
-type installedBrowseItem struct {
-	manifest.Installation
+func uniqueSkillsFromManifest(m *manifest.Manifest) []string {
+	seen := map[string]bool{}
+	out := make([]string, 0)
+	for _, inst := range m.Installations {
+		if !seen[inst.Skill] {
+			seen[inst.Skill] = true
+			out = append(out, inst.Skill)
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
-func (i installedBrowseItem) FilterValue() string {
-	return i.Skill + " " + i.Platform + " " + i.Scope
-}
-func (i installedBrowseItem) Title() string { return i.Skill + "  v" + i.Version }
-func (i installedBrowseItem) Description() string {
-	return i.Platform + "/" + i.Scope
-}
-func (i installedBrowseItem) Preview(theme *ui.Theme, width int) string {
-	var sb strings.Builder
-	sb.WriteString(theme.Name.Render(i.Skill))
-	sb.WriteString("  ")
-	sb.WriteString(theme.Version.Render("v" + i.Version))
-	sb.WriteString("\n\n")
-	sb.WriteString(theme.Label.Render("platform  ") + theme.Platform.Render(i.Platform) + "\n")
-	sb.WriteString(theme.Label.Render("scope     ") + theme.Platform.Render(i.Scope) + "\n")
-	sb.WriteString(theme.Label.Render("path      ") + theme.Detail.Render(i.Path) + "\n")
-	if !i.InstalledAt.IsZero() {
-		sb.WriteString(theme.Label.Render("installed ") +
-			theme.Detail.Render(i.InstalledAt.Format("2006-01-02 15:04")) + "\n")
+func findRegistrySkill(reg *registry.Registry, name string) *registry.Skill {
+	if reg == nil {
+		return nil
 	}
-	return sb.String()
+	for i := range reg.Skills {
+		if reg.Skills[i].Name == name {
+			return &reg.Skills[i]
+		}
+	}
+	return nil
 }

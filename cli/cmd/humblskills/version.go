@@ -33,8 +33,8 @@ func newVersionCmd(app *App) *cobra.Command {
 			if info.Dirty {
 				suffix = th.Warn.Render(" (dirty)")
 			}
-			wordmark := th.Brand.Bold(true).Render("humblskills")
-			ver := th.Name.Render(info.Version)
+			wordmark := th.Brand.Render("humblskills")
+			ver := th.Version.Render(info.Version)
 			sha := th.Detail.Render("commit " + info.Commit)
 			fmt.Fprintln(app.UI.Out(), "")
 			fmt.Fprintln(app.UI.Out(), "  "+wordmark+"  "+ver+suffix)
