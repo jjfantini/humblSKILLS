@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.1](https://github.com/jjfantini/humblSKILLS/compare/v2.4.0...v2.4.1) (2026-04-19)
+
+
+### Bug Fixes
+
+* **cli:** forward mouse wheel to detail pane in list-detail screens ([84eea02](https://github.com/jjfantini/humblSKILLS/commit/84eea022123f923e449956391fd1cb292f45098e))
+
 ## [2.4.0](https://github.com/jjfantini/humblSKILLS/compare/v2.3.8...v2.4.0) (2026-04-19)
 
 
