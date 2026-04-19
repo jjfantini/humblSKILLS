@@ -126,24 +126,25 @@ func (fm Frontmatter) Validate(dirName string, ctx ValidationContext) error {
 		errs = append(errs, "description is required")
 	}
 
+	version := fm.Version()
 	switch {
-	case fm.Version == "":
-		errs = append(errs, "version is required")
-	case !isStrictSemver(fm.Version):
-		errs = append(errs, fmt.Sprintf("version %q is not valid semver (want MAJOR.MINOR.PATCH)", fm.Version))
+	case version == "":
+		errs = append(errs, "version is required (set `metadata.version`)")
+	case !isStrictSemver(version):
+		errs = append(errs, fmt.Sprintf("version %q is not valid semver (want MAJOR.MINOR.PATCH)", version))
 	}
 
-	for _, plat := range fm.Platforms {
+	for _, plat := range fm.Platforms() {
 		if _, ok := ctx.KnownAdapters[plat]; !ok {
 			errs = append(errs, fmt.Sprintf("unknown platform %q (no matching adapter)", plat))
 		}
 	}
 
-	if perrs := validatePreserve(fm.Preserve); len(perrs) > 0 {
+	if perrs := validatePreserve(fm.Preserve()); len(perrs) > 0 {
 		errs = append(errs, perrs...)
 	}
 
-	for _, raw := range fm.Requires {
+	for _, raw := range fm.Requires() {
 		dep, err := ParseDep(raw)
 		if err != nil {
 			errs = append(errs, fmt.Sprintf("invalid dep %q: %v", raw, err))

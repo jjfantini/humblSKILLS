@@ -11,10 +11,39 @@ files and re-run lint.
 
 Context -> categories. See `## Wiki` below for the concept enumeration.
 
+- **anthropic** -> `description`, `frontmatter`, `patterns`, `structure`, `testing`, `troubleshooting`
 - **brain** -> `ingest`, `linking`, `lint`, `patterns`, `protocol`
 - **smart** -> `create`, `migrate`, `spec`, `structure`
 
 ## Wiki
+
+### anthropic
+
+#### description
+
+- [trigger-design.md](wiki/anthropic/description/trigger-design.md) - Description Field: Trigger-Phrase Design
+
+#### frontmatter
+
+- [requirements.md](wiki/anthropic/frontmatter/requirements.md) - Frontmatter Field Requirements (Anthropic Spec)
+- [security.md](wiki/anthropic/frontmatter/security.md) - Frontmatter Security Restrictions (Anthropic Spec)
+
+#### patterns
+
+- [five-patterns.md](wiki/anthropic/patterns/five-patterns.md) - Five Skill Patterns from Anthropic Early Adopters
+
+#### structure
+
+- [file-layout.md](wiki/anthropic/structure/file-layout.md) - Skill File Layout and Naming Rules
+- [progressive-disclosure.md](wiki/anthropic/structure/progressive-disclosure.md) - Progressive Disclosure: Three-Level Loading
+
+#### testing
+
+- [three-layer-approach.md](wiki/anthropic/testing/three-layer-approach.md) - Testing a Skill: Trigger, Functional, Performance
+
+#### troubleshooting
+
+- [common-failures.md](wiki/anthropic/troubleshooting/common-failures.md) - Common Skill Failures and Fixes
 
 ### brain
 
@@ -63,6 +92,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 ## Raw Sources
 
 - [agentskills-spec.md](raw/agentskills-spec.md) - cited by: references/wiki/smart/spec/skill-frontmatter.md
+- [anthropic-skill-building-guide.pdf](raw/anthropic-skill-building-guide.pdf) - cited by: references/wiki/anthropic/description/trigger-design.md, references/wiki/anthropic/frontmatter/requirements.md, references/wiki/anthropic/frontmatter/security.md, references/wiki/anthropic/patterns/five-patterns.md, references/wiki/anthropic/structure/file-layout.md, references/wiki/anthropic/structure/progressive-disclosure.md, references/wiki/anthropic/testing/three-layer-approach.md, references/wiki/anthropic/troubleshooting/common-failures.md
 
 ---
 

@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-19T02:35:28Z",
+  "generated_at": "2026-04-19T02:36:05Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "4d9f4b2581d535bb8430896a64bae19927f5ace7"
+    "sha": "59fe8a1a7258b8f56cecaafe9e579044914dd69c"
   },
   "skills": [
     {
       "name": "skill-example-hello",
       "version": "0.1.0",
-      "description": "Minimal seed skill with no dependencies — exercises the registry happy path.",
+      "description": "Minimal seed skill with no dependencies - exercises the registry happy path.",
       "tags": [
         "example",
         "seed"
@@ -20,12 +20,12 @@
         "cursor"
       ],
       "path": "skills/skill-example-hello",
-      "dir_sha": "9f8e7c25ed53a98aefd1bb8aa7c7cb89c74be7dc0d36395615ae23ccc03bd153"
+      "dir_sha": "45b1bc0022957a76c2f0e579a0e24959f336f3bdd04786168f15053841adb93b"
     },
     {
       "name": "skill-example-pinned-dep",
       "version": "0.1.0",
-      "description": "Seed skill with a minimum-version dependency — exercises @>= constraint parsing.",
+      "description": "Seed skill with a minimum-version dependency - exercises @>= constraint parsing.",
       "tags": [
         "example",
         "seed"
@@ -37,12 +37,12 @@
         "skill-example-hello@>=0.1.0"
       ],
       "path": "skills/skill-example-pinned-dep",
-      "dir_sha": "e5a7842bc5116fd97cff413a33c0e9e4e68f534f81772669dff59ee1f47f33c9"
+      "dir_sha": "dd5153e9e3349b63a99522d9eb91826d652ff733d5e19a108ae77d706117d59b"
     },
     {
       "name": "skill-example-with-dep",
       "version": "0.1.0",
-      "description": "Seed skill that depends on skill-example-hello — exercises unpinned dependency resolution.",
+      "description": "Seed skill that depends on skill-example-hello - exercises unpinned dependency resolution.",
       "tags": [
         "example",
         "seed"
@@ -55,7 +55,7 @@
         "skill-example-hello"
       ],
       "path": "skills/skill-example-with-dep",
-      "dir_sha": "eeb1e631223930fa5a0cd19033e7ba6b36b53a64b40d820b15e2424b00806b57"
+      "dir_sha": "6a9408ca4c9b6621a73adb638aa66470191ac8653bc59731bbc2b060531539aa"
     },
     {
       "name": "use-smart-humanize-text",
@@ -67,17 +67,18 @@
         "references/patterns.md"
       ],
       "path": "skills/use-smart-humanize-text",
-      "dir_sha": "6219a0710aa6fa8763d9c2a51824cd48c58f5fe6810435e6155d8f27e8da1bc1"
+      "dir_sha": "05cd958d3056f4de30d9877b1f88cdedc2e2b2b7e82fd4a73b7df0f46dbb125b"
     },
     {
       "name": "use-smart-skill",
-      "version": "1.0.0",
-      "description": "Create new Smart Skills (CCCCC-structured: Core / Context / Category / Concept / Command) with an embedded self-learning brain. Provides scaffold and lint scripts, templates, and step-by-step workflows. Use when creating a skill, scaffolding a skill, migrating a flat skill, refactoring skill structure, adding self-learning memory to a skill, or when a SKILL.md exceeds ~300 lines.\n",
+      "version": "1.1.0",
+      "description": "Scaffold production-grade humblSKILLS with progressive disclosure, self-learning memory (patterns/decisions/session log), and lint tooling. Use when creating a new humblSKILL (also known as a smart skill), scaffolding a SKILL.md, migrating a flat skill to a smart skill, refactoring a skill that exceeds ~300 lines, or adding memory/patterns tracking to an existing skill. Do NOT use for editing skill content after scaffold - use the skill directly. Uses CCCCC layering internally (Core/Context/Category/Concept/Command).\n",
       "tags": [
         "meta",
         "skill-authoring",
         "smart-skill",
-        "scaffolding"
+        "scaffolding",
+        "humblskill"
       ],
       "platforms": [
         "claude-code",
@@ -89,7 +90,7 @@
         "references/patterns.md"
       ],
       "path": "skills/use-smart-skill",
-      "dir_sha": "81b3994dc9768b5d8461acf744026e3605d5c50434969d54f475d2bdc00ae64b"
+      "dir_sha": "82f29fdfcf52a1564cfb5daca8e637a843ae67c06063f70da1ba9ac7aada049a"
     }
   ]
 }
