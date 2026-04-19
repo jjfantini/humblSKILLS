@@ -35,7 +35,7 @@ func newInstallCmd(app *App) *cobra.Command {
 				skill = args[0]
 			}
 			f.platformsSet = cmd.Flags().Changed("platform")
-			return runInstall(app, skill, f)
+			return runInstall(app, skill, f, false)
 		},
 	}
 	cmd.Flags().StringSliceVar(&f.platforms, "platform", nil, "restrict install to these adapters (default: all detected)")
@@ -44,7 +44,7 @@ func newInstallCmd(app *App) *cobra.Command {
 	return cmd
 }
 
-func runInstall(app *App, skill string, f installFlags) error {
+func runInstall(app *App, skill string, f installFlags, fromDashboard bool) error {
 	adapterList, err := app.Adapters()
 	if err != nil {
 		return fmt.Errorf("load adapters: %w", err)
@@ -56,8 +56,11 @@ func runInstall(app *App, skill string, f installFlags) error {
 	}
 
 	if skill == "" {
-		skill, err = pickSkill(app, reg)
+		skill, err = pickSkill(app, reg, fromDashboard)
 		if err != nil {
+			if fromDashboard && err.Error() == "no skill selected" {
+				return nil
+			}
 			return err
 		}
 	}
@@ -71,6 +74,9 @@ func runInstall(app *App, skill string, f installFlags) error {
 			return err
 		}
 		if !ok {
+			if fromDashboard {
+				return nil
+			}
 			return fmt.Errorf("install cancelled")
 		}
 		platforms = plats
@@ -245,7 +251,7 @@ func promptInstallTargets(app *App, adapterList []adapters.Adapter, skill string
 // pickSkill opens the shared two-pane skill browser over the registry and
 // returns the chosen skill's name. Matches the search surface 1:1 so the user
 // can't tell them apart — a zero-arg install IS a searchable picker.
-func pickSkill(app *App, reg *registry.Registry) (string, error) {
+func pickSkill(app *App, reg *registry.Registry, fromDashboard bool) (string, error) {
 	if len(reg.Skills) == 0 {
 		return "", fmt.Errorf("registry is empty")
 	}
@@ -262,7 +268,7 @@ func pickSkill(app *App, reg *registry.Registry) (string, error) {
 	}
 	items := buildSkillItems(skills, m)
 
-	skill, action, err := runSkillBrowser(app, "Install", items, modeSearch, "registry is empty")
+	skill, action, err := runSkillBrowser(app, "Install", items, modeSearch, "registry is empty", fromDashboard)
 	if err != nil {
 		return "", err
 	}

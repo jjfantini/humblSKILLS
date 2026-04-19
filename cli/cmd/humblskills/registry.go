@@ -31,33 +31,37 @@ func newRegistryRefreshCmd(app *App) *cobra.Command {
 		Use:   "refresh",
 		Short: "Force a refresh of the cached registry",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			f := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir)
-			var (
-				reg    *registry.Registry
-				origin registry.Origin
-			)
-			err := tui.RunWithSpinner(app.UI.Theme(), "refreshing registry…", func() error {
-				r, o, e := f.Refresh()
-				reg, origin = r, o
-				return e
-			})
-			if err != nil {
-				return err
-			}
-			info := f.Inspect()
-			res := refreshResult{
-				URL:       app.Config.RegistryURL,
-				Source:    string(origin),
-				Skills:    len(reg.Skills),
-				FetchedAt: info.FetchedAt,
-				CachePath: info.Path,
-			}
-			if app.Config.JSON {
-				return app.UI.JSON(res)
-			}
-			app.UI.Success("registry refreshed: %d skill%s from %s", res.Skills, plural(res.Skills), res.Source)
-			app.UI.Detail("  cache: %s", res.CachePath)
-			return nil
+			return runRegistryRefresh(app)
 		},
 	}
+}
+
+func runRegistryRefresh(app *App) error {
+	f := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir)
+	var (
+		reg    *registry.Registry
+		origin registry.Origin
+	)
+	err := tui.RunWithSpinner(app.UI.Theme(), "refreshing registry…", func() error {
+		r, o, e := f.Refresh()
+		reg, origin = r, o
+		return e
+	})
+	if err != nil {
+		return err
+	}
+	info := f.Inspect()
+	res := refreshResult{
+		URL:       app.Config.RegistryURL,
+		Source:    string(origin),
+		Skills:    len(reg.Skills),
+		FetchedAt: info.FetchedAt,
+		CachePath: info.Path,
+	}
+	if app.Config.JSON {
+		return app.UI.JSON(res)
+	}
+	app.UI.Success("registry refreshed: %d skill%s from %s", res.Skills, plural(res.Skills), res.Source)
+	app.UI.Detail("  cache: %s", res.CachePath)
+	return nil
 }

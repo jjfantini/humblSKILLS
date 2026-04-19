@@ -72,6 +72,12 @@ type Config struct {
 	// FocusedLabel overrides the default "focused: <key>" right-anchored footer
 	// context. Return "" for no context.
 	FocusedLabel func(items []Item, cursor int) string
+	// BackLabel overrides the quit-hint label. Default is "quit". Set to
+	// "back" (with BackKey = "esc") when the model is launched from a parent
+	// navigator so ESC feels like "go back" instead of "quit".
+	BackLabel string
+	// BackKey overrides the quit-hint key. Default is "q".
+	BackKey string
 }
 
 // Result is what the caller inspects after the model returns.
@@ -177,7 +183,7 @@ func (m Model) updateFilter(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) updateNav(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
-	case key.Matches(msg, m.keys.Quit):
+	case key.Matches(msg, m.keys.Quit), key.Matches(msg, m.keys.Back):
 		m.result = Result{Quit: true}
 		m.done = true
 		return m, tea.Quit
@@ -495,7 +501,15 @@ func (m Model) hints() []KeyHint {
 		}
 		hints = append(hints, KeyHint{Keys: keyStr, Label: label})
 	}
-	hints = append(hints, KeyHint{Keys: "q", Label: "quit"})
+	backKey := m.cfg.BackKey
+	if backKey == "" {
+		backKey = "q"
+	}
+	backLabel := m.cfg.BackLabel
+	if backLabel == "" {
+		backLabel = "quit"
+	}
+	hints = append(hints, KeyHint{Keys: backKey, Label: backLabel})
 	return hints
 }
 

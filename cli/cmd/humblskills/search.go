@@ -54,7 +54,7 @@ func newSearchCmd(app *App) *cobra.Command {
 			// two-pane browser so search == install-picker visually.
 			useTUI := query == "" && tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
 			if useTUI {
-				return runSearchTUI(app, hits)
+				return runSearchTUI(app, hits, false)
 			}
 
 			app.UI.Println(renderSearchResults(app.UI.Theme(), hits, query))
@@ -80,21 +80,21 @@ func matches(s registry.Skill, q string) bool {
 
 // runSearchTUI opens the shared skill browser over hits and, if the user picks
 // one, hands the skill to runInstall so one TUI flows into the next.
-func runSearchTUI(app *App, hits []registry.Skill) error {
+func runSearchTUI(app *App, hits []registry.Skill, fromDashboard bool) error {
 	m, err := manifest.Load(app.Config.ManifestPath)
 	if err != nil {
 		m = &manifest.Manifest{}
 	}
 	items := buildSkillItems(hits, m)
 
-	skill, action, err := runSkillBrowser(app, "Search", items, modeSearch, "no skills match")
+	skill, action, err := runSkillBrowser(app, "Search", items, modeSearch, "no skills match", fromDashboard)
 	if err != nil {
 		return err
 	}
 	if action != "install" || skill == "" {
 		return nil
 	}
-	return runInstall(app, skill, installFlags{})
+	return runInstall(app, skill, installFlags{}, fromDashboard)
 }
 
 // renderSearchResults returns a multi-line, themed string listing every hit.

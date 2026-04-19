@@ -22,14 +22,14 @@ func newUninstallCmd(app *App) *cobra.Command {
 			if len(args) == 1 {
 				return runUninstall(app, args[0])
 			}
-			return runUninstallPicker(app)
+			return runUninstallPicker(app, false)
 		},
 	}
 }
 
 // runUninstallPicker opens the shared two-pane browser over installed skills
 // so the user can pick-and-remove without leaving the TUI.
-func runUninstallPicker(app *App) error {
+func runUninstallPicker(app *App, fromDashboard bool) error {
 	if !tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
 		return fmt.Errorf("skill name required — usage: humblskills uninstall <skill>")
 	}
@@ -60,7 +60,7 @@ func runUninstallPicker(app *App) error {
 	}
 	items := buildSkillItems(skills, m)
 
-	skill, action, err := runSkillBrowser(app, "Uninstall", items, modeInstalledOnly, "no skills installed")
+	skill, action, err := runSkillBrowser(app, "Uninstall", items, modeInstalledOnly, "no skills installed", fromDashboard)
 	if err != nil {
 		return err
 	}

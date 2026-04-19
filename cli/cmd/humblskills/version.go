@@ -24,25 +24,29 @@ func newVersionCmd(app *App) *cobra.Command {
 		Use:   "version",
 		Short: "Print humblskills version and commit",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			info := resolveVersion()
-			if app.Config.JSON {
-				return app.UI.JSON(info)
-			}
-			th := app.UI.Theme()
-			suffix := ""
-			if info.Dirty {
-				suffix = th.Warn.Render(" (dirty)")
-			}
-			wordmark := th.Brand.Render("humblskills")
-			ver := th.Version.Render(info.Version)
-			sha := th.Detail.Render("commit " + info.Commit)
-			fmt.Fprintln(app.UI.Out(), "")
-			fmt.Fprintln(app.UI.Out(), "  "+wordmark+"  "+ver+suffix)
-			fmt.Fprintln(app.UI.Out(), "  "+sha)
-			fmt.Fprintln(app.UI.Out(), "")
-			return nil
+			return runVersion(app)
 		},
 	}
+}
+
+func runVersion(app *App) error {
+	info := resolveVersion()
+	if app.Config.JSON {
+		return app.UI.JSON(info)
+	}
+	th := app.UI.Theme()
+	suffix := ""
+	if info.Dirty {
+		suffix = th.Warn.Render(" (dirty)")
+	}
+	wordmark := th.Brand.Render("humblskills")
+	ver := th.Version.Render(info.Version)
+	sha := th.Detail.Render("commit " + info.Commit)
+	fmt.Fprintln(app.UI.Out(), "")
+	fmt.Fprintln(app.UI.Out(), "  "+wordmark+"  "+ver+suffix)
+	fmt.Fprintln(app.UI.Out(), "  "+sha)
+	fmt.Fprintln(app.UI.Out(), "")
+	return nil
 }
 
 func resolveVersion() versionInfo {
