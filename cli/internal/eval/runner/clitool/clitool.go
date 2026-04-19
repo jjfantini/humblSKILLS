@@ -205,9 +205,11 @@ func (r *Runner) Execute(ctx context.Context, req runner.Request) (*runner.Resul
 	result.DurationMs = time.Since(start).Milliseconds()
 	result.Transcript = transcript.Bytes()
 
-	// Copy any emitted files under scratch/outputs/ (the convention
-	// documented to each CLI through --output-dir or equivalent).
-	if files, err := collectOutputs(filepath.Join(scratch, "outputs"), req.OutputDir); err == nil {
+	// Collect any files the agent wrote. Some CLIs honour an --output-dir
+	// flag (we create scratch/outputs/ for those); others write straight
+	// into the cwd. Walk the whole scratch tree but skip the staged
+	// inputs + skill + prompt.
+	if files, err := collectScratchOutputs(scratch, req.OutputDir); err == nil {
 		result.OutputFiles = files
 	}
 	// Also persist the stderr tail so the grader has something useful
@@ -227,21 +229,37 @@ func firstLine(s string) string {
 	return s
 }
 
-func collectOutputs(src, dst string) ([]string, error) {
+// collectScratchOutputs walks the whole scratch directory and copies any
+// file the agent created into OutputDir, preserving relative paths.
+// Staged inputs (inputs/), the staged skill (skill/), the prompt file,
+// and the conventional outputs/ subdir are all handled: `inputs/` and
+// `skill/` are skipped; files under `outputs/` are flattened into
+// OutputDir (so `outputs/foo.md` → OutputDir/foo.md); everything else
+// keeps its path relative to scratch.
+func collectScratchOutputs(scratch, dst string) ([]string, error) {
 	var out []string
-	if _, err := os.Stat(src); err != nil {
-		return out, nil
-	}
-	err := filepath.Walk(src, func(p string, info os.FileInfo, err error) error {
+	err := filepath.Walk(scratch, func(p string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return err
 		}
-		rel, _ := filepath.Rel(src, p)
-		target := filepath.Join(dst, rel)
-		if err := copyFile(p, target); err != nil {
+		rel, _ := filepath.Rel(scratch, p)
+		// Skip staged inputs/, the staged skill, and the prompt file.
+		if rel == "prompt.txt" ||
+			strings.HasPrefix(rel, "inputs"+string(os.PathSeparator)) ||
+			strings.HasPrefix(rel, "skill"+string(os.PathSeparator)) {
+			return nil
+		}
+		// Flatten outputs/foo → foo so scripts can reference paths
+		// relative to OutputDir regardless of runner convention.
+		target := rel
+		if strings.HasPrefix(target, "outputs"+string(os.PathSeparator)) {
+			target = strings.TrimPrefix(target, "outputs"+string(os.PathSeparator))
+		}
+		dstPath := filepath.Join(dst, target)
+		if err := copyFile(p, dstPath); err != nil {
 			return err
 		}
-		out = append(out, rel)
+		out = append(out, target)
 		return nil
 	})
 	return out, err
