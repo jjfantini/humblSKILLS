@@ -173,14 +173,22 @@ func chooseUpdates(app *App, plans []install.UpdatePlan, all bool) ([]install.Up
 		items = append(items, updatePlanItem{p: p})
 	}
 
-	meta := func(items []tui.Item, _ int) string {
+	localMeta := func(items []tui.Item, _ int) string {
 		return fmt.Sprintf("%d drifted", len(items))
+	}
+	meta := localMeta
+	if app.Nav.Crumb != "" {
+		status := app.Nav.Status
+		theme := app.UI.Theme()
+		meta = func(_ []tui.Item, _ int) string {
+			return tui.RenderStatusMeta(theme, status)
+		}
 	}
 
 	res, err := tui.RunListDetail(tui.Config{
 		Theme:      app.UI.Theme(),
 		Version:    resolveVersion().Version,
-		Section:    "Update",
+		Section:    app.headerSection("Update"),
 		Meta:       meta,
 		Items:      items,
 		LeftTitle:  "DRIFTED",

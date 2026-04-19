@@ -217,7 +217,7 @@ func runDoctorTUI(app *App, r doctorReport) (bool, error) {
 			detected++
 		}
 	}
-	meta := func(_ []tui.Item, _ int) string {
+	localMeta := func(_ []tui.Item, _ int) string {
 		parts := []string{
 			fmt.Sprintf("%d / %d detected", detected, len(r.Adapters)),
 		}
@@ -231,11 +231,18 @@ func runDoctorTUI(app *App, r doctorReport) (bool, error) {
 		}
 		return strings.Join(parts, " · ")
 	}
+	meta := localMeta
+	if app.Nav.Crumb != "" {
+		status := app.Nav.Status
+		meta = func(_ []tui.Item, _ int) string {
+			return tui.RenderStatusMeta(th, status)
+		}
+	}
 
 	res, err := tui.RunListDetail(tui.Config{
 		Theme:      th,
 		Version:    ver,
-		Section:    "Doctor",
+		Section:    app.headerSection("Doctor"),
 		Meta:       meta,
 		Items:      items,
 		LeftTitle:  "CHECKS",

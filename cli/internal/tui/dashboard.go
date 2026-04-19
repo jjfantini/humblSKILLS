@@ -6,6 +6,7 @@ import (
 	"os/user"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sahilm/fuzzy"
@@ -31,16 +32,19 @@ type DashboardTile struct {
 	Aliases []string // additional fuzzy-search keywords
 }
 
-// DashboardGreeting is the banner displayed above the tile grid.
+// DashboardGreeting is retained for API compatibility but is no longer
+// rendered in the dashboard body — the top header already shows the status
+// line, so a duplicate greeting row was redundant noise.
 type DashboardGreeting struct {
-	User     string // username ("jennings")
-	Updates  int    // how many drifted installs
-	Cwd      string // working dir
-	LastScan string // "18:04" or ""
+	User     string
+	Updates  int
+	Cwd      string
+	LastScan string
 }
 
 // DashboardStatus feeds the header's right-anchored summary
-// (● healthy · N platforms · M skills).
+// (● healthy · N platforms · M skills). This is also what every sub-screen
+// echoes in its own header so the layout is consistent across screens.
 type DashboardStatus struct {
 	Healthy   bool
 	Platforms int // detected adapters
@@ -82,19 +86,21 @@ func RunDashboard(cfg DashboardConfig) (DashboardResult, error) {
 // DefaultDashboardTiles returns the 9-tile layout from the design handoff.
 func DefaultDashboardTiles() []DashboardTile {
 	return []DashboardTile{
-		{Command: "install", Label: "install", Hotkey: "i", Desc: "add a skill to every detected platform", Sub: "registry → adapters", Aliases: []string{"add", "get"}},
-		{Command: "list", Label: "list", Hotkey: "l", Desc: "what's installed, where, and what drifted", Sub: "manifest · adapters", Aliases: []string{"ls", "installed"}},
+		{Command: "install", Label: "install", Hotkey: "i", Desc: "add a skill to every detected platform", Sub: "registry → platforms", Aliases: []string{"add", "get"}},
+		{Command: "list", Label: "list", Hotkey: "l", Desc: "what's installed, where, and what drifted", Sub: "manifest · platforms", Aliases: []string{"ls", "installed"}},
 		{Command: "update", Label: "update", Hotkey: "u", Desc: "pull newer registry versions onto installs", Sub: "diff · apply", Aliases: []string{"upgrade"}},
 		{Command: "search", Label: "search", Hotkey: "/", Desc: "browse every skill in the registry", Sub: "fuzzy over name, tag, desc", Aliases: []string{"find", "browse"}},
 		{Command: "uninstall", Label: "uninstall", Hotkey: "x", Desc: "remove a skill from every target", Sub: "manifest-aware", Aliases: []string{"remove", "rm", "delete"}},
 		{Command: "profile", Label: "profile", Hotkey: "p", Desc: "edit install defaults (platforms, scope)", Sub: "user-wide preferences", Aliases: []string{"config", "prefs"}},
-		{Command: "doctor", Label: "doctor", Hotkey: "d", Desc: "inspect adapters and environment health", Sub: "adapters · writability", Aliases: []string{"check", "status"}},
+		{Command: "doctor", Label: "doctor", Hotkey: "d", Desc: "inspect platforms and environment health", Sub: "platforms · writability", Aliases: []string{"check", "status"}},
 		{Command: "registry", Label: "registry", Hotkey: "R", Desc: "refresh the local registry cache", Sub: "http · etag", Aliases: []string{"refresh", "sync"}},
 		{Command: "version", Label: "version", Hotkey: "V", Desc: "show build info", Sub: "version · commit", Aliases: []string{"about", "ver"}},
 	}
 }
 
 // BuildDashboardGreeting fills the defaults the dashboard banner needs.
+// Kept for API compatibility — callers may still pass this, but it isn't
+// rendered. (See DashboardGreeting.)
 func BuildDashboardGreeting(updates int) DashboardGreeting {
 	g := DashboardGreeting{Updates: updates}
 	if u, err := user.Current(); err == nil && u.Username != "" {
@@ -127,6 +133,9 @@ type dashboardModel struct {
 	searchOn bool
 	query    string
 
+	vp    viewport.Model
+	ready bool
+
 	width, height int
 	done          bool
 	result        DashboardResult
@@ -138,12 +147,29 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
+		m = m.resizeViewport()
 		return m, nil
 	case tea.KeyMsg:
+		var out tea.Model
+		var cmd tea.Cmd
 		if m.searchOn {
-			return m.updateSearch(msg)
+			out, cmd = m.updateSearch(msg)
+		} else {
+			out, cmd = m.updateGrid(msg)
 		}
-		return m.updateGrid(msg)
+		dm, ok := out.(dashboardModel)
+		if !ok || dm.done {
+			return out, cmd
+		}
+		dm = dm.syncViewport()
+		return dm, cmd
+	case tea.MouseMsg:
+		if !m.ready {
+			return m, nil
+		}
+		vp, cmd := m.vp.Update(msg)
+		m.vp = vp
+		return m, cmd
 	}
 	return m, nil
 }
@@ -177,6 +203,16 @@ func (m dashboardModel) updateGrid(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "shift+tab":
 		m = m.moveCursor(-1)
+		return m, nil
+	case "pgup":
+		if m.ready {
+			m.vp.ViewUp()
+		}
+		return m, nil
+	case "pgdown":
+		if m.ready {
+			m.vp.ViewDown()
+		}
 		return m, nil
 	case "enter":
 		return m.launchCursor()
@@ -290,6 +326,62 @@ func (m dashboardModel) cols() int {
 	return 1
 }
 
+// gridHeight is the number of rows available to the scrollable grid view.
+// Total vertical budget = height. Non-grid lines: header(2) + blank(1) +
+// search(3) + blank(1) + footer(2) = 9. So grid gets whatever is left.
+func (m dashboardModel) gridHeight() int {
+	h := m.height - 9
+	if h < 3 {
+		h = 3
+	}
+	return h
+}
+
+// syncViewport rebuilds the grid content, resizes if needed, and scrolls so
+// the cursor tile is on-screen.
+func (m dashboardModel) syncViewport() dashboardModel {
+	if !m.ready {
+		return m
+	}
+	m.vp.Width = m.width
+	m.vp.Height = m.gridHeight()
+	m.vp.SetContent(m.renderGrid())
+	m = m.ensureCursorVisible()
+	return m
+}
+
+func (m dashboardModel) resizeViewport() dashboardModel {
+	if m.width == 0 || m.height == 0 {
+		return m
+	}
+	if !m.ready {
+		m.vp = viewport.New(m.width, m.gridHeight())
+		m.ready = true
+	}
+	return m.syncViewport()
+}
+
+// ensureCursorVisible nudges the viewport so the tile under the cursor sits
+// inside the visible window. Rows are uniform height (tileDisplayHeight) so we
+// can compute line ranges arithmetically.
+func (m dashboardModel) ensureCursorVisible() dashboardModel {
+	if !m.ready || len(m.visible) == 0 {
+		return m
+	}
+	row := m.cursor / m.cols()
+	tileH := tileDisplayHeight
+	top := row * tileH
+	bottom := top + tileH - 1
+	off := m.vp.YOffset
+	vh := m.vp.Height
+	if top < off {
+		m.vp.SetYOffset(top)
+	} else if bottom >= off+vh {
+		m.vp.SetYOffset(bottom - vh + 1)
+	}
+	return m
+}
+
 func (m dashboardModel) View() string {
 	if m.width == 0 || m.height == 0 {
 		return ""
@@ -298,18 +390,28 @@ func (m dashboardModel) View() string {
 	header := Header(th, HeaderSpec{
 		Version: m.cfg.Version,
 		Section: "Dashboard",
-		Meta:    m.statusLine(),
+		Meta:    RenderStatusMeta(th, m.cfg.Status),
 	}, m.width)
 
-	body := m.renderBody()
 	right := th.Meta.Render("focused: ") + th.Brand.Render(m.focusedLabel())
 	footer := Footer(th, m.hints(), right, m.width)
 
-	bodyH := m.height - lipgloss.Height(header) - lipgloss.Height(footer) - 1
-	if bodyH < 5 {
-		bodyH = 5
+	search := indentBlock(m.renderSearchBar(), 2)
+
+	gridView := ""
+	if m.ready {
+		gridView = indentBlock(m.vp.View(), 2)
 	}
-	return Frame(header, body, footer, bodyH)
+
+	if len(m.visible) == 0 {
+		gridView += "\n  " + th.Crumb.Render("no command matches "+fmt.Sprintf("%q", m.query))
+	}
+
+	// Pad the grid view to exactly gridHeight() lines so the footer sits at
+	// a predictable row regardless of content size.
+	gridView = padToHeight(gridView, m.gridHeight())
+
+	return header + "\n\n" + search + "\n\n" + gridView + "\n" + footer
 }
 
 func (m dashboardModel) focusedLabel() string {
@@ -339,65 +441,34 @@ func (m dashboardModel) hints() []KeyHint {
 	}
 }
 
-// statusLine renders the right-anchored header summary:
-// "● healthy · 2 platforms · 7 skills".
-func (m dashboardModel) statusLine() string {
-	th := m.cfg.Theme
-	dot := th.DotOK
+// RenderStatusMeta is the canonical "● healthy · N platforms · M skills"
+// string shown in the header Meta slot. Shared by the dashboard and every
+// sub-screen so the top-right summary stays consistent as the user navigates.
+func RenderStatusMeta(theme *ui.Theme, status DashboardStatus) string {
+	if theme == nil {
+		theme = ui.DefaultTheme()
+	}
+	dot := theme.DotOK
 	label := "healthy"
-	if !m.cfg.Status.Healthy {
-		dot = th.DotWarn
+	if !status.Healthy {
+		dot = theme.DotWarn
 		label = "drift"
 	}
-	sep := th.Crumb.Render(" · ")
-	return dot.Render("●") + " " + th.Detail.Render(label) +
-		sep + th.Detail.Render(fmt.Sprintf("%d platform%s", m.cfg.Status.Platforms, pluralDash(m.cfg.Status.Platforms))) +
-		sep + th.Detail.Render(fmt.Sprintf("%d skill%s", m.cfg.Status.Skills, pluralDash(m.cfg.Status.Skills)))
-}
-
-func (m dashboardModel) renderBody() string {
-	th := m.cfg.Theme
-	var sb strings.Builder
-	sb.WriteString(m.renderBanner())
-	sb.WriteString("\n\n")
-	sb.WriteString(m.renderSearchBar())
-	sb.WriteString("\n\n")
-	sb.WriteString(m.renderGrid())
-	if len(m.visible) == 0 {
-		sb.WriteString("\n  " + th.Crumb.Render("no command matches "+fmt.Sprintf("%q", m.query)))
-	}
-	return sb.String()
+	sep := theme.Crumb.Render(" · ")
+	return dot.Render("●") + " " + theme.Detail.Render(label) +
+		sep + theme.Detail.Render(fmt.Sprintf("%d platform%s", status.Platforms, pluralDash(status.Platforms))) +
+		sep + theme.Detail.Render(fmt.Sprintf("%d skill%s", status.Skills, pluralDash(status.Skills)))
 }
 
 // bodyWidth is the usable width between left/right margins. Every body
-// element (banner, search bar, tile grid row) targets this width so they
-// all end at the same column.
+// element (search bar, tile grid row) targets this width so they all end at
+// the same column.
 func (m dashboardModel) bodyWidth() int {
 	w := m.width - 4
 	if w < 40 {
 		w = 40
 	}
 	return w
-}
-
-func (m dashboardModel) renderBanner() string {
-	th := m.cfg.Theme
-	wordmark := th.Brand.Render("humblskills")
-	greet := "hello"
-	if m.cfg.Greeting.User != "" {
-		greet = "hi " + m.cfg.Greeting.User
-	}
-	parts := []string{th.Name.Render(greet)}
-	if m.cfg.Greeting.Updates > 0 {
-		parts = append(parts, th.Warn.Render(fmt.Sprintf("%d update%s available", m.cfg.Greeting.Updates, pluralDash(m.cfg.Greeting.Updates))))
-	} else {
-		parts = append(parts, th.Detail.Render("all skills up-to-date"))
-	}
-	if m.cfg.Greeting.Cwd != "" {
-		parts = append(parts, th.Detail.Render("in "+m.cfg.Greeting.Cwd))
-	}
-	line := strings.Join(parts, th.Crumb.Render("  ·  "))
-	return "  " + wordmark + "  " + line
 }
 
 func (m dashboardModel) renderSearchBar() string {
@@ -424,14 +495,18 @@ func (m dashboardModel) renderSearchBar() string {
 	if m.searchOn {
 		borderColor = th.Palette.Magenta
 	}
-	box := lipgloss.NewStyle().
+	return lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(borderColor).
 		Padding(0, 1).
 		Width(inner).
 		Render(line)
-	return "  " + box
 }
+
+// tileDisplayHeight is the fixed rendered height of every tile, in lines:
+// border(2) + header(1) + desc(1) + foot(1) = 5. Staying uniform lets us
+// compute row offsets for scroll-to-cursor.
+const tileDisplayHeight = 5
 
 func (m dashboardModel) renderGrid() string {
 	if len(m.visible) == 0 {
@@ -473,7 +548,6 @@ func (m dashboardModel) renderGrid() string {
 			}
 			parts = append(parts, t)
 		}
-		sb.WriteString("  ")
 		sb.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, parts...))
 		if i < len(rows)-1 {
 			sb.WriteString("\n")
@@ -483,7 +557,8 @@ func (m dashboardModel) renderGrid() string {
 }
 
 // renderTile renders one tile. The returned string is exactly `width`
-// display columns wide (border included) so JoinHorizontal aligns columns.
+// display columns wide and tileDisplayHeight lines tall so the grid is a
+// perfect lattice.
 func (m dashboardModel) renderTile(t DashboardTile, selected bool, width int) string {
 	th := m.cfg.Theme
 	borderColor := th.Palette.Border
@@ -505,16 +580,16 @@ func (m dashboardModel) renderTile(t DashboardTile, selected bool, width int) st
 	name := nameStyle.Render(t.Label)
 	header := padBetween(name, hot, inner)
 
-	desc := th.Desc.Width(inner).Render(t.Desc)
+	desc := th.Desc.Render(truncateDisplay(t.Desc, inner))
 
-	footLeft := th.Detail.Render(t.Sub)
+	footLeft := th.Detail.Render(truncateDisplay(t.Sub, inner))
 	footRight := ""
 	if t.Status != "" {
 		footRight = th.BadgeGhost.Render(t.Status)
 	}
 	foot := padBetween(footLeft, footRight, inner)
 
-	body := header + "\n\n" + desc + "\n\n" + foot
+	body := header + "\n" + desc + "\n" + foot
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
@@ -523,13 +598,44 @@ func (m dashboardModel) renderTile(t DashboardTile, selected bool, width int) st
 		Render(body)
 }
 
-// renderEmptyTile returns a blank block the same height as a real tile so
-// short final rows still align under a full row above.
+// renderEmptyTile returns a blank block sized like a real tile so short final
+// rows still align under a full row above.
 func (m dashboardModel) renderEmptyTile(width int) string {
 	return lipgloss.NewStyle().
 		Width(width).
-		Height(5).
+		Height(tileDisplayHeight).
 		Render("")
+}
+
+// indentBlock prefixes every line of s with n spaces. Using a naked prefix
+// ("  " + s) only shifts line one and leaves the remaining rows at col 0 —
+// that's the off-center bug that made card tops look pushed to the right.
+func indentBlock(s string, n int) string {
+	if n <= 0 || s == "" {
+		return s
+	}
+	pad := strings.Repeat(" ", n)
+	return pad + strings.ReplaceAll(s, "\n", "\n"+pad)
+}
+
+// truncateDisplay clips s to at most width display cells, appending an ellipsis
+// so the tile rows stay single-line and the grid stays a uniform lattice.
+func truncateDisplay(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	if lipgloss.Width(s) <= width {
+		return s
+	}
+	if width <= 1 {
+		return "…"
+	}
+	runes := []rune(s)
+	// Trim rune-by-rune until we fit with room for the ellipsis.
+	for len(runes) > 0 && lipgloss.Width(string(runes))+1 > width {
+		runes = runes[:len(runes)-1]
+	}
+	return string(runes) + "…"
 }
 
 func pluralDash(n int) string {

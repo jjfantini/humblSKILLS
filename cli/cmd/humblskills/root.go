@@ -12,6 +12,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
@@ -21,6 +22,18 @@ type App struct {
 	Prompt   *ui.Prompter
 	Config   Config
 	Adapters func() ([]adapters.Adapter, error)
+
+	// Nav is populated when a sub-command is launched from the dashboard loop.
+	// Sub-screens mirror this into their HeaderSpec so the top header stays
+	// consistent ("Dashboard > Install") with the shared status line.
+	Nav NavContext
+}
+
+// NavContext carries the breadcrumb + status line that sub-screens render in
+// their shared header when the user is navigating from the dashboard.
+type NavContext struct {
+	Crumb  string // "Dashboard > Install" (empty when entered via a direct CLI invocation)
+	Status tui.DashboardStatus
 }
 
 // Config captures every flag/env-resolved setting used by subcommands.

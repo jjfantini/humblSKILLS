@@ -12,6 +12,14 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
+// ProfileHeaderSpec lets the caller override the profile editor's top header
+// so sub-screens rendered from the dashboard can show a consistent breadcrumb
+// + status line instead of a bare "Profile" crumb.
+type ProfileHeaderSpec struct {
+	Section string // e.g. "Profile" or "Dashboard > Profile"
+	Meta    string // right-anchored meta — typically tui.RenderStatusMeta(...)
+}
+
 // RunProfileEditor opens a two-pane bubbletea TUI for editing the user
 // profile. The left pane lists settings; pressing enter on a row moves focus
 // into the right pane so the user can toggle checkboxes (platforms) or pick
@@ -20,18 +28,31 @@ import (
 // Returns the edited profile and whether any change was made. Save is the
 // caller's responsibility — this function only mutates the returned value.
 func RunProfileEditor(theme *ui.Theme, adapterList []adapters.Adapter, p *profile.Profile) (*profile.Profile, bool, error) {
+	return RunProfileEditorWith(theme, adapterList, p, ProfileHeaderSpec{})
+}
+
+// RunProfileEditorWith is RunProfileEditor plus a header override. A zero
+// ProfileHeaderSpec falls back to the default "Profile" crumb.
+func RunProfileEditorWith(theme *ui.Theme, adapterList []adapters.Adapter, p *profile.Profile, h ProfileHeaderSpec) (*profile.Profile, bool, error) {
 	if p == nil {
 		p = &profile.Profile{SchemaVersion: profile.SchemaVersion}
 	}
 	initial := *p
 
+	section := h.Section
+	if section == "" {
+		section = "Profile"
+	}
+
 	m := profileModel{
-		theme:       theme,
-		version:     versionString,
-		adapters:    adapterList,
-		profile:     initial,
-		focus:       focusSettings,
-		settingIdx:  0,
+		theme:      theme,
+		version:    versionString,
+		adapters:   adapterList,
+		profile:    initial,
+		focus:      focusSettings,
+		settingIdx: 0,
+		section:    section,
+		meta:       h.Meta,
 	}
 	out, err := Run(m)
 	if err != nil {
@@ -73,6 +94,9 @@ type profileModel struct {
 	focus      profileFocus
 	settingIdx int
 	valueIdx   int
+
+	section string // header crumb (defaults to "Profile")
+	meta    string // right-anchored header text (typically the status line)
 
 	width, height int
 	quit          bool
@@ -232,10 +256,14 @@ func (m profileModel) View() string {
 	}
 	th := m.theme
 
+	section := m.section
+	if section == "" {
+		section = "Profile"
+	}
 	header := Header(th, HeaderSpec{
 		Version: m.version,
-		Section: "Profile",
-		Meta:    "",
+		Section: section,
+		Meta:    m.meta,
 	}, m.width)
 
 	leftW, rightW := m.paneWidths()
