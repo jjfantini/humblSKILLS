@@ -497,17 +497,23 @@ func (m dashboardModel) renderSearchBar() string {
 	prefixW := lipgloss.Width(prefix)
 	countW := lipgloss.Width(countStyled)
 
-	// Right-anchor the count. Reserve prefix + query + ≥1 gap + count
-	// within `inner`. When the terminal is too narrow to fit the count
-	// (tight splits, SSH), drop it and let the query take the row so
-	// the box never overflows to a second line.
+	// Pack content to `budget = inner - 2`, giving a 2-cell safety margin
+	// inside the outer Width(inner). Some glyphs (notably ❯ U+276F) are
+	// reported as 1-cell by runewidth but render 2 cells in several
+	// terminals — packing to exactly `inner` then wraps the search bar to
+	// a 2nd line, which shoves the header off-screen on alt-screen. The
+	// buffer ensures the outer `.Width(inner)` always pads (never wraps).
+	budget := inner - 2
+	if budget < prefixW+1 {
+		budget = prefixW + 1
+	}
 	var line string
-	if inner-prefixW-countW-1 < 1 {
-		line = prefix + queryStyle.Render(truncateDisplay(queryRaw, inner-prefixW))
+	if budget-prefixW-countW-1 < 1 {
+		line = prefix + queryStyle.Render(truncateDisplay(queryRaw, budget-prefixW))
 	} else {
-		maxQueryW := inner - prefixW - countW - 1
+		maxQueryW := budget - prefixW - countW - 1
 		q := truncateDisplay(queryRaw, maxQueryW)
-		pad := inner - prefixW - lipgloss.Width(q) - countW
+		pad := budget - prefixW - lipgloss.Width(q) - countW
 		if pad < 1 {
 			pad = 1
 		}
