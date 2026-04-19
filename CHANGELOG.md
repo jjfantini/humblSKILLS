@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.1](https://github.com/jjfantini/humblSKILLS/compare/v2.3.0...v2.3.1) (2026-04-19)
+
+
+### Bug Fixes
+
+* include registry cleanup in next release ([d8d7be0](https://github.com/jjfantini/humblSKILLS/commit/d8d7be03449c7fd6d8f02e8d410c72e0f1f18f1b))
+
 ## [2.3.0](https://github.com/jjfantini/humblSKILLS/compare/v2.2.0...v2.3.0) (2026-04-19)
 
 
