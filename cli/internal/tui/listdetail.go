@@ -151,6 +151,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.refreshPreview()
 		return m, nil
 
+	case tea.MouseMsg:
+		// Forward wheel events to the detail viewport only when the cursor
+		// is over the right pane. The left pane's list has its own ↑/↓
+		// handling so a trackpad scroll over the list shouldn't also scroll
+		// the detail body.
+		leftW, _ := m.paneWidths()
+		if msg.X < leftW {
+			return m, nil
+		}
+		var cmd tea.Cmd
+		m.preview, cmd = m.preview.Update(msg)
+		return m, cmd
+
 	case tea.KeyMsg:
 		if m.filtOn {
 			return m.updateFilter(msg)
