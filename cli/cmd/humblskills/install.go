@@ -165,8 +165,19 @@ func selectPlatforms(adapterList []adapters.Adapter, requested []string) ([]stri
 }
 
 func printInstall(app *App, r install.Result) {
+	for _, w := range r.Warnings {
+		where := ""
+		if w.Skill != "" {
+			where = w.Skill
+			if w.Platform != "" {
+				where += " [" + w.Platform + "/" + w.Scope + "]"
+			}
+			where += ": "
+		}
+		app.UI.Warn("%s%s", where, w.Msg)
+	}
 	if len(r.Results) == 0 {
-		app.UI.Warn("nothing to do — skill(s) declared no matching platforms")
+		app.UI.Warn("nothing to do - skill(s) declared no matching platforms")
 		return
 	}
 	var installed, replaced, skipped, forced []install.TargetResult

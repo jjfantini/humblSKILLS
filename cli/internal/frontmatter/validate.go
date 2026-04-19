@@ -192,6 +192,14 @@ func normalizePreserve(raw string) string {
 	return cleaned
 }
 
+// ValidatePreserve is the exported entry point for preserve-list validation.
+// Returns a list of human-readable error strings (empty on success). Used by
+// the install engine to decide whether an installed skill's locally-edited
+// preserve list is safe to apply.
+func ValidatePreserve(entries []string) []string {
+	return validatePreserve(entries)
+}
+
 // validatePreserve checks every entry in fm.Preserve for shape violations and
 // returns a list of error strings (empty on success).
 func validatePreserve(entries []string) []string {
