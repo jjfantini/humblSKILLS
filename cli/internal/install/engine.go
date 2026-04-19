@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/fetch"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/platform"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 )
 
@@ -66,7 +66,7 @@ func NewEngine(cacheDir, manifestPath string) *Engine {
 type ExecuteOpts struct {
 	// Adapters is the full set of runtime adapters; only those in Platforms
 	// will receive installs.
-	Adapters []platform.Adapter
+	Adapters []adapters.Adapter
 	// Platforms are the adapter names to install onto (order preserved).
 	Platforms []string
 	// Scope selects the install target scope for every adapter. Empty means
@@ -92,7 +92,7 @@ func (e *Engine) Execute(reg *registry.Registry, plan []Step, opts ExecuteOpts) 
 		return res, nil
 	}
 
-	adapterIndex := make(map[string]platform.Adapter, len(opts.Adapters))
+	adapterIndex := make(map[string]adapters.Adapter, len(opts.Adapters))
 	for _, a := range opts.Adapters {
 		adapterIndex[a.Name] = a
 	}
@@ -165,7 +165,7 @@ func (e *Engine) installOne(
 	reg *registry.Registry,
 	step Step,
 	opts ExecuteOpts,
-	adapterIndex map[string]platform.Adapter,
+	adapterIndex map[string]adapters.Adapter,
 	m *manifest.Manifest,
 ) ([]TargetResult, error) {
 	skill := step.Skill
@@ -185,8 +185,8 @@ func (e *Engine) installOne(
 	}
 
 	type pending struct {
-		adapter platform.Adapter
-		target  platform.Target
+		adapter adapters.Adapter
+		target  adapters.Target
 	}
 	var pendings []pending
 	for _, p := range opts.Platforms {

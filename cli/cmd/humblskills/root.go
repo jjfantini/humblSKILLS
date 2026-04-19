@@ -8,8 +8,8 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/spf13/cobra"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/platform"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
@@ -19,7 +19,7 @@ type App struct {
 	UI       *ui.Printer
 	Prompt   *ui.Prompter
 	Config   Config
-	Adapters func() ([]platform.Adapter, error)
+	Adapters func() ([]adapters.Adapter, error)
 }
 
 // Config captures every flag/env-resolved setting used by subcommands.
@@ -27,7 +27,6 @@ type Config struct {
 	RegistryURL  string
 	CacheDir     string
 	ManifestPath string
-	AdaptersDir  string
 	JSON         bool
 	NoColor      bool
 	Verbose      bool
@@ -36,15 +35,14 @@ type Config struct {
 }
 
 type globalFlags struct {
-	registry    string
-	cacheDir    string
-	manifest    string
-	adaptersDir string
-	json        bool
-	noColor     bool
-	verbose     bool
-	quiet       bool
-	yes         bool
+	registry string
+	cacheDir string
+	manifest string
+	json     bool
+	noColor  bool
+	verbose  bool
+	quiet    bool
+	yes      bool
 }
 
 func newRootCmd() *cobra.Command {
@@ -66,7 +64,6 @@ func newRootCmd() *cobra.Command {
 	f.StringVar(&g.registry, "registry", "", "registry URL (or file:// path). Defaults to the hosted registry; env: HUMBLSKILLS_REGISTRY")
 	f.StringVar(&g.cacheDir, "cache-dir", "", "cache directory (env: HUMBLSKILLS_CACHE_DIR; default: XDG_CACHE_HOME/humblskills)")
 	f.StringVar(&g.manifest, "manifest", "", "install manifest path (env: HUMBLSKILLS_MANIFEST; default: XDG_STATE_HOME/humblskills/manifest.json)")
-	f.StringVar(&g.adaptersDir, "adapters-dir", "", "override embedded adapters with a local directory (for development)")
 	f.BoolVar(&g.json, "json", false, "emit machine-readable JSON")
 	f.BoolVar(&g.noColor, "no-color", false, "disable ANSI colour output")
 	f.BoolVarP(&g.verbose, "verbose", "v", false, "print extra detail")
@@ -110,7 +107,6 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 
 	cfg := Config{
 		RegistryURL: firstNonEmpty(g.registry, os.Getenv("HUMBLSKILLS_REGISTRY"), registry.DefaultURL),
-		AdaptersDir: g.adaptersDir,
 		JSON:        g.json,
 		NoColor:     g.noColor,
 		Verbose:     g.verbose,
@@ -131,16 +127,9 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 	cfg.ManifestPath = manifestPath
 
 	app.Config = cfg
-	app.Adapters = adapterLoader(cfg.AdaptersDir)
+	app.Adapters = adapters.Load
 
 	return nil
-}
-
-func adapterLoader(overrideDir string) func() ([]platform.Adapter, error) {
-	if overrideDir != "" {
-		return func() ([]platform.Adapter, error) { return platform.LoadAll(overrideDir) }
-	}
-	return platform.LoadBuiltin
 }
 
 func resolveCacheDir(override string) (string, error) {

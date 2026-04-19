@@ -119,8 +119,7 @@ The CLI source lives under [`cli/`](cli) as a nested Go module.
 ```sh
 make build           # builds ./bin/humblskills
 make test            # runs go test ./...
-make registry        # regenerates registry.json from skills/ + adapters/
-make sync-adapters   # mirrors adapters/ into the CLI's embed directory
+make registry        # regenerates registry.json from skills/ + embedded adapters
 ```
 
 Releases are cut by pushing a semver tag (e.g. `git tag v0.1.0 && git push

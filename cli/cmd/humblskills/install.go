@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/platform"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
@@ -42,7 +42,7 @@ func newInstallCmd(app *App) *cobra.Command {
 }
 
 func runInstall(app *App, skill string, f installFlags) error {
-	adapters, err := app.Adapters()
+	adapterList, err := app.Adapters()
 	if err != nil {
 		return fmt.Errorf("load adapters: %w", err)
 	}
@@ -59,7 +59,7 @@ func runInstall(app *App, skill string, f installFlags) error {
 		}
 	}
 
-	selected, err := selectPlatforms(adapters, f.platforms)
+	selected, err := selectPlatforms(adapterList, f.platforms)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func runInstall(app *App, skill string, f installFlags) error {
 	var res install.Result
 	run := func(sink install.EventSink) error {
 		r, err := engine.Execute(reg, plan, install.ExecuteOpts{
-			Adapters:  adapters,
+			Adapters:  adapterList,
 			Platforms: selected,
 			Scope:     f.scope,
 			Force:     f.force,
@@ -120,8 +120,8 @@ func runInstall(app *App, skill string, f installFlags) error {
 // selectPlatforms returns the adapter names to install onto. If the user
 // passed --platform, it's the intersection of that list with the declared
 // adapters; otherwise it's every detected adapter.
-func selectPlatforms(adapters []platform.Adapter, requested []string) ([]string, error) {
-	known := platform.NameSet(adapters)
+func selectPlatforms(adapterList []adapters.Adapter, requested []string) ([]string, error) {
+	known := adapters.NameSet(adapterList)
 	if len(requested) > 0 {
 		out := make([]string, 0, len(requested))
 		for _, r := range requested {
@@ -133,7 +133,7 @@ func selectPlatforms(adapters []platform.Adapter, requested []string) ([]string,
 		return out, nil
 	}
 
-	detected := platform.Detect(adapters)
+	detected := adapters.Detect(adapterList)
 	out := make([]string, 0, len(detected))
 	for _, d := range detected {
 		if d.Detected {

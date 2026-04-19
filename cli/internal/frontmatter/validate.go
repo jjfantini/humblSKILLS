@@ -101,7 +101,7 @@ func (d Dep) Satisfies(registered string) bool {
 type ValidationContext struct {
 	// KnownSkills maps skill name -> registered version.
 	KnownSkills map[string]string
-	// KnownAdapters is the set of adapter names declared under adapters/.
+	// KnownAdapters is the set of adapter names shipped by the adapters package.
 	KnownAdapters map[string]struct{}
 }
 

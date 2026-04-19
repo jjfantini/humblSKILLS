@@ -1,4 +1,4 @@
-package platform
+package adapters
 
 import (
 	"embed"
@@ -10,14 +10,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-//go:embed builtin/*.yaml
+//go:embed *.yaml
 var builtinFS embed.FS
 
-// LoadBuiltin returns the adapters baked into the CLI binary. It mirrors the
-// canonical adapters/ directory at the repo root; `make sync-adapters` keeps
-// the two copies in sync and CI fails on drift.
-func LoadBuiltin() ([]Adapter, error) {
-	entries, err := fs.ReadDir(builtinFS, "builtin")
+// Load returns the adapters baked into the CLI binary. The YAML files live
+// alongside this package, so there is a single source of truth for every
+// supported platform - no external directory, no sync step.
+func Load() ([]Adapter, error) {
+	entries, err := fs.ReadDir(builtinFS, ".")
 	if err != nil {
 		return nil, fmt.Errorf("read embedded adapters: %w", err)
 	}
@@ -30,7 +30,7 @@ func LoadBuiltin() ([]Adapter, error) {
 		if !strings.HasSuffix(name, ".yaml") && !strings.HasSuffix(name, ".yml") {
 			continue
 		}
-		data, err := fs.ReadFile(builtinFS, "builtin/"+name)
+		data, err := fs.ReadFile(builtinFS, name)
 		if err != nil {
 			return nil, fmt.Errorf("read %s: %w", name, err)
 		}
