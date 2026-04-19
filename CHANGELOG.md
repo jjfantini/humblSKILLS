@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/jjfantini/humblSKILLS/compare/v0.6.4...v1.0.0) (2026-04-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** the `--adapters-dir` flag has been removed from both `humblskills` and `build-registry`. Any tooling or scripts passing `--adapters-dir=...` will need to drop the flag; the canonical adapters now live alongside the CLI source and are embedded at build time.
+
+### Features
+
+* **cli:** embed adapter catalog in binary ([9ba1920](https://github.com/jjfantini/humblSKILLS/commit/9ba1920de7a3f09cce72cddc17838078b7044898))
+
 ## [0.6.4](https://github.com/jjfantini/humblSKILLS/compare/v0.6.3...v0.6.4) (2026-04-18)
 
 
