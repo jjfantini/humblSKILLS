@@ -1,4 +1,4 @@
-package platform
+package adapters
 
 import (
 	"fmt"

@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/platform"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 )
 
@@ -104,7 +104,7 @@ func TestEngine_InstallReplaceSkipForce(t *testing.T) {
 		}},
 	}
 
-	adapter := platform.Adapter{
+	adapter := adapters.Adapter{
 		Name:           "test",
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
@@ -118,7 +118,7 @@ func TestEngine_InstallReplaceSkipForce(t *testing.T) {
 		t.Fatal(err)
 	}
 	res, err := engine.Execute(reg, plan, ExecuteOpts{
-		Adapters:  []platform.Adapter{adapter},
+		Adapters:  []adapters.Adapter{adapter},
 		Platforms: []string{"test"},
 	})
 	if err != nil {
@@ -133,7 +133,7 @@ func TestEngine_InstallReplaceSkipForce(t *testing.T) {
 
 	// Second run without --force: skipped.
 	res2, err := engine.Execute(reg, plan, ExecuteOpts{
-		Adapters:  []platform.Adapter{adapter},
+		Adapters:  []adapters.Adapter{adapter},
 		Platforms: []string{"test"},
 	})
 	if err != nil {
@@ -145,7 +145,7 @@ func TestEngine_InstallReplaceSkipForce(t *testing.T) {
 
 	// Third run with --force: forced.
 	res3, err := engine.Execute(reg, plan, ExecuteOpts{
-		Adapters:  []platform.Adapter{adapter},
+		Adapters:  []adapters.Adapter{adapter},
 		Platforms: []string{"test"},
 		Force:     true,
 	})
@@ -227,7 +227,7 @@ func TestEngine_ProjectScopeMovesOldInstall(t *testing.T) {
 
 	// Adapter now resolves project-scope to a DIFFERENT path (simulates
 	// running from a new CWD).
-	adapter := platform.Adapter{
+	adapter := adapters.Adapter{
 		Name:           "test",
 		InstallTargets: map[string]string{"project": newRoot},
 		DefaultScope:   "project",
@@ -240,7 +240,7 @@ func TestEngine_ProjectScopeMovesOldInstall(t *testing.T) {
 		t.Fatal(err)
 	}
 	res, err := engine.Execute(reg, plan, ExecuteOpts{
-		Adapters:  []platform.Adapter{adapter},
+		Adapters:  []adapters.Adapter{adapter},
 		Platforms: []string{"test"},
 	})
 	if err != nil {
@@ -297,7 +297,7 @@ func TestInstall_PreserveFreshInstall_SeedsFromStaging(t *testing.T) {
 			Preserve: []string{"log.md", "wiki/"},
 		}},
 	}
-	adapter := platform.Adapter{
+	adapter := adapters.Adapter{
 		Name:           "test",
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
@@ -307,7 +307,7 @@ func TestInstall_PreserveFreshInstall_SeedsFromStaging(t *testing.T) {
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 	plan, _ := Plan(reg, "foo")
 	if _, err := engine.Execute(reg, plan, ExecuteOpts{
-		Adapters: []platform.Adapter{adapter}, Platforms: []string{"test"},
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -346,7 +346,7 @@ func TestInstall_PreserveFile_UserWinsOnReplace(t *testing.T) {
 	src2 := "sha2bbbbbbbbbb"
 	seedTarball(t, cacheDir, owner, name, src2, owner+"-"+name+"-def", v2Files)
 
-	adapter := platform.Adapter{
+	adapter := adapters.Adapter{
 		Name:           "test",
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
@@ -366,7 +366,7 @@ func TestInstall_PreserveFile_UserWinsOnReplace(t *testing.T) {
 	}
 	plan1, _ := Plan(reg1, "foo")
 	if _, err := engine.Execute(reg1, plan1, ExecuteOpts{
-		Adapters: []platform.Adapter{adapter}, Platforms: []string{"test"},
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -389,7 +389,7 @@ func TestInstall_PreserveFile_UserWinsOnReplace(t *testing.T) {
 	}
 	plan2, _ := Plan(reg2, "foo")
 	if _, err := engine.Execute(reg2, plan2, ExecuteOpts{
-		Adapters: []platform.Adapter{adapter}, Platforms: []string{"test"},
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -430,7 +430,7 @@ func TestInstall_PreserveDir_DeepMerge(t *testing.T) {
 	src2 := "shadir2bbbbbbb"
 	seedTarball(t, cacheDir, owner, name, src2, owner+"-"+name+"-def", v2Files)
 
-	adapter := platform.Adapter{
+	adapter := adapters.Adapter{
 		Name:           "test",
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
@@ -449,7 +449,7 @@ func TestInstall_PreserveDir_DeepMerge(t *testing.T) {
 	}
 	plan1, _ := Plan(reg1, "foo")
 	if _, err := engine.Execute(reg1, plan1, ExecuteOpts{
-		Adapters: []platform.Adapter{adapter}, Platforms: []string{"test"},
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -474,7 +474,7 @@ func TestInstall_PreserveDir_DeepMerge(t *testing.T) {
 	}
 	plan2, _ := Plan(reg2, "foo")
 	if _, err := engine.Execute(reg2, plan2, ExecuteOpts{
-		Adapters: []platform.Adapter{adapter}, Platforms: []string{"test"},
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -515,7 +515,7 @@ func TestInstall_PreserveWithForce(t *testing.T) {
 			Preserve: []string{"log.md"},
 		}},
 	}
-	adapter := platform.Adapter{
+	adapter := adapters.Adapter{
 		Name:           "test",
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
@@ -525,7 +525,7 @@ func TestInstall_PreserveWithForce(t *testing.T) {
 
 	plan, _ := Plan(reg, "foo")
 	if _, err := engine.Execute(reg, plan, ExecuteOpts{
-		Adapters: []platform.Adapter{adapter}, Platforms: []string{"test"},
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -536,7 +536,7 @@ func TestInstall_PreserveWithForce(t *testing.T) {
 	}
 
 	if _, err := engine.Execute(reg, plan, ExecuteOpts{
-		Adapters: []platform.Adapter{adapter}, Platforms: []string{"test"}, Force: true,
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"}, Force: true,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -596,7 +596,7 @@ func TestInstall_PreserveScopeMove(t *testing.T) {
 			Preserve: []string{"wiki/"},
 		}},
 	}
-	adapter := platform.Adapter{
+	adapter := adapters.Adapter{
 		Name:           "test",
 		InstallTargets: map[string]string{"project": newRoot},
 		DefaultScope:   "project",
@@ -605,7 +605,7 @@ func TestInstall_PreserveScopeMove(t *testing.T) {
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 	plan, _ := Plan(reg, "foo")
 	if _, err := engine.Execute(reg, plan, ExecuteOpts{
-		Adapters: []platform.Adapter{adapter}, Platforms: []string{"test"},
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -645,7 +645,7 @@ func TestInstall_PreserveMissingOnDisk_UsesStaging(t *testing.T) {
 	src2 := "shamiss2bbbbb"
 	seedTarball(t, cacheDir, owner, name, src2, owner+"-"+name+"-def", v2Files)
 
-	adapter := platform.Adapter{
+	adapter := adapters.Adapter{
 		Name:           "test",
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
@@ -664,7 +664,7 @@ func TestInstall_PreserveMissingOnDisk_UsesStaging(t *testing.T) {
 	}
 	plan1, _ := Plan(reg1, "foo")
 	if _, err := engine.Execute(reg1, plan1, ExecuteOpts{
-		Adapters: []platform.Adapter{adapter}, Platforms: []string{"test"},
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -685,7 +685,7 @@ func TestInstall_PreserveMissingOnDisk_UsesStaging(t *testing.T) {
 	}
 	plan2, _ := Plan(reg2, "foo")
 	if _, err := engine.Execute(reg2, plan2, ExecuteOpts{
-		Adapters: []platform.Adapter{adapter}, Platforms: []string{"test"},
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -718,7 +718,7 @@ func TestInstall_PreserveTypeMismatch_Errors(t *testing.T) {
 	src2 := "shatyp2bbbbbb"
 	seedTarball(t, cacheDir, owner, name, src2, owner+"-"+name+"-def", v2Files)
 
-	adapter := platform.Adapter{
+	adapter := adapters.Adapter{
 		Name:           "test",
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
@@ -737,7 +737,7 @@ func TestInstall_PreserveTypeMismatch_Errors(t *testing.T) {
 	}
 	plan1, _ := Plan(reg1, "foo")
 	if _, err := engine.Execute(reg1, plan1, ExecuteOpts{
-		Adapters: []platform.Adapter{adapter}, Platforms: []string{"test"},
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -758,7 +758,7 @@ func TestInstall_PreserveTypeMismatch_Errors(t *testing.T) {
 	}
 	plan2, _ := Plan(reg2, "foo")
 	_, err := engine.Execute(reg2, plan2, ExecuteOpts{
-		Adapters: []platform.Adapter{adapter}, Platforms: []string{"test"},
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
 	})
 	if err == nil {
 		t.Fatal("expected type-mismatch error")
@@ -789,7 +789,7 @@ func TestEngine_DirSHAMismatchFails(t *testing.T) {
 			DirSHA:    "0000000000000000000000000000000000000000000000000000000000000000",
 		}},
 	}
-	adapter := platform.Adapter{
+	adapter := adapters.Adapter{
 		Name:           "test",
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
@@ -798,7 +798,7 @@ func TestEngine_DirSHAMismatchFails(t *testing.T) {
 	engine := NewEngine(cacheDir, manifestPath)
 	plan, _ := Plan(reg, "foo")
 	_, err := engine.Execute(reg, plan, ExecuteOpts{
-		Adapters:  []platform.Adapter{adapter},
+		Adapters:  []adapters.Adapter{adapter},
 		Platforms: []string{"test"},
 	})
 	if err == nil {

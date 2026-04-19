@@ -21,8 +21,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
-	"github.com/jjfantini/humblSKILLS/cli/internal/platform"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/resolver"
 )
@@ -31,29 +31,28 @@ const defaultRepo = "github.com/jjfantini/humblSKILLS"
 
 func main() {
 	var (
-		skillsDir   = flag.String("skills-dir", "skills", "path to the skills directory")
-		adaptersDir = flag.String("adapters-dir", "adapters", "path to the adapters directory")
-		outFile     = flag.String("out", "registry.json", "output registry file")
-		repo        = flag.String("repo", defaultRepo, "source repo identifier")
-		ref         = flag.String("ref", "", "source ref name (default: git branch or env GITHUB_REF_NAME)")
-		sha         = flag.String("sha", "", "source commit sha (default: git HEAD or env GITHUB_SHA)")
-		check       = flag.Bool("check", false, "exit non-zero if the generated content would differ from --out")
+		skillsDir = flag.String("skills-dir", "skills", "path to the skills directory")
+		outFile   = flag.String("out", "registry.json", "output registry file")
+		repo      = flag.String("repo", defaultRepo, "source repo identifier")
+		ref       = flag.String("ref", "", "source ref name (default: git branch or env GITHUB_REF_NAME)")
+		sha       = flag.String("sha", "", "source commit sha (default: git HEAD or env GITHUB_SHA)")
+		check     = flag.Bool("check", false, "exit non-zero if the generated content would differ from --out")
 	)
 	flag.Parse()
 
-	if err := run(*skillsDir, *adaptersDir, *outFile, *repo, *ref, *sha, *check); err != nil {
+	if err := run(*skillsDir, *outFile, *repo, *ref, *sha, *check); err != nil {
 		fmt.Fprintln(os.Stderr, "build-registry:", err)
 		os.Exit(1)
 	}
 }
 
-func run(skillsDir, adaptersDir, outFile, repo, ref, sha string, check bool) error {
-	adapters, err := platform.LoadAll(adaptersDir)
+func run(skillsDir, outFile, repo, ref, sha string, check bool) error {
+	adapterList, err := adapters.Load()
 	if err != nil {
 		return fmt.Errorf("load adapters: %w", err)
 	}
-	if len(adapters) == 0 {
-		return fmt.Errorf("no adapters found in %s", adaptersDir)
+	if len(adapterList) == 0 {
+		return fmt.Errorf("no adapters embedded in binary")
 	}
 
 	parsed, err := walkSkills(skillsDir)
@@ -74,7 +73,7 @@ func run(skillsDir, adaptersDir, outFile, repo, ref, sha string, check bool) err
 
 	ctx := frontmatter.ValidationContext{
 		KnownSkills:   known,
-		KnownAdapters: platform.NameSet(adapters),
+		KnownAdapters: adapters.NameSet(adapterList),
 	}
 
 	var verrs []string

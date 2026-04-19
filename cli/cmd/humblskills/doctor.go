@@ -10,9 +10,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/platform"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
@@ -113,14 +113,14 @@ func runDoctor(app *App) error {
 
 func buildDoctorReport(app *App) (doctorReport, error) {
 	report := doctorReport{}
-	adapters, err := app.Adapters()
+	adapterList, err := app.Adapters()
 	if err != nil {
 		return report, fmt.Errorf("load adapters: %w", err)
 	}
 
-	results := platform.Detect(adapters)
-	byName := make(map[string]platform.Adapter, len(adapters))
-	for _, a := range adapters {
+	results := adapters.Detect(adapterList)
+	byName := make(map[string]adapters.Adapter, len(adapterList))
+	for _, a := range adapterList {
 		byName[a.Name] = a
 	}
 	for _, r := range results {

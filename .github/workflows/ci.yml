@@ -38,10 +38,3 @@ jobs:
           cache-dependency-path: cli/go.sum
       - name: Verify registry.json is in sync
         run: make registry-check
-
-  adapters-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Verify embedded adapters match ./adapters
-        run: make adapters-check
