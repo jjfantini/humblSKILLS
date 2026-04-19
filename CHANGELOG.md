@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/jjfantini/humblSKILLS/compare/v2.2.0...v2.3.0) (2026-04-19)
+
+
+### Features
+
+* **cli:** add humblskills dashboard with in-TUI navigation ([#41](https://github.com/jjfantini/humblSKILLS/issues/41)) ([bcb46e2](https://github.com/jjfantini/humblSKILLS/commit/bcb46e2c1523aac678bf92a0fd1b28e44b2affc1))
+
 ## [2.2.0](https://github.com/jjfantini/humblSKILLS/compare/v2.1.1...v2.2.0) (2026-04-19)
 
 
