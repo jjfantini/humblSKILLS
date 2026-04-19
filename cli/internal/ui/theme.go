@@ -190,9 +190,11 @@ func buildTheme(p Palette, r *lipgloss.Renderer) *Theme {
 	t.RowDim = r.NewStyle().Foreground(p.Comment)
 	t.RowBg = r.NewStyle().Background(p.BGHL)
 	t.Bullet = r.NewStyle().Foreground(p.Magenta).Bold(true)
-	t.DotOK = r.NewStyle().Foreground(p.Green)
-	t.DotNo = r.NewStyle().Foreground(p.Red)
-	t.DotWarn = r.NewStyle().Foreground(p.Yellow)
+	// Status dots use AdaptiveColor + bold so they pop on light terminals
+	// (the dark-mode pastel Green/Red/Yellow wash out on white backgrounds).
+	t.DotOK = r.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#15803d", Dark: string(p.Green)}).Bold(true)
+	t.DotNo = r.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#dc2626", Dark: string(p.Red)}).Bold(true)
+	t.DotWarn = r.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ca8a04", Dark: string(p.Yellow)}).Bold(true)
 
 	// Detail pane.
 	t.DetailTitle = r.NewStyle().Foreground(p.FG).Bold(true)
