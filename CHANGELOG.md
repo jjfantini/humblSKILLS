@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/jjfantini/humblSKILLS/compare/v1.0.0...v1.1.0) (2026-04-19)
+
+
+### Features
+
+* **skills:** add use-smart-humanize-text skill ([#30](https://github.com/jjfantini/humblSKILLS/issues/30)) ([1208c3e](https://github.com/jjfantini/humblSKILLS/commit/1208c3e8a724d877fc3d5ce7fe2bbb80b551d36a))
+
 ## [1.0.0](https://github.com/jjfantini/humblSKILLS/compare/v0.6.4...v1.0.0) (2026-04-19)
 
 
