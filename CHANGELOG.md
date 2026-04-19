@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.8](https://github.com/jjfantini/humblSKILLS/compare/v2.3.7...v2.3.8) (2026-04-19)
+
+
+### Bug Fixes
+
+* **cli:** prevent search bar wrap that hides dashboard header ([#57](https://github.com/jjfantini/humblSKILLS/issues/57)) ([d026f7f](https://github.com/jjfantini/humblSKILLS/commit/d026f7f58c34293d499982e21684d4a1af748c52))
+
 ## [2.3.7](https://github.com/jjfantini/humblSKILLS/compare/v2.3.6...v2.3.7) (2026-04-19)
 
 
