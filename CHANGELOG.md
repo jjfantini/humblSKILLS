@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.3](https://github.com/jjfantini/humblSKILLS/compare/v2.3.2...v2.3.3) (2026-04-19)
+
+
+### Bug Fixes
+
+* **cli:** dashboard scroll, alignment, shared header, version TUI ([#47](https://github.com/jjfantini/humblSKILLS/issues/47)) ([470dcc9](https://github.com/jjfantini/humblSKILLS/commit/470dcc91ce96fd53e5fa7fcbc58f2fd1df1d480c))
+
 ## [2.3.2](https://github.com/jjfantini/humblSKILLS/compare/v2.3.1...v2.3.2) (2026-04-19)
 
 
