@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.4](https://github.com/jjfantini/humblSKILLS/compare/v2.3.3...v2.3.4) (2026-04-19)
+
+
+### Bug Fixes
+
+* **cli:** add dashboard title block and unwrap search counter ([#49](https://github.com/jjfantini/humblSKILLS/issues/49)) ([f4b8316](https://github.com/jjfantini/humblSKILLS/commit/f4b83160591f019a2738fefa9f93a5c5739d627c))
+
 ## [2.3.3](https://github.com/jjfantini/humblSKILLS/compare/v2.3.2...v2.3.3) (2026-04-19)
 
 
