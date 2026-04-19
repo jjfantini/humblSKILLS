@@ -10,6 +10,7 @@ import (
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
@@ -27,6 +28,7 @@ type Config struct {
 	RegistryURL  string
 	CacheDir     string
 	ManifestPath string
+	ProfilePath  string
 	JSON         bool
 	NoColor      bool
 	Verbose      bool
@@ -38,6 +40,7 @@ type globalFlags struct {
 	registry string
 	cacheDir string
 	manifest string
+	profile  string
 	json     bool
 	noColor  bool
 	verbose  bool
@@ -64,6 +67,7 @@ func newRootCmd() *cobra.Command {
 	f.StringVar(&g.registry, "registry", "", "registry URL (or file:// path). Defaults to the hosted registry; env: HUMBLSKILLS_REGISTRY")
 	f.StringVar(&g.cacheDir, "cache-dir", "", "cache directory (env: HUMBLSKILLS_CACHE_DIR; default: XDG_CACHE_HOME/humblskills)")
 	f.StringVar(&g.manifest, "manifest", "", "install manifest path (env: HUMBLSKILLS_MANIFEST; default: XDG_STATE_HOME/humblskills/manifest.json)")
+	f.StringVar(&g.profile, "profile", "", "profile config path (env: HUMBLSKILLS_PROFILE; default: XDG_CONFIG_HOME/humblskills/config.json)")
 	f.BoolVar(&g.json, "json", false, "emit machine-readable JSON")
 	f.BoolVar(&g.noColor, "no-color", false, "disable ANSI colour output")
 	f.BoolVarP(&g.verbose, "verbose", "v", false, "print extra detail")
@@ -79,6 +83,7 @@ func newRootCmd() *cobra.Command {
 		newUpdateCmd(app),
 		newListCmd(app),
 		newSearchCmd(app),
+		newProfileCmd(app),
 	)
 
 	return cmd
@@ -126,6 +131,12 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 	}
 	cfg.ManifestPath = manifestPath
 
+	profilePath, err := resolveProfilePath(firstNonEmpty(g.profile, os.Getenv("HUMBLSKILLS_PROFILE")))
+	if err != nil {
+		return err
+	}
+	cfg.ProfilePath = profilePath
+
 	app.Config = cfg
 	app.Adapters = adapters.Load
 
@@ -151,6 +162,13 @@ func resolveManifestPath(override string) (string, error) {
 		return override, nil
 	}
 	return manifest.DefaultPath()
+}
+
+func resolveProfilePath(override string) (string, error) {
+	if override != "" {
+		return override, nil
+	}
+	return profile.DefaultPath()
 }
 
 func firstNonEmpty(vs ...string) string {

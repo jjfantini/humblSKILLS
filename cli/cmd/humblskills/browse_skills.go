@@ -171,6 +171,9 @@ func buildSkillItems(skills []registry.Skill, m *manifest.Manifest) []skillItem 
 // runSkillBrowser opens the shared two-pane picker over skills and routes the
 // user's choice through the right subcommand. Returns (skill, action) where
 // action is one of "install", "update", "uninstall", or "" (user quit).
+//
+// Pressing `p` opens the profile editor inline and re-enters the picker so
+// every surface that uses this browser gets the same footer shortcut.
 func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBrowseMode, emptyMsg string) (string, string, error) {
 	if len(skills) == 0 {
 		app.UI.Info(emptyMsg)
@@ -186,11 +189,13 @@ func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBr
 	case modeSearch:
 		actions = []tui.ActionSpec{
 			{Key: "i", Label: "install", Action: "install"},
+			{Key: "p", Label: "profile", Action: "profile"},
 		}
 	case modeInstalledOnly:
 		actions = []tui.ActionSpec{
 			{Key: "u", Label: "update", Action: "update"},
 			{Key: "x", Label: "uninstall", Action: "uninstall"},
+			{Key: "p", Label: "profile", Action: "profile"},
 		}
 	}
 
@@ -219,26 +224,34 @@ func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBr
 		leftTitle = "INSTALLED"
 	}
 
-	res, err := tui.RunListDetail(tui.Config{
-		Theme:      app.UI.Theme(),
-		Version:    resolveVersion().Version,
-		Section:    section,
-		Meta:       meta,
-		Items:      items,
-		LeftTitle:  leftTitle,
-		RightTitle: "DETAIL",
-		Actions:    actions,
-		EmptyMsg:   emptyMsg,
-	})
-	if err != nil {
-		return "", "", err
+	for {
+		res, err := tui.RunListDetail(tui.Config{
+			Theme:      app.UI.Theme(),
+			Version:    resolveVersion().Version,
+			Section:    section,
+			Meta:       meta,
+			Items:      items,
+			LeftTitle:  leftTitle,
+			RightTitle: "DETAIL",
+			Actions:    actions,
+			EmptyMsg:   emptyMsg,
+		})
+		if err != nil {
+			return "", "", err
+		}
+		if res.Quit || res.Item == nil {
+			return "", "", nil
+		}
+		if res.Action == "profile" {
+			if err := runProfileEditor(app); err != nil {
+				return "", "", err
+			}
+			continue
+		}
+		it, ok := res.Item.(skillItem)
+		if !ok {
+			return "", "", nil
+		}
+		return it.s.Name, res.Action, nil
 	}
-	if res.Quit || res.Item == nil {
-		return "", "", nil
-	}
-	it, ok := res.Item.(skillItem)
-	if !ok {
-		return "", "", nil
-	}
-	return it.s.Name, res.Action, nil
 }
