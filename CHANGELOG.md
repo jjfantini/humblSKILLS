@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.7](https://github.com/jjfantini/humblSKILLS/compare/v2.3.6...v2.3.7) (2026-04-19)
+
+
+### Bug Fixes
+
+* **cli:** remove launcher title block, brighten dots, right-anchor counter ([#55](https://github.com/jjfantini/humblSKILLS/issues/55)) ([ef8e822](https://github.com/jjfantini/humblSKILLS/commit/ef8e822622ef892f776ef6df404cc8dc7485f88c))
+
 ## [2.3.6](https://github.com/jjfantini/humblSKILLS/compare/v2.3.5...v2.3.6) (2026-04-19)
 
 
