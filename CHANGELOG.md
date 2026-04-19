@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.2](https://github.com/jjfantini/humblSKILLS/compare/v2.3.1...v2.3.2) (2026-04-19)
+
+
+### Bug Fixes
+
+* **cli:** dashboard alignment, arrow-key hints, status line, --fullscreen ([#45](https://github.com/jjfantini/humblSKILLS/issues/45)) ([771d067](https://github.com/jjfantini/humblSKILLS/commit/771d06789e839a608d8fac34c38a924acb42f1cc))
+
 ## [2.3.1](https://github.com/jjfantini/humblSKILLS/compare/v2.3.0...v2.3.1) (2026-04-19)
 
 
