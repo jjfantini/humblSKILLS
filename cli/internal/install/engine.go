@@ -40,6 +40,19 @@ type TargetResult struct {
 // Result aggregates every target outcome produced by one install run.
 type Result struct {
 	Results []TargetResult `json:"results"`
+	// Warnings are non-fatal notices collected during the run (e.g. local
+	// preserve list unreadable, fell back to registry). Every warning is also
+	// emitted as a PhaseWarn event; this slice is a convenience for callers
+	// that don't install an EventSink.
+	Warnings []Warning `json:"warnings,omitempty"`
+}
+
+// Warning is a structured non-fatal notice from one Execute call.
+type Warning struct {
+	Skill    string `json:"skill,omitempty"`
+	Platform string `json:"platform,omitempty"`
+	Scope    string `json:"scope,omitempty"`
+	Msg      string `json:"msg"`
 }
 
 // Engine installs skills by fetching tarballs, verifying dir_sha, and copying
@@ -105,6 +118,18 @@ func (e *Engine) Execute(reg *registry.Registry, plan []Step, opts ExecuteOpts) 
 	m, err := manifest.Load(e.ManifestPath)
 	if err != nil {
 		return res, fmt.Errorf("load manifest: %w", err)
+	}
+
+	// Wrap the caller's sink so every PhaseWarn also lands in Result.Warnings.
+	// Callers without an EventSink (scripts, --json) still see warnings.
+	userSink := opts.OnEvent
+	opts.OnEvent = func(ev Event) {
+		if ev.Phase == PhaseWarn {
+			res.Warnings = append(res.Warnings, Warning{
+				Skill: ev.Skill, Platform: ev.Platform, Scope: ev.Scope, Msg: ev.Msg,
+			})
+		}
+		userSink.emit(ev)
 	}
 
 	total := countTargets(plan, opts.Platforms)
@@ -298,12 +323,45 @@ func (e *Engine) installOne(
 			Phase: PhaseTargetStart, Skill: skill.Name, IsDep: step.IsDep,
 			Platform: pt.pending.adapter.Name, Scope: pt.pending.target.Scope,
 		})
-		// When preserve is active, build a per-target copy of staging with
-		// user content merged in, leaving the shared staging pristine for
-		// sibling targets. pt.existingPath is the authoritative previous
-		// location whether this is a normal replace or a scope move.
+		// Decide which preserve list to honour for this target:
+		//
+		//   - --force: none. Caller explicitly asked for a clean upstream
+		//     overwrite, matching 'uninstall + install'.
+		//   - fresh install (no existingPath): none. Staging already ships
+		//     the registry's view; there's nothing on disk to merge back.
+		//   - normal replace: read the USER's list from the installed
+		//     SKILL.md. User owns the list post-install; removing an entry
+		//     locally means they want that path overwritten next update.
+		//   - fallback: if the local SKILL.md is missing, unparseable, or
+		//     holds an invalid preserve list, use the registry's list and
+		//     warn. Safer than silently wiping user data over broken YAML.
+		var preserveList []string
+		userOwnsPreserve := false
+		if pt.existingPath != "" && !opts.Force {
+			if local, ok, reason := loadLocalPreserve(pt.existingPath); ok {
+				preserveList = local
+				userOwnsPreserve = true
+			} else {
+				preserveList = skill.Preserve
+				opts.OnEvent.emit(Event{
+					Phase: PhaseWarn, Skill: skill.Name,
+					Platform: pt.pending.adapter.Name, Scope: pt.pending.target.Scope,
+					Msg: fmt.Sprintf("local preserve unreadable (%s); falling back to registry list", reason),
+				})
+			}
+		}
+
+		// We need a per-target staging copy when either:
+		//   - preserveList has entries to merge user content from existingPath
+		//   - user owns the preserve list (even if empty) - we need to
+		//     rewrite staging's SKILL.md with the user's preserve key so
+		//     their edit persists past this update. Everything else in the
+		//     SKILL.md (description, version, body) still flows from the
+		//     registry.
+		// Otherwise, staging is used as-is so sibling targets share it.
 		writeSrc := staging
-		if len(skill.Preserve) > 0 && pt.existingPath != "" {
+		needsPerTarget := pt.existingPath != "" && (len(preserveList) > 0 || userOwnsPreserve)
+		if needsPerTarget {
 			perTarget := filepath.Join(
 				e.StagingDir,
 				skill.Name+"-"+shortSHA(reg.Source.SHA)+"-"+pt.pending.adapter.Name+"-"+pt.pending.target.Scope,
@@ -315,8 +373,16 @@ func (e *Engine) installOne(
 			if err := copyTree(staging, perTarget); err != nil {
 				return nil, fmt.Errorf("copy per-target staging: %w", err)
 			}
-			if err := applyPreserve(pt.existingPath, perTarget, skill.Preserve); err != nil {
-				return nil, err
+			if len(preserveList) > 0 {
+				if err := applyPreserve(pt.existingPath, perTarget, preserveList); err != nil {
+					return nil, err
+				}
+			}
+			if userOwnsPreserve {
+				skillMDPath := filepath.Join(perTarget, "SKILL.md")
+				if err := mergePreserveIntoSkillMD(skillMDPath, preserveList); err != nil {
+					return nil, fmt.Errorf("merge preserve into SKILL.md: %w", err)
+				}
 			}
 			writeSrc = perTarget
 		}

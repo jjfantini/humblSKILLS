@@ -75,22 +75,22 @@ skip confirmation prompts.
 
 ## Preserving user content across updates
 
-Smart skills often accumulate user-owned content over time — raw sources,
+Smart skills often accumulate user-owned content over time - raw sources,
 append-only memory (`log.md`, `decisions.md`, `patterns.md`), LLM-curated
 wiki pages. By default `humblskills update` and `humblskills install`
 overwrite the skill directory with whatever the registry ships. Skills that
-need to keep user content around on update can declare a `preserve:` list in
+need to keep user content around on update declare a `preserve:` list in
 their SKILL.md frontmatter.
 
 Entries are relative paths inside the skill directory. A trailing `/` makes
 the entry a directory; anything else is a file. Globs are not supported.
 
-| Entry form      | Example              | Meaning on update                                    |
-| --------------- | -------------------- | ---------------------------------------------------- |
-| **File**        | `references/log.md`  | User wins. User's bytes survive the update.          |
+| Entry form      | Example              | Meaning on update                                        |
+| --------------- | -------------------- | -------------------------------------------------------- |
+| **File**        | `references/log.md`  | User wins. User's bytes survive the update.              |
 | **Directory**   | `references/wiki/`   | Deep merge. Staging wins per-file; user-only files kept. |
 
-Fresh installs always seed everything from the registry — preserve only kicks
+Fresh installs always seed everything from the registry - preserve only kicks
 in when replacing an existing install. Running `humblskills uninstall` wipes
 everything, including preserved content.
 
@@ -110,7 +110,61 @@ preserve:
 
 Skill authors who declare a preserve *directory* should note in their skill
 docs that any files shipped inside that directory may be overwritten on
-update — that's the deep-merge contract.
+update - that's the deep-merge contract.
+
+### You own the preserve list after install
+
+The `preserve:` list in the registry is the **seed** - what ships on first
+install. After that, the list belongs to you. `humblskills update` reads
+`preserve:` from the **installed** `SKILL.md` on disk (per target, so each
+platform + scope is independent), not from the upstream registry entry.
+
+That means:
+
+- Add an entry locally -> that path survives your next `humblskills update`,
+  even if upstream never listed it.
+- Remove an entry locally -> that path gets overwritten by upstream bytes on
+  the next update.
+- Empty your `preserve:` list -> the update is a clean overwrite for every
+  path.
+
+Use this to pin author-shipped files in place, protect notes you stash
+inside the skill directory, or stop preserving a directory the author
+reorganized.
+
+Only the `preserve:` key is treated as user-owned. Every other frontmatter
+field (`name`, `description`, `version`, `requires`, `platforms`, `tags`)
+and the full markdown body flow through from upstream on every update. So
+when the author ships a new description, version bump, or prose rewrite,
+you get it; your `preserve:` list rides along untouched. This also means
+your preserve edits survive indefinitely - you don't need to re-edit after
+each update, because the rewritten `SKILL.md` carries your list forward.
+
+A few nuances:
+
+- If you'd rather freeze the entire `SKILL.md` (maybe you've made prose
+  edits you don't want overwritten), add `SKILL.md` itself to your
+  `preserve:` list. That makes user-wins on the file, so upstream changes
+  to the description/version/body stop flowing - opt-in only.
+- If the installed `SKILL.md` is missing, unparseable, or carries an
+  invalid preserve list (e.g. a `..` traversal), the engine falls back to
+  the registry's list and prints a warning. It won't wipe your data over
+  broken YAML.
+- The YAML round-trip on update normalizes whitespace and drops comments
+  inside the frontmatter block. Keys and their values stay intact; only
+  formatting inside the YAML mapping is rewritten.
+
+### Getting clean upstream: `--force` or reinstall
+
+```sh
+humblskills update --force <skill>          # bypass local preserve, reinstall cleanly
+humblskills install --force <skill>         # same effect outside update flow
+humblskills uninstall <skill> && humblskills install <skill>   # equivalent
+```
+
+`--force` ignores your local preserve edits and replaces the on-disk skill
+with exactly what the registry ships. This is the escape hatch for "throw
+away my customizations and give me the author's version."
 
 ## Developing the CLI
 

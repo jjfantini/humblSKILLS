@@ -18,6 +18,7 @@ import (
 type updateFlags struct {
 	all   bool
 	check bool
+	force bool
 }
 
 func newUpdateCmd(app *App) *cobra.Command {
@@ -28,13 +29,17 @@ func newUpdateCmd(app *App) *cobra.Command {
 		Long: "update with no args opens an interactive picker of every skill that " +
 			"has drifted from the registry. Names can be passed to narrow the set. " +
 			"--all (or --yes) skips the picker and upgrades every drifted skill. " +
-			"--check prints the diff and exits without changing anything.",
+			"--check prints the diff and exits without changing anything. " +
+			"By default, the preserve list on each installed SKILL.md is honored so " +
+			"your local customizations survive. --force ignores local preserve edits " +
+			"and reinstalls cleanly from the registry (equivalent to uninstall + install).",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runUpdate(app, args, f)
 		},
 	}
 	cmd.Flags().BoolVar(&f.all, "all", false, "update every drifted skill without prompting")
 	cmd.Flags().BoolVar(&f.check, "check", false, "print what would change and exit")
+	cmd.Flags().BoolVar(&f.force, "force", false, "bypass local preserve edits; reinstall cleanly from registry")
 	return cmd
 }
 
@@ -120,13 +125,14 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 					Adapters:  adapters,
 					Platforms: plats,
 					Scope:     scope,
-					Force:     true,
+					Force:     f.force,
 					OnEvent:   sink,
 				})
 				if err != nil {
 					return fmt.Errorf("%s: %w", plan.Skill, err)
 				}
 				aggregate.Results = append(aggregate.Results, res.Results...)
+				aggregate.Warnings = append(aggregate.Warnings, res.Warnings...)
 			}
 		}
 		return nil

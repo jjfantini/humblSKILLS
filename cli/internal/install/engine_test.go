@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -491,7 +492,11 @@ func TestInstall_PreserveDir_DeepMerge(t *testing.T) {
 	}
 }
 
-func TestInstall_PreserveWithForce(t *testing.T) {
+// TestInstall_ForceBypassesPreserve pins the new semantics: --force gives the
+// caller a clean upstream install. Preserve is NOT applied, so any user edits
+// in preserved paths are overwritten. This is the documented escape hatch for
+// users who want to drop their local customizations without running uninstall.
+func TestInstall_ForceBypassesPreserve(t *testing.T) {
 	root := t.TempDir()
 	cacheDir := filepath.Join(root, "cache")
 	installRoot := filepath.Join(root, "home", ".claude", "skills")
@@ -541,8 +546,593 @@ func TestInstall_PreserveWithForce(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, _ := os.ReadFile(logPath)
-	if string(got) != "user-edit\n" {
-		t.Errorf("forced install wiped preserved file: got %q", got)
+	if string(got) != "initial\n" {
+		t.Errorf("force should have restored upstream bytes; got %q", got)
+	}
+}
+
+// skillMD is a tiny helper for writing test SKILL.md bodies with valid
+// frontmatter. The tests exercise the locally-edited preserve behavior, so
+// the files they ship/install need real YAML up top for Parse to succeed.
+func skillMD(name, version string, preserve []string) string {
+	sb := strings.Builder{}
+	sb.WriteString("---\n")
+	sb.WriteString("name: " + name + "\n")
+	sb.WriteString("description: test skill\n")
+	sb.WriteString("version: " + version + "\n")
+	if len(preserve) > 0 {
+		sb.WriteString("preserve:\n")
+		for _, p := range preserve {
+			sb.WriteString("  - " + p + "\n")
+		}
+	} else {
+		sb.WriteString("preserve: []\n")
+	}
+	sb.WriteString("---\n\n# " + name + "\n")
+	return sb.String()
+}
+
+// TestUpdate_UsesLocalPreserveList: the user added a new entry to their
+// installed SKILL.md's preserve list. On update that user-only entry must
+// survive even though the registry doesn't list it.
+func TestUpdate_UsesLocalPreserveList(t *testing.T) {
+	root := t.TempDir()
+	cacheDir := filepath.Join(root, "cache")
+	installRoot := filepath.Join(root, "home", ".claude", "skills")
+	manifestPath := filepath.Join(root, "manifest.json")
+
+	v1Body := skillMD("foo", "0.1.0", []string{"log.md"})
+	v1Files := map[string]string{
+		"skills/foo/SKILL.md": v1Body,
+		"skills/foo/log.md":   "initial\n",
+	}
+	v1Flat := map[string]string{"SKILL.md": v1Body, "log.md": "initial\n"}
+	v1SHA := expectedDirSHA(t, v1Flat)
+	src1 := "shauser1aaaaa"
+	seedTarball(t, cacheDir, "ex", "r", src1, "ex-r-abc", v1Files)
+
+	v2Body := skillMD("foo", "0.2.0", []string{"log.md"})
+	v2Files := map[string]string{
+		"skills/foo/SKILL.md": v2Body,
+		"skills/foo/log.md":   "shipped-v2\n",
+	}
+	v2Flat := map[string]string{"SKILL.md": v2Body, "log.md": "shipped-v2\n"}
+	v2SHA := expectedDirSHA(t, v2Flat)
+	src2 := "shauser2bbbbb"
+	seedTarball(t, cacheDir, "ex", "r", src2, "ex-r-def", v2Files)
+
+	adapter := adapters.Adapter{
+		Name:           "test",
+		InstallTargets: map[string]string{"user": installRoot},
+		DefaultScope:   "user",
+	}
+	engine := NewEngine(cacheDir, manifestPath)
+	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
+
+	reg1 := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/ex/r", SHA: src1},
+		Skills: []registry.Skill{{
+			Name: "foo", Version: "0.1.0", Path: "skills/foo",
+			Platforms: []string{"test"}, DirSHA: v1SHA,
+			Preserve: []string{"log.md"},
+		}},
+	}
+	plan1, _ := Plan(reg1, "foo")
+	if _, err := engine.Execute(reg1, plan1, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// User extends their preserve list locally and drops a file.
+	userBody := skillMD("foo", "0.1.0", []string{"log.md", "notes.md"})
+	if err := os.WriteFile(filepath.Join(installRoot, "foo", "SKILL.md"), []byte(userBody), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(installRoot, "foo", "notes.md"), []byte("user-notes\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(installRoot, "foo", "log.md"), []byte("user-log\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	reg2 := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/ex/r", SHA: src2},
+		Skills: []registry.Skill{{
+			Name: "foo", Version: "0.2.0", Path: "skills/foo",
+			Platforms: []string{"test"}, DirSHA: v2SHA,
+			Preserve: []string{"log.md"},
+		}},
+	}
+	plan2, _ := Plan(reg2, "foo")
+	r, err := engine.Execute(reg2, plan2, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Warnings) != 0 {
+		t.Errorf("unexpected warnings: %+v", r.Warnings)
+	}
+
+	if got, _ := os.ReadFile(filepath.Join(installRoot, "foo", "log.md")); string(got) != "user-log\n" {
+		t.Errorf("log.md: want user-log, got %q", got)
+	}
+	if got, err := os.ReadFile(filepath.Join(installRoot, "foo", "notes.md")); err != nil || string(got) != "user-notes\n" {
+		t.Errorf("notes.md: want user-notes, got %q err=%v", got, err)
+	}
+
+	// The rewritten SKILL.md must keep the user's preserve list AND ship
+	// upstream's version/body bump. This is the merge-preserve-key contract.
+	finalSKILL, err := os.ReadFile(filepath.Join(installRoot, "foo", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(finalSKILL), "- notes.md") {
+		t.Errorf("SKILL.md should carry the user's notes.md preserve entry; got:\n%s", finalSKILL)
+	}
+	if !strings.Contains(string(finalSKILL), "version: 0.2.0") {
+		t.Errorf("SKILL.md should have v2 version from upstream; got:\n%s", finalSKILL)
+	}
+}
+
+// TestUpdate_MergesPreserveKeyKeepsUpstreamBody: verify the merge-preserve
+// contract - every non-preserve frontmatter key and the markdown body flow
+// from upstream on update, while the user's preserve list rides along.
+func TestUpdate_MergesPreserveKeyKeepsUpstreamBody(t *testing.T) {
+	root := t.TempDir()
+	cacheDir := filepath.Join(root, "cache")
+	installRoot := filepath.Join(root, "home", ".claude", "skills")
+	manifestPath := filepath.Join(root, "manifest.json")
+
+	v1Body := skillMD("foo", "0.1.0", []string{"log.md"})
+	v1Files := map[string]string{
+		"skills/foo/SKILL.md": v1Body,
+		"skills/foo/log.md":   "initial\n",
+	}
+	v1Flat := map[string]string{"SKILL.md": v1Body, "log.md": "initial\n"}
+	v1SHA := expectedDirSHA(t, v1Flat)
+	src1 := "shamrg1aaaaa"
+	seedTarball(t, cacheDir, "ex", "r", src1, "ex-r-abc", v1Files)
+
+	// v2 SKILL.md has a richer body so we can prove it flows through.
+	v2Body := "---\nname: foo\ndescription: v2 rewrite\nversion: 0.2.0\npreserve:\n  - log.md\n---\n\n# foo v2\n\nBrand new body with a warning.\n"
+	v2Files := map[string]string{
+		"skills/foo/SKILL.md": v2Body,
+		"skills/foo/log.md":   "shipped-v2\n",
+	}
+	v2Flat := map[string]string{"SKILL.md": v2Body, "log.md": "shipped-v2\n"}
+	v2SHA := expectedDirSHA(t, v2Flat)
+	src2 := "shamrg2bbbbb"
+	seedTarball(t, cacheDir, "ex", "r", src2, "ex-r-def", v2Files)
+
+	adapter := adapters.Adapter{
+		Name:           "test",
+		InstallTargets: map[string]string{"user": installRoot},
+		DefaultScope:   "user",
+	}
+	engine := NewEngine(cacheDir, manifestPath)
+	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
+
+	reg1 := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/ex/r", SHA: src1},
+		Skills: []registry.Skill{{
+			Name: "foo", Version: "0.1.0", Path: "skills/foo",
+			Platforms: []string{"test"}, DirSHA: v1SHA,
+			Preserve: []string{"log.md"},
+		}},
+	}
+	plan1, _ := Plan(reg1, "foo")
+	if _, err := engine.Execute(reg1, plan1, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// User extends preserve with a custom entry.
+	userBody := skillMD("foo", "0.1.0", []string{"log.md", "decisions.md"})
+	if err := os.WriteFile(filepath.Join(installRoot, "foo", "SKILL.md"), []byte(userBody), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(installRoot, "foo", "decisions.md"), []byte("d1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	reg2 := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/ex/r", SHA: src2},
+		Skills: []registry.Skill{{
+			Name: "foo", Version: "0.2.0", Path: "skills/foo",
+			Platforms: []string{"test"}, DirSHA: v2SHA,
+			Preserve: []string{"log.md"}, // upstream never listed decisions.md
+		}},
+	}
+	plan2, _ := Plan(reg2, "foo")
+	if _, err := engine.Execute(reg2, plan2, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(filepath.Join(installRoot, "foo", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(got)
+	// Upstream bits: description bumped, version bumped, body copied.
+	if !strings.Contains(s, "description: v2 rewrite") {
+		t.Errorf("SKILL.md missing v2 description:\n%s", s)
+	}
+	if !strings.Contains(s, "version: 0.2.0") {
+		t.Errorf("SKILL.md missing v2 version:\n%s", s)
+	}
+	if !strings.Contains(s, "Brand new body with a warning.") {
+		t.Errorf("SKILL.md body not refreshed from upstream:\n%s", s)
+	}
+	// User bit: their custom preserve entry survived.
+	if !strings.Contains(s, "- decisions.md") {
+		t.Errorf("SKILL.md lost user's decisions.md preserve entry:\n%s", s)
+	}
+	if !strings.Contains(s, "- log.md") {
+		t.Errorf("SKILL.md lost log.md preserve entry:\n%s", s)
+	}
+	// And the user-only file should still exist too.
+	if _, err := os.Stat(filepath.Join(installRoot, "foo", "decisions.md")); err != nil {
+		t.Errorf("decisions.md user file missing after update: %v", err)
+	}
+}
+
+// TestUpdate_PreserveSurvivesMultipleUpdates: the rewritten SKILL.md must
+// carry the user's preserve list so the NEXT update continues to honour it
+// without the user having to re-edit every time.
+func TestUpdate_PreserveSurvivesMultipleUpdates(t *testing.T) {
+	root := t.TempDir()
+	cacheDir := filepath.Join(root, "cache")
+	installRoot := filepath.Join(root, "home", ".claude", "skills")
+	manifestPath := filepath.Join(root, "manifest.json")
+
+	build := func(version string) (string, string, map[string]string, string) {
+		body := skillMD("foo", version, []string{"log.md"})
+		files := map[string]string{
+			"skills/foo/SKILL.md": body,
+			"skills/foo/log.md":   "shipped-" + version + "\n",
+		}
+		flat := map[string]string{"SKILL.md": body, "log.md": "shipped-" + version + "\n"}
+		return body, expectedDirSHA(t, flat), files, version
+	}
+	_, v1SHA, v1Files, _ := build("0.1.0")
+	_, v2SHA, v2Files, _ := build("0.2.0")
+	_, v3SHA, v3Files, _ := build("0.3.0")
+	src1, src2, src3 := "shamul1aaaaa", "shamul2bbbbb", "shamul3ccccc"
+	seedTarball(t, cacheDir, "ex", "r", src1, "ex-r-v1", v1Files)
+	seedTarball(t, cacheDir, "ex", "r", src2, "ex-r-v2", v2Files)
+	seedTarball(t, cacheDir, "ex", "r", src3, "ex-r-v3", v3Files)
+
+	adapter := adapters.Adapter{
+		Name:           "test",
+		InstallTargets: map[string]string{"user": installRoot},
+		DefaultScope:   "user",
+	}
+	engine := NewEngine(cacheDir, manifestPath)
+	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
+
+	reg := func(version, sha, dirSHA string) *registry.Registry {
+		return &registry.Registry{
+			SchemaVersion: registry.SchemaVersion,
+			Source:        registry.Source{Repo: "github.com/ex/r", SHA: sha},
+			Skills: []registry.Skill{{
+				Name: "foo", Version: version, Path: "skills/foo",
+				Platforms: []string{"test"}, DirSHA: dirSHA,
+				Preserve: []string{"log.md"},
+			}},
+		}
+	}
+
+	plan1, _ := Plan(reg("0.1.0", src1, v1SHA), "foo")
+	if _, err := engine.Execute(reg("0.1.0", src1, v1SHA), plan1, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// User extends preserve with references/ dir.
+	userBody := skillMD("foo", "0.1.0", []string{"log.md", "references/"})
+	if err := os.WriteFile(filepath.Join(installRoot, "foo", "SKILL.md"), []byte(userBody), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(installRoot, "foo", "references"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(installRoot, "foo", "references", "note.md"), []byte("keep-me\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Update v1 -> v2.
+	plan2, _ := Plan(reg("0.2.0", src2, v2SHA), "foo")
+	if _, err := engine.Execute(reg("0.2.0", src2, v2SHA), plan2, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Update v2 -> v3 WITHOUT re-editing SKILL.md. The user's preserve
+	// list should still ride through because the previous update wrote
+	// it back into the on-disk SKILL.md.
+	plan3, _ := Plan(reg("0.3.0", src3, v3SHA), "foo")
+	if _, err := engine.Execute(reg("0.3.0", src3, v3SHA), plan3, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(filepath.Join(installRoot, "foo", "references", "note.md"))
+	if err != nil || string(got) != "keep-me\n" {
+		t.Errorf("references/note.md lost across two updates: got=%q err=%v", got, err)
+	}
+	skillMDAfter, _ := os.ReadFile(filepath.Join(installRoot, "foo", "SKILL.md"))
+	if !strings.Contains(string(skillMDAfter), "- references/") {
+		t.Errorf("SKILL.md lost user's references/ preserve entry after two updates:\n%s", skillMDAfter)
+	}
+	if !strings.Contains(string(skillMDAfter), "version: 0.3.0") {
+		t.Errorf("SKILL.md should have v3 version; got:\n%s", skillMDAfter)
+	}
+}
+
+// TestUpdate_LocalPreserveRemovedEntryWipes: user cleared their local
+// preserve list, so an entry the registry still preserves now gets the
+// upstream bytes instead of the user's.
+func TestUpdate_LocalPreserveRemovedEntryWipes(t *testing.T) {
+	root := t.TempDir()
+	cacheDir := filepath.Join(root, "cache")
+	installRoot := filepath.Join(root, "home", ".claude", "skills")
+	manifestPath := filepath.Join(root, "manifest.json")
+
+	v1Body := skillMD("foo", "0.1.0", []string{"log.md"})
+	v1Files := map[string]string{
+		"skills/foo/SKILL.md": v1Body,
+		"skills/foo/log.md":   "initial\n",
+	}
+	v1Flat := map[string]string{"SKILL.md": v1Body, "log.md": "initial\n"}
+	v1SHA := expectedDirSHA(t, v1Flat)
+	src1 := "sharmv1aaaaaa"
+	seedTarball(t, cacheDir, "ex", "r", src1, "ex-r-abc", v1Files)
+
+	v2Body := skillMD("foo", "0.2.0", []string{"log.md"})
+	v2Files := map[string]string{
+		"skills/foo/SKILL.md": v2Body,
+		"skills/foo/log.md":   "shipped-v2\n",
+	}
+	v2Flat := map[string]string{"SKILL.md": v2Body, "log.md": "shipped-v2\n"}
+	v2SHA := expectedDirSHA(t, v2Flat)
+	src2 := "sharmv2bbbbbb"
+	seedTarball(t, cacheDir, "ex", "r", src2, "ex-r-def", v2Files)
+
+	adapter := adapters.Adapter{
+		Name:           "test",
+		InstallTargets: map[string]string{"user": installRoot},
+		DefaultScope:   "user",
+	}
+	engine := NewEngine(cacheDir, manifestPath)
+	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
+
+	reg1 := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/ex/r", SHA: src1},
+		Skills: []registry.Skill{{
+			Name: "foo", Version: "0.1.0", Path: "skills/foo",
+			Platforms: []string{"test"}, DirSHA: v1SHA,
+			Preserve: []string{"log.md"},
+		}},
+	}
+	plan1, _ := Plan(reg1, "foo")
+	if _, err := engine.Execute(reg1, plan1, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// User opts out of preserving anything AND edits log.md.
+	userBody := skillMD("foo", "0.1.0", nil)
+	if err := os.WriteFile(filepath.Join(installRoot, "foo", "SKILL.md"), []byte(userBody), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(installRoot, "foo", "log.md"), []byte("user-log\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	reg2 := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/ex/r", SHA: src2},
+		Skills: []registry.Skill{{
+			Name: "foo", Version: "0.2.0", Path: "skills/foo",
+			Platforms: []string{"test"}, DirSHA: v2SHA,
+			Preserve: []string{"log.md"}, // registry still preserves, but user opted out.
+		}},
+	}
+	plan2, _ := Plan(reg2, "foo")
+	if _, err := engine.Execute(reg2, plan2, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, _ := os.ReadFile(filepath.Join(installRoot, "foo", "log.md")); string(got) != "shipped-v2\n" {
+		t.Errorf("log.md: user opted out of preserve, want shipped-v2, got %q", got)
+	}
+}
+
+// TestUpdate_LocalSkillMdUnparseable_FallsBackToRegistry: a mangled SKILL.md
+// must not cause user-data loss. The engine falls back to the registry's
+// preserve list and emits a warning.
+func TestUpdate_LocalSkillMdUnparseable_FallsBackToRegistry(t *testing.T) {
+	root := t.TempDir()
+	cacheDir := filepath.Join(root, "cache")
+	installRoot := filepath.Join(root, "home", ".claude", "skills")
+	manifestPath := filepath.Join(root, "manifest.json")
+
+	v1Body := skillMD("foo", "0.1.0", []string{"log.md"})
+	v1Files := map[string]string{
+		"skills/foo/SKILL.md": v1Body,
+		"skills/foo/log.md":   "initial\n",
+	}
+	v1Flat := map[string]string{"SKILL.md": v1Body, "log.md": "initial\n"}
+	v1SHA := expectedDirSHA(t, v1Flat)
+	src1 := "shaunp1aaaaa"
+	seedTarball(t, cacheDir, "ex", "r", src1, "ex-r-abc", v1Files)
+
+	v2Body := skillMD("foo", "0.2.0", []string{"log.md"})
+	v2Files := map[string]string{
+		"skills/foo/SKILL.md": v2Body,
+		"skills/foo/log.md":   "shipped-v2\n",
+	}
+	v2Flat := map[string]string{"SKILL.md": v2Body, "log.md": "shipped-v2\n"}
+	v2SHA := expectedDirSHA(t, v2Flat)
+	src2 := "shaunp2bbbbb"
+	seedTarball(t, cacheDir, "ex", "r", src2, "ex-r-def", v2Files)
+
+	adapter := adapters.Adapter{
+		Name:           "test",
+		InstallTargets: map[string]string{"user": installRoot},
+		DefaultScope:   "user",
+	}
+	engine := NewEngine(cacheDir, manifestPath)
+	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
+
+	reg1 := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/ex/r", SHA: src1},
+		Skills: []registry.Skill{{
+			Name: "foo", Version: "0.1.0", Path: "skills/foo",
+			Platforms: []string{"test"}, DirSHA: v1SHA,
+			Preserve: []string{"log.md"},
+		}},
+	}
+	plan1, _ := Plan(reg1, "foo")
+	if _, err := engine.Execute(reg1, plan1, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Corrupt the on-disk SKILL.md.
+	if err := os.WriteFile(filepath.Join(installRoot, "foo", "SKILL.md"), []byte(":::not yaml:::\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(installRoot, "foo", "log.md"), []byte("user-log\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	reg2 := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/ex/r", SHA: src2},
+		Skills: []registry.Skill{{
+			Name: "foo", Version: "0.2.0", Path: "skills/foo",
+			Platforms: []string{"test"}, DirSHA: v2SHA,
+			Preserve: []string{"log.md"},
+		}},
+	}
+	plan2, _ := Plan(reg2, "foo")
+	r, err := engine.Execute(reg2, plan2, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got, _ := os.ReadFile(filepath.Join(installRoot, "foo", "log.md")); string(got) != "user-log\n" {
+		t.Errorf("log.md: fallback to registry preserve should keep user bytes, got %q", got)
+	}
+	if len(r.Warnings) == 0 {
+		t.Errorf("expected a warning about unparseable SKILL.md")
+	}
+}
+
+// TestUpdate_LocalPreserveInvalid_FallsBackToRegistry: the local SKILL.md
+// parses but carries an invalid preserve list (e.g. a `..` traversal).
+// Engine rejects it, warns, and falls back to the registry list.
+func TestUpdate_LocalPreserveInvalid_FallsBackToRegistry(t *testing.T) {
+	root := t.TempDir()
+	cacheDir := filepath.Join(root, "cache")
+	installRoot := filepath.Join(root, "home", ".claude", "skills")
+	manifestPath := filepath.Join(root, "manifest.json")
+
+	v1Body := skillMD("foo", "0.1.0", []string{"log.md"})
+	v1Files := map[string]string{
+		"skills/foo/SKILL.md": v1Body,
+		"skills/foo/log.md":   "initial\n",
+	}
+	v1Flat := map[string]string{"SKILL.md": v1Body, "log.md": "initial\n"}
+	v1SHA := expectedDirSHA(t, v1Flat)
+	src1 := "shainv1aaaaa"
+	seedTarball(t, cacheDir, "ex", "r", src1, "ex-r-abc", v1Files)
+
+	v2Body := skillMD("foo", "0.2.0", []string{"log.md"})
+	v2Files := map[string]string{
+		"skills/foo/SKILL.md": v2Body,
+		"skills/foo/log.md":   "shipped-v2\n",
+	}
+	v2Flat := map[string]string{"SKILL.md": v2Body, "log.md": "shipped-v2\n"}
+	v2SHA := expectedDirSHA(t, v2Flat)
+	src2 := "shainv2bbbbb"
+	seedTarball(t, cacheDir, "ex", "r", src2, "ex-r-def", v2Files)
+
+	adapter := adapters.Adapter{
+		Name:           "test",
+		InstallTargets: map[string]string{"user": installRoot},
+		DefaultScope:   "user",
+	}
+	engine := NewEngine(cacheDir, manifestPath)
+	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
+
+	reg1 := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/ex/r", SHA: src1},
+		Skills: []registry.Skill{{
+			Name: "foo", Version: "0.1.0", Path: "skills/foo",
+			Platforms: []string{"test"}, DirSHA: v1SHA,
+			Preserve: []string{"log.md"},
+		}},
+	}
+	plan1, _ := Plan(reg1, "foo")
+	if _, err := engine.Execute(reg1, plan1, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	userBody := skillMD("foo", "0.1.0", []string{"../evil"})
+	if err := os.WriteFile(filepath.Join(installRoot, "foo", "SKILL.md"), []byte(userBody), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(installRoot, "foo", "log.md"), []byte("user-log\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	reg2 := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/ex/r", SHA: src2},
+		Skills: []registry.Skill{{
+			Name: "foo", Version: "0.2.0", Path: "skills/foo",
+			Platforms: []string{"test"}, DirSHA: v2SHA,
+			Preserve: []string{"log.md"},
+		}},
+	}
+	plan2, _ := Plan(reg2, "foo")
+	r, err := engine.Execute(reg2, plan2, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got, _ := os.ReadFile(filepath.Join(installRoot, "foo", "log.md")); string(got) != "user-log\n" {
+		t.Errorf("log.md: fallback should keep user bytes, got %q", got)
+	}
+	if len(r.Warnings) == 0 {
+		t.Errorf("expected a warning about invalid preserve list")
 	}
 }
 

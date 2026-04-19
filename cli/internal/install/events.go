@@ -21,11 +21,15 @@ const (
 	PhaseRunDone Phase = "run_done"
 	// PhaseError fires when a target fails; the caller can show Err and abort.
 	PhaseError Phase = "error"
+	// PhaseWarn is a non-fatal notice the caller may want to surface (e.g.
+	// fell back from a broken local preserve list to the registry list). Msg
+	// holds the human-readable detail.
+	PhaseWarn Phase = "warn"
 )
 
 // Event is a single progress notification emitted by the engine. Not every
 // field is populated for every Phase — Total is only meaningful on RunStart,
-// Outcome only on TargetDone, Err only on Error.
+// Outcome only on TargetDone, Err only on Error, Msg only on Warn.
 type Event struct {
 	Phase    Phase
 	Skill    string
@@ -35,6 +39,7 @@ type Event struct {
 	Total    int
 	Outcome  Outcome
 	Err      error
+	Msg      string
 }
 
 // EventSink receives engine progress events. Callers that don't care about
