@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.0](https://github.com/jjfantini/humblSKILLS/compare/v1.1.0...v2.0.0) (2026-04-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** humblskills update previously always applied the registry's preserve list; it now applies the locally-edited list and --force bypasses preserve entirely. Scripts relying on the old "update always reinstalls cleanly" contract must pass --force.
+
+### Features
+
+* **cli:** add profile command and TUI install platform picker ([#32](https://github.com/jjfantini/humblSKILLS/issues/32)) ([777fc0c](https://github.com/jjfantini/humblSKILLS/commit/777fc0cdaf95f93a1e6b517b22b62d42d533fa1b))
+* **cli:** local-owned preserve list on update ([#34](https://github.com/jjfantini/humblSKILLS/issues/34)) ([c09aaea](https://github.com/jjfantini/humblSKILLS/commit/c09aaea47227b92d24e48d1059a9e1cf6ce81c25))
+
 ## [1.1.0](https://github.com/jjfantini/humblSKILLS/compare/v1.0.0...v1.1.0) (2026-04-19)
 
 
