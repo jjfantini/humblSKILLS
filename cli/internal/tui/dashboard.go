@@ -328,10 +328,9 @@ func (m dashboardModel) cols() int {
 
 // gridHeight is the number of rows available to the scrollable grid view.
 // Total vertical budget = height. Non-grid lines: header(2) + blank(1) +
-// title(2) + blank(1) + search(3) + blank(1) + footer(2) = 12. So grid
-// gets whatever is left.
+// search(3) + blank(1) + footer(2) = 9. So grid gets whatever is left.
 func (m dashboardModel) gridHeight() int {
-	h := m.height - 12
+	h := m.height - 9
 	if h < 3 {
 		h = 3
 	}
@@ -397,7 +396,6 @@ func (m dashboardModel) View() string {
 	right := th.Meta.Render("focused: ") + th.Brand.Render(m.focusedLabel())
 	footer := Footer(th, m.hints(), right, m.width)
 
-	title := indentBlock(m.renderTitle(), 2)
 	search := indentBlock(m.renderSearchBar(), 2)
 
 	gridView := ""
@@ -413,18 +411,7 @@ func (m dashboardModel) View() string {
 	// a predictable row regardless of content size.
 	gridView = padToHeight(gridView, m.gridHeight())
 
-	return header + "\n\n" + title + "\n\n" + search + "\n\n" + gridView + "\n" + footer
-}
-
-// renderTitle is the prominent page-header block that sits under the thin
-// top rule on the main menu. The user's feedback: the thin `· Dashboard`
-// crumb read as a separator, not a header — this title block gives the
-// launcher a visible identity.
-func (m dashboardModel) renderTitle() string {
-	th := m.cfg.Theme
-	head := th.Brand.Render("Dashboard") + th.Crumb.Render(" · ") + th.Detail.Render("launcher")
-	sub := th.Crumb.Render(fmt.Sprintf("%d commands · ↵ launches · / searches · esc quits", len(m.cfg.Tiles)))
-	return head + "\n" + sub
+	return header + "\n\n" + search + "\n\n" + gridView + "\n" + footer
 }
 
 func (m dashboardModel) focusedLabel() string {
@@ -493,18 +480,39 @@ func (m dashboardModel) renderSearchBar() string {
 		inner = 10
 	}
 	sigil := th.Brand.Render("❯")
-	var query string
-	if m.query == "" && !m.searchOn {
-		query = th.Crumb.Render("press / to search")
-	} else if m.query == "" {
-		query = th.Crumb.Render("type to filter…")
-	} else {
-		query = th.Name.Render(m.query)
+	var queryRaw string
+	var queryStyle lipgloss.Style
+	switch {
+	case m.query == "" && !m.searchOn:
+		queryRaw, queryStyle = "press / to search", th.Crumb
+	case m.query == "":
+		queryRaw, queryStyle = "type to filter…", th.Crumb
+	default:
+		queryRaw, queryStyle = m.query, th.Name
 	}
-	count := th.Crumb.Render(fmt.Sprintf("%d / %d", len(m.visible), len(m.cfg.Tiles)))
-	// Anchor the count on the left — right-anchoring wrapped onto a second
-	// line once the placeholder + sigil + count exceeded the inner width.
-	line := count + "  " + sigil + "  " + query
+	countRaw := fmt.Sprintf("%d / %d", len(m.visible), len(m.cfg.Tiles))
+	countStyled := th.Crumb.Render(countRaw)
+
+	prefix := sigil + "  "
+	prefixW := lipgloss.Width(prefix)
+	countW := lipgloss.Width(countStyled)
+
+	// Right-anchor the count. Reserve prefix + query + ≥1 gap + count
+	// within `inner`. When the terminal is too narrow to fit the count
+	// (tight splits, SSH), drop it and let the query take the row so
+	// the box never overflows to a second line.
+	var line string
+	if inner-prefixW-countW-1 < 1 {
+		line = prefix + queryStyle.Render(truncateDisplay(queryRaw, inner-prefixW))
+	} else {
+		maxQueryW := inner - prefixW - countW - 1
+		q := truncateDisplay(queryRaw, maxQueryW)
+		pad := inner - prefixW - lipgloss.Width(q) - countW
+		if pad < 1 {
+			pad = 1
+		}
+		line = prefix + queryStyle.Render(q) + strings.Repeat(" ", pad) + countStyled
+	}
 	borderColor := th.Palette.Border
 	if m.searchOn {
 		borderColor = th.Palette.Magenta

@@ -190,11 +190,14 @@ func buildTheme(p Palette, r *lipgloss.Renderer) *Theme {
 	t.RowDim = r.NewStyle().Foreground(p.Comment)
 	t.RowBg = r.NewStyle().Background(p.BGHL)
 	t.Bullet = r.NewStyle().Foreground(p.Magenta).Bold(true)
-	// Status dots use AdaptiveColor + bold so they pop on light terminals
-	// (the dark-mode pastel Green/Red/Yellow wash out on white backgrounds).
-	t.DotOK = r.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#15803d", Dark: string(p.Green)}).Bold(true)
-	t.DotNo = r.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#dc2626", Dark: string(p.Red)}).Bold(true)
-	t.DotWarn = r.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ca8a04", Dark: string(p.Yellow)}).Bold(true)
+	// Status dots use fixed vibrant hues + bold so they pop on light
+	// terminals. AdaptiveColor was tried first, but background detection
+	// is unreliable in many terminals (including Claude Code's embedded
+	// one), which left users with the dark-mode pastels on white. Fixed
+	// saturated tones render well on both backgrounds.
+	t.DotOK = r.NewStyle().Foreground(lipgloss.Color("#22c55e")).Bold(true)
+	t.DotNo = r.NewStyle().Foreground(lipgloss.Color("#ef4444")).Bold(true)
+	t.DotWarn = r.NewStyle().Foreground(lipgloss.Color("#eab308")).Bold(true)
 
 	// Detail pane.
 	t.DetailTitle = r.NewStyle().Foreground(p.FG).Bold(true)
