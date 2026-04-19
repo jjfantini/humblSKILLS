@@ -18,35 +18,42 @@ func newListCmd(app *App) *cobra.Command {
 		Use:   "list",
 		Short: "List installed skills",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			m, err := manifest.Load(app.Config.ManifestPath)
-			if err != nil {
-				return err
-			}
-			if app.Config.JSON {
-				return app.UI.JSON(m)
-			}
-			if len(m.Installations) == 0 {
-				app.UI.Info("no skills installed — try 'humblskills install <name>'")
-				return nil
-			}
-			installs := append([]manifest.Installation(nil), m.Installations...)
-			sort.Slice(installs, func(i, j int) bool {
-				if installs[i].Skill != installs[j].Skill {
-					return installs[i].Skill < installs[j].Skill
-				}
-				if installs[i].Platform != installs[j].Platform {
-					return installs[i].Platform < installs[j].Platform
-				}
-				return installs[i].Scope < installs[j].Scope
-			})
-
-			if tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
-				return runListTUI(app, m)
-			}
-			renderListTable(app, installs)
-			return nil
+			return runList(app, false)
 		},
 	}
+}
+
+// runList is the package-level entry point. `fromDashboard` softens ESC/quit
+// semantics so the launcher loop in start.go can re-enter the dashboard
+// instead of exiting the process.
+func runList(app *App, fromDashboard bool) error {
+	m, err := manifest.Load(app.Config.ManifestPath)
+	if err != nil {
+		return err
+	}
+	if app.Config.JSON {
+		return app.UI.JSON(m)
+	}
+	if len(m.Installations) == 0 {
+		app.UI.Info("no skills installed — try 'humblskills install <name>'")
+		return nil
+	}
+	installs := append([]manifest.Installation(nil), m.Installations...)
+	sort.Slice(installs, func(i, j int) bool {
+		if installs[i].Skill != installs[j].Skill {
+			return installs[i].Skill < installs[j].Skill
+		}
+		if installs[i].Platform != installs[j].Platform {
+			return installs[i].Platform < installs[j].Platform
+		}
+		return installs[i].Scope < installs[j].Scope
+	})
+
+	if tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
+		return runListTUI(app, m, fromDashboard)
+	}
+	renderListTable(app, installs)
+	return nil
 }
 
 // renderListTable prints installs as a bordered table using the shared theme.
@@ -84,7 +91,7 @@ func renderListTable(app *App, installs []manifest.Installation) {
 // runListTUI opens the shared two-pane browser in installed-only mode so list
 // looks identical to search, differing only in which skills are shown and
 // which actions are wired up.
-func runListTUI(app *App, m *manifest.Manifest) error {
+func runListTUI(app *App, m *manifest.Manifest, fromDashboard bool) error {
 	// Pull the registry to know whether each installed skill has drifted. If
 	// the registry is unreachable, fall back to the manifest versions.
 	reg, _, _ := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
@@ -112,7 +119,7 @@ func runListTUI(app *App, m *manifest.Manifest) error {
 
 	items := buildSkillItems(skills, m)
 
-	skill, action, err := runSkillBrowser(app, "Installed", items, modeInstalledOnly, "no skills installed")
+	skill, action, err := runSkillBrowser(app, "Installed", items, modeInstalledOnly, "no skills installed", fromDashboard)
 	if err != nil {
 		return err
 	}

@@ -174,7 +174,7 @@ func buildSkillItems(skills []registry.Skill, m *manifest.Manifest) []skillItem 
 //
 // Pressing `p` opens the profile editor inline and re-enters the picker so
 // every surface that uses this browser gets the same footer shortcut.
-func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBrowseMode, emptyMsg string) (string, string, error) {
+func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBrowseMode, emptyMsg string, fromDashboard bool) (string, string, error) {
 	if len(skills) == 0 {
 		app.UI.Info(emptyMsg)
 		return "", "", nil
@@ -225,7 +225,7 @@ func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBr
 	}
 
 	for {
-		res, err := tui.RunListDetail(tui.Config{
+		cfg := tui.Config{
 			Theme:      app.UI.Theme(),
 			Version:    resolveVersion().Version,
 			Section:    section,
@@ -235,7 +235,12 @@ func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBr
 			RightTitle: "DETAIL",
 			Actions:    actions,
 			EmptyMsg:   emptyMsg,
-		})
+		}
+		if fromDashboard {
+			cfg.BackKey = "esc"
+			cfg.BackLabel = "back"
+		}
+		res, err := tui.RunListDetail(cfg)
 		if err != nil {
 			return "", "", err
 		}

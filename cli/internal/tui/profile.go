@@ -1,12 +1,10 @@
 package tui
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
@@ -501,105 +499,13 @@ func plural2(n int) string {
 	return "s"
 }
 
-// --- per-install modal (unchanged) ------------------------------------------
+// --- per-install modal (moved) ----------------------------------------------
 
-// InstallModalResult is what the install platform picker returns.
+// InstallModalResult is what the install platform picker returns. The modal
+// implementation lives in install_modal.go (hand-rolled bubbletea model).
 type InstallModalResult struct {
 	Platforms   []string
 	Scope       string
 	Confirmed   bool
 	EditProfile bool
-}
-
-// RunInstallPlatformModal opens a huh form asking the user which detected
-// platforms to install `skill` into, and at which scope. Default selections
-// come from the profile. Returns Confirmed=false if the user cancelled, and
-// EditProfile=true if they chose the "edit profile" action.
-func RunInstallPlatformModal(
-	theme *ui.Theme,
-	skill string,
-	adapterList []adapters.Adapter,
-	detected map[string]bool,
-	p *profile.Profile,
-) (InstallModalResult, error) {
-	if p == nil {
-		p = &profile.Profile{}
-	}
-
-	platforms := make([]string, 0)
-	if len(p.DefaultPlatforms) > 0 {
-		for _, name := range p.DefaultPlatforms {
-			if detected[name] {
-				platforms = append(platforms, name)
-			}
-		}
-	} else {
-		for _, a := range adapterList {
-			if detected[a.Name] {
-				platforms = append(platforms, a.Name)
-			}
-		}
-	}
-
-	opts := make([]huh.Option[string], 0, len(adapterList))
-	for _, a := range adapterList {
-		label := a.Name
-		if detected[a.Name] {
-			label += "  (detected)"
-		} else {
-			label += "  (not detected)"
-		}
-		opts = append(opts, huh.NewOption(label, a.Name))
-	}
-
-	scope := p.DefaultScope
-	scopeOpts := []huh.Option[string]{
-		huh.NewOption("adapter default", ""),
-		huh.NewOption("user", "user"),
-		huh.NewOption("project", "project"),
-	}
-
-	action := "install"
-	actionOpts := []huh.Option[string]{
-		huh.NewOption("install", "install"),
-		huh.NewOption("edit profile defaults", "profile"),
-		huh.NewOption("cancel", "cancel"),
-	}
-
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewMultiSelect[string]().
-				Title("Install "+skill+" to:").
-				Options(opts...).
-				Value(&platforms),
-			huh.NewSelect[string]().
-				Title("Scope").
-				Options(scopeOpts...).
-				Value(&scope),
-			huh.NewSelect[string]().
-				Title("Action").
-				Options(actionOpts...).
-				Value(&action),
-		),
-	).WithTheme(ui.HuhTheme(theme))
-
-	if err := form.Run(); err != nil {
-		if errors.Is(err, huh.ErrUserAborted) {
-			return InstallModalResult{}, nil
-		}
-		return InstallModalResult{}, err
-	}
-
-	switch action {
-	case "profile":
-		return InstallModalResult{EditProfile: true}, nil
-	case "cancel":
-		return InstallModalResult{}, nil
-	}
-
-	return InstallModalResult{
-		Platforms: platforms,
-		Scope:     scope,
-		Confirmed: true,
-	}, nil
 }

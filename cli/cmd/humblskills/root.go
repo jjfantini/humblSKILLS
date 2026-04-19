@@ -58,8 +58,15 @@ func newRootCmd() *cobra.Command {
 		Long:          "humblskills installs curated skills (agentskills.io format) into Claude Code, Cursor, and friends — single binary, no server, no telemetry.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		Args:          cobra.NoArgs,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			return configureApp(cmd, app, g)
+		},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			// Bare `humblskills` on an interactive TTY launches the
+			// dashboard. Non-TTY falls through to the help-style fallback so
+			// pipes, agents, and --json callers still get something useful.
+			return runStart(app)
 		},
 	}
 
@@ -75,6 +82,7 @@ func newRootCmd() *cobra.Command {
 	f.BoolVarP(&g.yes, "yes", "y", false, "skip confirmation prompts (auto-accept)")
 
 	cmd.AddCommand(
+		newStartCmd(app),
 		newVersionCmd(app),
 		newDoctorCmd(app),
 		newRegistryCmd(app),
