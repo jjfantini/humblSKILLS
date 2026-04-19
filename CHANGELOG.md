@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.5](https://github.com/jjfantini/humblSKILLS/compare/v2.3.4...v2.3.5) (2026-04-19)
+
+
+### Bug Fixes
+
+* **cli:** brighten status dots in light mode, drop redundant badges ([#51](https://github.com/jjfantini/humblSKILLS/issues/51)) ([b7e7d2b](https://github.com/jjfantini/humblSKILLS/commit/b7e7d2bf402323b83f4250bc3f26ff196b92ffdc))
+
 ## [2.3.4](https://github.com/jjfantini/humblSKILLS/compare/v2.3.3...v2.3.4) (2026-04-19)
 
 
