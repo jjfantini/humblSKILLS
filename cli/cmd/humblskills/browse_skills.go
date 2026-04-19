@@ -39,22 +39,13 @@ func (s skillItem) FilterValue() string {
 }
 
 // NaturalWidth reports the row's display width: dot + space + name + 2-gap
-// + version + (optional: 2-gap + badge). Kept in lockstep with Row so the
-// two-pane model can size the left column to actual content.
+// + version. Status is encoded entirely in the leading dot colour
+// (green = installed, yellow = outdated, red = not installed), so no
+// trailing badge is needed.
 func (s skillItem) NaturalWidth(th *ui.Theme) int {
+	_ = th
 	versionW := lipgloss.Width("v" + s.s.Version)
-	// 1 (dot) + 1 (space) + name + 2 (gap) + version.
-	w := 1 + 1 + lipgloss.Width(s.s.Name) + 2 + versionW
-	var badge string
-	if s.outdated {
-		badge = tui.Badge(th, tui.BadgeRO, "outdated")
-	} else if s.installed != nil {
-		badge = tui.Badge(th, tui.BadgeDetected, "installed")
-	}
-	if badge != "" {
-		w += 2 + lipgloss.Width(badge)
-	}
-	return w
+	return 1 + 1 + lipgloss.Width(s.s.Name) + 2 + versionW
 }
 
 func (s skillItem) Row(th *ui.Theme, width int, selected bool) string {
@@ -72,25 +63,12 @@ func (s skillItem) Row(th *ui.Theme, width int, selected bool) string {
 	name := rowName(th, s.s.Name, selected, true)
 	version := th.Version.Render("v" + s.s.Version)
 
-	left := dot + " " + name + "  " + version
-
-	var badge string
-	if s.outdated {
-		badge = tui.Badge(th, tui.BadgeRO, "outdated")
-	} else if s.installed != nil {
-		badge = tui.Badge(th, tui.BadgeDetected, "installed")
+	row := dot + " " + name + "  " + version
+	rw := lipgloss.Width(row)
+	if rw >= width {
+		return row
 	}
-	if badge == "" {
-		// Pad to width so unbadged rows end at the same column as badged
-		// ones — otherwise the divider snaps to the widest row and loses
-		// alignment between the header rule and the body divider.
-		lw := lipgloss.Width(left)
-		if lw >= width {
-			return left
-		}
-		return left + strings.Repeat(" ", width-lw)
-	}
-	return rowWithTrailingBadge(left, badge, width)
+	return row + strings.Repeat(" ", width-rw)
 }
 
 func (s skillItem) Detail(th *ui.Theme, width int) string {
