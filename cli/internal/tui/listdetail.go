@@ -207,6 +207,36 @@ func (m Model) updateNav(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Detail-pane scroll. List navigation owns up/down, so scrolling uses a
+	// distinct set: pgup/pgdown for full pages, ctrl+u/ctrl+d for half pages
+	// (vim), shift+up/shift+down for single lines. Home/end jump to edges.
+	switch msg.String() {
+	case "pgup":
+		m.preview.ViewUp()
+		return m, nil
+	case "pgdown":
+		m.preview.ViewDown()
+		return m, nil
+	case "ctrl+u":
+		m.preview.HalfViewUp()
+		return m, nil
+	case "ctrl+d":
+		m.preview.HalfViewDown()
+		return m, nil
+	case "shift+up":
+		m.preview.LineUp(1)
+		return m, nil
+	case "shift+down":
+		m.preview.LineDown(1)
+		return m, nil
+	case "home":
+		m.preview.GotoTop()
+		return m, nil
+	case "end":
+		m.preview.GotoBottom()
+		return m, nil
+	}
+
 	k := msg.String()
 	if k == "enter" {
 		// First enabled action absorbs enter so users don't need to learn a
@@ -486,6 +516,7 @@ func (m Model) hints() []KeyHint {
 	if m.cfg.Items != nil {
 		hints = append(hints, KeyHint{Keys: "/", Label: "filter"})
 	}
+	hints = append(hints, KeyHint{Keys: "⇞⇟", Label: "scroll"})
 	// Deduplicate enter when it's absorbed by the first action.
 	seen := map[string]bool{}
 	for _, a := range m.cfg.Actions {
