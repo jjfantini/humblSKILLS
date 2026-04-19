@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-19T00:52:21Z",
+  "generated_at": "2026-04-19T00:54:41Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/add-humanize-text-skill",
-    "sha": "a08800011a4c5c56ac3a28a571a5c2cdfd418387"
+    "ref": "main",
+    "sha": "1208c3e8a724d877fc3d5ce7fe2bbb80b551d36a"
   },
   "skills": [
     {
