@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-19T00:29:40Z",
+  "generated_at": "2026-04-19T00:52:21Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "main",
-    "sha": "0d23a7a9b57a9ca9d1e83a7e86f8f5f02e85a20f"
+    "ref": "feat/add-humanize-text-skill",
+    "sha": "a08800011a4c5c56ac3a28a571a5c2cdfd418387"
   },
   "skills": [
     {
@@ -56,6 +56,18 @@
       ],
       "path": "skills/skill-example-with-dep",
       "dir_sha": "eeb1e631223930fa5a0cd19033e7ba6b36b53a64b40d820b15e2424b00806b57"
+    },
+    {
+      "name": "use-smart-humanize-text",
+      "version": "2.0.0",
+      "description": "Strip AI-generated writing patterns from text to make it sound authentically human. Use when writing or editing any content that must not read as AI-generated - outreach, blog posts, applications, social posts, emails, marketing copy. Detects and fixes AI vocabulary, structural tells, soulless tone, filler, hedging, and formatting artifacts. Based on Wikipedia's \"Signs of AI writing\" guide and associated research.\n",
+      "preserve": [
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/use-smart-humanize-text",
+      "dir_sha": "6219a0710aa6fa8763d9c2a51824cd48c58f5fe6810435e6155d8f27e8da1bc1"
     },
     {
       "name": "use-smart-skill",
