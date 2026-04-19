@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.0](https://github.com/jjfantini/humblSKILLS/compare/v2.3.8...v2.4.0) (2026-04-19)
+
+
+### Features
+
+* **cli:** scroll the detail pane in list-detail screens ([#59](https://github.com/jjfantini/humblSKILLS/issues/59)) ([d5e6006](https://github.com/jjfantini/humblSKILLS/commit/d5e60064e80aeab731bb20b49a82daadd656e6f0))
+
 ## [2.3.8](https://github.com/jjfantini/humblSKILLS/compare/v2.3.7...v2.3.8) (2026-04-19)
 
 
