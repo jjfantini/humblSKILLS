@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/jjfantini/humblSKILLS/compare/v2.1.1...v2.2.0) (2026-04-19)
+
+
+### Features
+
+* **frontmatter:** nest humblSKILLS extension fields under metadata ([#39](https://github.com/jjfantini/humblSKILLS/issues/39)) ([cd9aeb2](https://github.com/jjfantini/humblSKILLS/commit/cd9aeb28e48f73bd8787a199bb32e481d83b8dc8))
+
 ## [2.1.1](https://github.com/jjfantini/humblSKILLS/compare/v2.1.0...v2.1.1) (2026-04-19)
 
 
