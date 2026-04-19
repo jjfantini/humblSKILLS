@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 
@@ -13,271 +14,494 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
-// RunProfileEditor opens a two-pane TUI for editing the user profile. The
-// left pane lists settings (default platforms, default scope); pressing
-// enter on a row opens an inline huh form to toggle/change that setting's
-// value. Returns the edited profile and whether any change was made.
+// RunProfileEditor opens a two-pane bubbletea TUI for editing the user
+// profile. The left pane lists settings; pressing enter on a row moves focus
+// into the right pane so the user can toggle checkboxes (platforms) or pick
+// an option (scope) inline. No sub-forms pop on top of the screen.
+//
+// Returns the edited profile and whether any change was made. Save is the
+// caller's responsibility — this function only mutates the returned value.
 func RunProfileEditor(theme *ui.Theme, adapterList []adapters.Adapter, p *profile.Profile) (*profile.Profile, bool, error) {
 	if p == nil {
 		p = &profile.Profile{SchemaVersion: profile.SchemaVersion}
 	}
-	cur := *p
-	changed := false
+	initial := *p
 
-	for {
-		items := []Item{
-			profilePlatformsItem{profile: &cur, adapters: adapterList},
-			profileScopeItem{profile: &cur},
-		}
-		res, err := RunListDetail(Config{
-			Theme:      theme,
-			Section:    "Profile",
-			Items:      items,
-			LeftTitle:  "SETTINGS",
-			RightTitle: "VALUE",
-			Actions: []ActionSpec{
-				{Key: "e", Label: "edit", Action: "edit"},
-			},
-		})
-		if err != nil {
-			return &cur, changed, err
-		}
-		if res.Quit || res.Item == nil {
-			return &cur, changed, nil
-		}
-		if res.Action != "edit" {
-			continue
-		}
-
-		switch it := res.Item.(type) {
-		case profilePlatformsItem:
-			plats, ok, err := editProfilePlatforms(theme, adapterList, cur.DefaultPlatforms)
-			if err != nil {
-				return &cur, changed, err
-			}
-			if ok {
-				cur.DefaultPlatforms = plats
-				changed = true
-			}
-			_ = it
-		case profileScopeItem:
-			scope, ok, err := editProfileScope(theme, cur.DefaultScope)
-			if err != nil {
-				return &cur, changed, err
-			}
-			if ok {
-				cur.DefaultScope = scope
-				changed = true
-			}
-		}
+	m := profileModel{
+		theme:       theme,
+		version:     versionString,
+		adapters:    adapterList,
+		profile:     initial,
+		focus:       focusSettings,
+		settingIdx:  0,
 	}
+	out, err := Run(m)
+	if err != nil {
+		return &initial, false, err
+	}
+	final, ok := out.(profileModel)
+	if !ok {
+		return &initial, false, nil
+	}
+	return &final.profile, final.changed, nil
 }
 
-// editProfilePlatforms pops a huh MultiSelect over every adapter, returning
-// the new platform list and ok=false if the user cancelled.
-func editProfilePlatforms(theme *ui.Theme, adapterList []adapters.Adapter, current []string) ([]string, bool, error) {
-	selected := append([]string(nil), current...)
-	opts := make([]huh.Option[string], 0, len(adapterList))
-	for _, a := range adapterList {
-		opts = append(opts, huh.NewOption(a.Name, a.Name))
-	}
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewMultiSelect[string]().
-				Title("Default platforms").
-				Description("Leave empty to use every detected platform.").
-				Options(opts...).
-				Value(&selected),
-		),
-	).WithTheme(ui.HuhTheme(theme))
-	if err := form.Run(); err != nil {
-		if errors.Is(err, huh.ErrUserAborted) {
-			return current, false, nil
-		}
-		return current, false, err
-	}
-	return selected, true, nil
-}
+// versionString is stamped in at link time via -ldflags; an empty value
+// makes the header drop the version tag, which is fine for this editor.
+var versionString = ""
 
-// editProfileScope pops a huh Select with the three scope options.
-func editProfileScope(theme *ui.Theme, current string) (string, bool, error) {
-	scope := current
-	opts := []huh.Option[string]{
-		huh.NewOption("adapter default", ""),
-		huh.NewOption("user", "user"),
-		huh.NewOption("project", "project"),
-	}
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Default scope").
-				Options(opts...).
-				Value(&scope),
-		),
-	).WithTheme(ui.HuhTheme(theme))
-	if err := form.Run(); err != nil {
-		if errors.Is(err, huh.ErrUserAborted) {
-			return current, false, nil
-		}
-		return current, false, err
-	}
-	return scope, true, nil
-}
+// SetProfileEditorVersion lets the caller inject the CLI version string so
+// the profile TUI header shows `humblskills v2.1.0 · Profile`. Call once
+// from main/root setup; safe no-op if left empty.
+func SetProfileEditorVersion(v string) { versionString = v }
 
-// --- list items -------------------------------------------------------------
+// --- model ------------------------------------------------------------------
 
-type profilePlatformsItem struct {
-	profile  *profile.Profile
+type profileFocus int
+
+const (
+	focusSettings profileFocus = iota
+	focusValue
+)
+
+type profileModel struct {
+	theme    *ui.Theme
+	version  string
 	adapters []adapters.Adapter
+
+	profile profile.Profile
+	changed bool
+
+	focus      profileFocus
+	settingIdx int
+	valueIdx   int
+
+	width, height int
+	quit          bool
 }
 
-func (p profilePlatformsItem) Key() string { return "default platforms" }
-func (p profilePlatformsItem) FilterValue() string {
-	return "platforms " + strings.Join(p.profile.DefaultPlatforms, " ")
-}
+func (m profileModel) Init() tea.Cmd { return nil }
 
-func (p profilePlatformsItem) NaturalWidth(th *ui.Theme) int {
-	badge := Badge(th, BadgeGhost, p.badgeText())
-	return rowNaturalWidthProfile("default platforms", lipgloss.Width(badge))
-}
-
-func (p profilePlatformsItem) Row(th *ui.Theme, width int, selected bool) string {
-	dot := th.DotOK.Render("●")
-	if len(p.profile.DefaultPlatforms) == 0 {
-		dot = th.DotNo.Render("●")
-	}
-	name := rowNameProfile(th, "default platforms", selected)
-	badge := Badge(th, BadgeGhost, p.badgeText())
-	return rowWithTrailingBadgeProfile(dot+" "+name, badge, width)
-}
-
-func (p profilePlatformsItem) Detail(th *ui.Theme, width int) string {
-	var sb strings.Builder
-	sb.WriteString(th.DetailTitle.Render("default platforms") + "\n")
-	sb.WriteString(th.DetailSub.Render("press enter to edit") + "\n\n")
-
-	selected := map[string]bool{}
-	for _, n := range p.profile.DefaultPlatforms {
-		selected[n] = true
-	}
-
-	if len(p.profile.DefaultPlatforms) == 0 {
-		sb.WriteString(th.Desc.Width(width).Render(
-			"No defaults set — installs target every detected platform.") + "\n\n")
-	}
-
-	sb.WriteString(th.SectionTitle.Render("PLATFORMS") + "\n")
-	for _, a := range p.adapters {
-		mark := th.RowDim.Render("[ ]")
-		name := th.RowUnselected.Render(a.Name)
-		if selected[a.Name] {
-			mark = th.Success.Render("[✓]")
-			name = th.RowSelected.Render(a.Name)
+func (m profileModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width, m.height = msg.Width, msg.Height
+		return m, nil
+	case tea.KeyMsg:
+		if m.focus == focusSettings {
+			return m.updateSettings(msg)
 		}
-		sb.WriteString("  " + mark + "  " + name + "\n")
+		return m.updateValue(msg)
 	}
-	_ = width
+	return m, nil
+}
+
+func (m profileModel) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "q", "ctrl+c", "esc":
+		m.quit = true
+		return m, tea.Quit
+	case "up", "k":
+		if m.settingIdx > 0 {
+			m.settingIdx--
+		}
+	case "down", "j":
+		if m.settingIdx < len(profileSettings)-1 {
+			m.settingIdx++
+		}
+	case "enter", "e", "l", "right", "tab":
+		m.focus = focusValue
+		m.valueIdx = m.currentSelectionIndex()
+	}
+	return m, nil
+}
+
+func (m profileModel) updateValue(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	n := m.valueCount()
+	switch msg.String() {
+	case "esc", "h", "left", "shift+tab":
+		m.focus = focusSettings
+		return m, nil
+	case "q", "ctrl+c":
+		m.quit = true
+		return m, tea.Quit
+	case "up", "k":
+		if m.valueIdx > 0 {
+			m.valueIdx--
+		}
+	case "down", "j":
+		if m.valueIdx < n-1 {
+			m.valueIdx++
+		}
+	case " ", "x":
+		m = m.toggleCurrent()
+	case "enter":
+		m = m.toggleCurrent()
+		// For radio-style settings (scope), enter commits and returns to
+		// the settings pane; for multi-select (platforms) it stays in the
+		// right pane so the user can toggle more.
+		if profileSettings[m.settingIdx].kind == settingRadio {
+			m.focus = focusSettings
+		}
+	}
+	return m, nil
+}
+
+func (m profileModel) toggleCurrent() profileModel {
+	switch m.settingIdx {
+	case 0: // platforms
+		if m.valueIdx >= len(m.adapters) {
+			return m
+		}
+		name := m.adapters[m.valueIdx].Name
+		idx := -1
+		for i, p := range m.profile.DefaultPlatforms {
+			if p == name {
+				idx = i
+				break
+			}
+		}
+		if idx >= 0 {
+			m.profile.DefaultPlatforms = append(
+				m.profile.DefaultPlatforms[:idx],
+				m.profile.DefaultPlatforms[idx+1:]...,
+			)
+		} else {
+			m.profile.DefaultPlatforms = append(m.profile.DefaultPlatforms, name)
+		}
+		m.changed = true
+	case 1: // scope
+		values := []string{"", "user", "project"}
+		if m.valueIdx >= 0 && m.valueIdx < len(values) {
+			m.profile.DefaultScope = values[m.valueIdx]
+			m.changed = true
+		}
+	}
+	return m
+}
+
+// currentSelectionIndex returns the index in the right-pane options list that
+// represents the profile's current value for the focused setting. Used to
+// place the cursor on the already-selected option when the user drills in.
+func (m profileModel) currentSelectionIndex() int {
+	switch m.settingIdx {
+	case 0:
+		return 0
+	case 1:
+		switch m.profile.DefaultScope {
+		case "user":
+			return 1
+		case "project":
+			return 2
+		}
+	}
+	return 0
+}
+
+func (m profileModel) valueCount() int {
+	switch m.settingIdx {
+	case 0:
+		return len(m.adapters)
+	case 1:
+		return 3
+	}
+	return 0
+}
+
+// --- view -------------------------------------------------------------------
+
+type settingKind int
+
+const (
+	settingMulti settingKind = iota
+	settingRadio
+)
+
+type profileSetting struct {
+	key   string
+	label string
+	kind  settingKind
+}
+
+var profileSettings = []profileSetting{
+	{key: "platforms", label: "default platforms", kind: settingMulti},
+	{key: "scope", label: "default scope", kind: settingRadio},
+}
+
+func (m profileModel) View() string {
+	if m.width == 0 || m.height == 0 {
+		return ""
+	}
+	th := m.theme
+
+	header := Header(th, HeaderSpec{
+		Version: m.version,
+		Section: "Profile",
+		Meta:    "",
+	}, m.width)
+
+	leftW, rightW := m.paneWidths()
+
+	left := m.renderLeft(leftW)
+	right := m.renderRight(rightW)
+	body := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
+
+	focused := th.Meta.Render("focused: ") +
+		th.Brand.Render(profileSettings[m.settingIdx].label)
+	footer := Footer(th, m.hints(), focused, m.width)
+
+	bodyH := m.height - lipgloss.Height(header) - lipgloss.Height(footer) - 1
+	if bodyH < 5 {
+		bodyH = 5
+	}
+	return Frame(header, body, footer, bodyH)
+}
+
+func (m profileModel) paneWidths() (int, int) {
+	left := 32
+	if cap := m.width / 3; cap > 0 && left > cap {
+		left = cap
+	}
+	if left < 22 {
+		left = 22
+	}
+	right := m.width - left
+	if right < 20 {
+		right = 20
+	}
+	return left, right
+}
+
+func (m profileModel) renderLeft(width int) string {
+	th := m.theme
+	pad := func(s string) string {
+		w := lipgloss.Width(s)
+		if w >= width {
+			return s
+		}
+		return s + strings.Repeat(" ", width-w)
+	}
+
+	title := "  " + th.SectionTitle.Render("SETTINGS")
+	var sb strings.Builder
+	sb.WriteString(pad(title))
+	sb.WriteString("\n\n")
+
+	for i, s := range profileSettings {
+		selected := i == m.settingIdx && m.focus == focusSettings
+		cursorHere := i == m.settingIdx
+		dot := th.DotOK.Render("●")
+		if m.settingValueEmpty(s.key) {
+			dot = th.DotNo.Render("●")
+		}
+		name := th.RowUnselected.Render(s.label)
+		if selected {
+			name = th.RowSelected.Render(s.label)
+		} else if cursorHere && m.focus == focusValue {
+			// cursor still anchored here, but pane isn't focused — use a
+			// muted selected style so the user can see what they drilled in on.
+			name = th.RowDim.Render(s.label)
+		}
+		badge := Badge(th, BadgeGhost, m.settingBadge(s.key))
+
+		row := m.layoutRow(dot+" "+name, badge, width-2)
+
+		var line string
+		if cursorHere && m.focus == focusSettings {
+			line = th.Bullet.Render("▌") + " " + row
+		} else {
+			line = "  " + row
+		}
+		sb.WriteString(pad(line))
+		if i < len(profileSettings)-1 {
+			sb.WriteString("\n")
+		}
+	}
 	return sb.String()
 }
 
-func (p profilePlatformsItem) badgeText() string {
-	if len(p.profile.DefaultPlatforms) == 0 {
-		return "all detected"
+func (m profileModel) renderRight(width int) string {
+	th := m.theme
+	bar := th.Divider.Render("│")
+	title := th.SectionTitle.Render("VALUE")
+
+	var body []string
+	body = append(body, title)
+	body = append(body, bar)
+
+	setting := profileSettings[m.settingIdx]
+	body = append(body, bar+" "+th.DetailTitle.Render(setting.label))
+
+	var hint string
+	if m.focus == focusSettings {
+		hint = "press enter to edit"
+	} else if setting.kind == settingMulti {
+		hint = "space to toggle · enter to toggle · esc to return"
+	} else {
+		hint = "enter to select · esc to return"
 	}
-	return fmt.Sprintf("%d platform%s", len(p.profile.DefaultPlatforms), pluralProfile(len(p.profile.DefaultPlatforms)))
-}
+	body = append(body, bar+" "+th.DetailSub.Render(hint))
+	body = append(body, bar)
 
-type profileScopeItem struct {
-	profile *profile.Profile
-}
-
-func (s profileScopeItem) Key() string         { return "default scope" }
-func (s profileScopeItem) FilterValue() string { return "scope " + s.profile.DefaultScope }
-
-func (s profileScopeItem) NaturalWidth(th *ui.Theme) int {
-	badge := Badge(th, BadgeGhost, s.badgeText())
-	return rowNaturalWidthProfile("default scope", lipgloss.Width(badge))
-}
-
-func (s profileScopeItem) Row(th *ui.Theme, width int, selected bool) string {
-	dot := th.DotOK.Render("●")
-	if s.profile.DefaultScope == "" {
-		dot = th.DotNo.Render("●")
+	switch m.settingIdx {
+	case 0:
+		body = append(body, m.renderPlatformOptions(bar, width)...)
+	case 1:
+		body = append(body, m.renderScopeOptions(bar, width)...)
 	}
-	name := rowNameProfile(th, "default scope", selected)
-	badge := Badge(th, BadgeGhost, s.badgeText())
-	return rowWithTrailingBadgeProfile(dot+" "+name, badge, width)
+	return strings.Join(body, "\n")
 }
 
-func (s profileScopeItem) Detail(th *ui.Theme, width int) string {
-	var sb strings.Builder
-	sb.WriteString(th.DetailTitle.Render("default scope") + "\n")
-	sb.WriteString(th.DetailSub.Render("press enter to edit") + "\n\n")
-	sb.WriteString(th.Desc.Width(width).Render(
-		"Which target scope to use when installing. Adapter default falls back to each adapter's own default (usually user).") + "\n\n")
+func (m profileModel) renderPlatformOptions(bar string, width int) []string {
+	th := m.theme
+	selected := map[string]bool{}
+	for _, n := range m.profile.DefaultPlatforms {
+		selected[n] = true
+	}
+	rows := make([]string, 0, len(m.adapters)+2)
+	if len(m.profile.DefaultPlatforms) == 0 {
+		rows = append(rows, bar+" "+th.Detail.Render(
+			"No defaults set — installs target every detected platform."))
+		rows = append(rows, bar)
+	}
+	rows = append(rows, bar+" "+th.SectionTitle.Render("PLATFORMS"))
+	for i, a := range m.adapters {
+		cursorHere := i == m.valueIdx && m.focus == focusValue
+		box := "[ ]"
+		label := a.Name
+		if selected[a.Name] {
+			box = "[✓]"
+		}
+		var styled string
+		switch {
+		case cursorHere:
+			styled = th.RowSelected.Render(box + "  " + label)
+		case selected[a.Name]:
+			styled = th.Success.Render(box) + "  " + th.RowUnselected.Render(label)
+		default:
+			styled = th.RowDim.Render(box) + "  " + th.RowUnselected.Render(label)
+		}
+		prefix := bar + "   "
+		if cursorHere {
+			prefix = bar + " " + th.Bullet.Render("▸") + " "
+		}
+		rows = append(rows, prefix+styled)
+	}
+	_ = width
+	return rows
+}
 
-	sb.WriteString(th.SectionTitle.Render("OPTIONS") + "\n")
-	for _, opt := range []struct {
-		label string
-		value string
-	}{
+func (m profileModel) renderScopeOptions(bar string, width int) []string {
+	th := m.theme
+	opts := []struct{ label, value string }{
 		{"adapter default", ""},
 		{"user", "user"},
 		{"project", "project"},
-	} {
-		mark := th.RowDim.Render("[ ]")
-		label := th.RowUnselected.Render(opt.label)
-		if s.profile.DefaultScope == opt.value {
-			mark = th.Success.Render("[✓]")
-			label = th.RowSelected.Render(opt.label)
+	}
+	rows := make([]string, 0, len(opts)+2)
+	rows = append(rows, bar+" "+th.Detail.Render(
+		"Which scope to install into. Adapter default falls back to each adapter's own default (usually user)."))
+	rows = append(rows, bar)
+	rows = append(rows, bar+" "+th.SectionTitle.Render("OPTIONS"))
+	for i, opt := range opts {
+		cursorHere := i == m.valueIdx && m.focus == focusValue
+		isCurrent := m.profile.DefaultScope == opt.value
+		marker := "( )"
+		if isCurrent {
+			marker = "(●)"
 		}
-		sb.WriteString("  " + mark + "  " + label + "\n")
+		var styled string
+		switch {
+		case cursorHere:
+			styled = th.RowSelected.Render(marker + "  " + opt.label)
+		case isCurrent:
+			styled = th.Success.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
+		default:
+			styled = th.RowDim.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
+		}
+		prefix := bar + "   "
+		if cursorHere {
+			prefix = bar + " " + th.Bullet.Render("▸") + " "
+		}
+		rows = append(rows, prefix+styled)
 	}
 	_ = width
-	return sb.String()
+	return rows
 }
 
-func (s profileScopeItem) badgeText() string {
-	if s.profile.DefaultScope == "" {
-		return "adapter default"
-	}
-	return s.profile.DefaultScope
-}
-
-// --- small helpers (kept local so this file is self-contained) --------------
-
-func rowNaturalWidthProfile(label string, badgeWidth int) int {
-	// 1 (dot) + 1 (space) + label + 2 (gap) + badge.
-	return 1 + 1 + lipgloss.Width(label) + 2 + badgeWidth
-}
-
-func rowNameProfile(th *ui.Theme, name string, selected bool) string {
-	if selected {
-		return th.RowSelected.Render(name)
-	}
-	return th.RowUnselected.Render(name)
-}
-
-func rowWithTrailingBadgeProfile(label, badge string, width int) string {
+func (m profileModel) layoutRow(label, badge string, width int) string {
 	lw := lipgloss.Width(label)
-	if width < 10 || width-lw < lipgloss.Width(badge)+1 {
+	bw := lipgloss.Width(badge)
+	if width < 10 || width-lw < bw+1 {
 		if lw >= width {
 			return label
 		}
 		return label + strings.Repeat(" ", width-lw)
 	}
-	gap := width - lw - lipgloss.Width(badge)
+	gap := width - lw - bw
 	return label + strings.Repeat(" ", gap) + badge
 }
 
-func pluralProfile(n int) string {
+func (m profileModel) settingBadge(key string) string {
+	switch key {
+	case "platforms":
+		if len(m.profile.DefaultPlatforms) == 0 {
+			return "all detected"
+		}
+		return fmt.Sprintf("%d platform%s", len(m.profile.DefaultPlatforms),
+			plural2(len(m.profile.DefaultPlatforms)))
+	case "scope":
+		if m.profile.DefaultScope == "" {
+			return "adapter default"
+		}
+		return m.profile.DefaultScope
+	}
+	return ""
+}
+
+func (m profileModel) settingValueEmpty(key string) bool {
+	switch key {
+	case "platforms":
+		return len(m.profile.DefaultPlatforms) == 0
+	case "scope":
+		return m.profile.DefaultScope == ""
+	}
+	return false
+}
+
+func (m profileModel) hints() []KeyHint {
+	if m.focus == focusSettings {
+		return []KeyHint{
+			{Keys: "↑↓", Label: "select"},
+			{Keys: "enter", Label: "edit"},
+			{Keys: "q", Label: "quit"},
+		}
+	}
+	setting := profileSettings[m.settingIdx]
+	if setting.kind == settingMulti {
+		return []KeyHint{
+			{Keys: "↑↓", Label: "select"},
+			{Keys: "space", Label: "toggle"},
+			{Keys: "esc", Label: "back"},
+			{Keys: "q", Label: "quit"},
+		}
+	}
+	return []KeyHint{
+		{Keys: "↑↓", Label: "select"},
+		{Keys: "enter", Label: "choose"},
+		{Keys: "esc", Label: "back"},
+		{Keys: "q", Label: "quit"},
+	}
+}
+
+func plural2(n int) string {
 	if n == 1 {
 		return ""
 	}
 	return "s"
 }
 
-// --- per-install modal ------------------------------------------------------
+// --- per-install modal (unchanged) ------------------------------------------
 
 // InstallModalResult is what the install platform picker returns.
 type InstallModalResult struct {
