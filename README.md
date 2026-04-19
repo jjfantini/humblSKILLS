@@ -63,11 +63,11 @@ and are bumped automatically by the release workflow.
 ```sh
 humblskills doctor                    # verify the environment
 humblskills search                    # browse the registry
-humblskills install skill-example-hello
+humblskills install use-smart-skill
 humblskills list
 humblskills update                    # pick which drifted skills to upgrade
 humblskills update --all --yes        # non-interactive bulk upgrade
-humblskills uninstall skill-example-hello
+humblskills uninstall use-smart-skill
 ```
 
 Every command accepts `--json` for machine-readable output and `--yes` to
