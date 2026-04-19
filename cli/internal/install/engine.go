@@ -256,9 +256,13 @@ func (e *Engine) installOne(
 			orphan = existing.Path
 		}
 
+		// Identity is version + per-skill DirSHA (RegistryRef) + on-disk
+		// location. Source.SHA (repo-wide) is intentionally excluded:
+		// it advances on every humblSKILLS commit, even ones unrelated
+		// to this skill, and using it here would make every install
+		// look drifted after each CLI release.
 		upToDate := existing != nil &&
 			existing.Version == skill.Version &&
-			existing.SourceSHA == reg.Source.SHA &&
 			existing.RegistryRef == skill.DirSHA &&
 			existing.Path == dest
 		if _, err := os.Stat(dest); err != nil {

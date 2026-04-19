@@ -63,10 +63,16 @@ func PlanUpdates(reg *registry.Registry, m *manifest.Manifest, only []string) []
 			continue
 		}
 		// Any target that's drifted triggers an UpdatePlan for the skill.
+		//
+		// Drift is keyed on the per-skill signals: version and DirSHA
+		// (RegistryRef). The repo-wide Source.SHA is NOT consulted — it
+		// advances on every commit to the humblSKILLS repo, including
+		// commits that don't touch this skill, which would flag every
+		// installation as drifted after each CLI release. Source.SHA is
+		// kept in the manifest purely as install-time metadata.
 		drifted := false
 		for _, i := range insts {
 			if i.Version != regSkill.Version ||
-				i.SourceSHA != reg.Source.SHA ||
 				i.RegistryRef != regSkill.DirSHA {
 				drifted = true
 				break
