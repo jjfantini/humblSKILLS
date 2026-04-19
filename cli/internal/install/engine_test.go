@@ -183,6 +183,70 @@ func TestEngine_InstallReplaceSkipForce(t *testing.T) {
 	}
 }
 
+// TestEngine_SkipOnStaleSourceSHA is the engine-side counterpart to
+// TestPlanUpdates_StaleSourceSHAIsNotDrift: when the humblSKILLS repo
+// SHA advances but the skill's Version and DirSHA are unchanged, a
+// re-run must Skip rather than Replace. Previously Source.SHA was part
+// of the up-to-date check, so every install was marked as replaced (and
+// shown as drifted in the dashboard) after each CLI release.
+func TestEngine_SkipOnStaleSourceSHA(t *testing.T) {
+	root := t.TempDir()
+	cacheDir := filepath.Join(root, "cache")
+	installRoot := filepath.Join(root, "home", ".claude", "skills")
+	manifestPath := filepath.Join(root, "manifest.json")
+
+	skillFiles := map[string]string{"skills/foo/SKILL.md": "# foo\n"}
+	onlyFoo := map[string]string{"SKILL.md": "# foo\n"}
+	dirSHA := expectedDirSHA(t, onlyFoo)
+
+	owner, name := "example", "repo"
+	sha1 := "sha1aaaaaaaaaaaa"
+	sha2 := "sha2bbbbbbbbbbbb"
+	// Both tarballs ship the exact same skill tree — only the repo SHA
+	// differs, simulating an unrelated commit (doc, other-skill, CI).
+	seedTarball(t, cacheDir, owner, name, sha1, owner+"-"+name+"-abc1234", skillFiles)
+	seedTarball(t, cacheDir, owner, name, sha2, owner+"-"+name+"-def5678", skillFiles)
+
+	mkReg := func(sha string) *registry.Registry {
+		return &registry.Registry{
+			SchemaVersion: registry.SchemaVersion,
+			Source:        registry.Source{Repo: "github.com/example/repo", SHA: sha},
+			Skills: []registry.Skill{{
+				Name: "foo", Version: "0.1.0", Path: "skills/foo",
+				Platforms: []string{"test"}, DirSHA: dirSHA,
+			}},
+		}
+	}
+
+	adapter := adapters.Adapter{
+		Name:           "test",
+		InstallTargets: map[string]string{"user": installRoot},
+		DefaultScope:   "user",
+	}
+	engine := NewEngine(cacheDir, manifestPath)
+	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
+
+	// Install under sha1.
+	plan1, _ := Plan(mkReg(sha1), "foo")
+	if _, err := engine.Execute(mkReg(sha1), plan1, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Re-run under sha2 — same version + dir_sha, new repo SHA. Must skip.
+	plan2, _ := Plan(mkReg(sha2), "foo")
+	res, err := engine.Execute(mkReg(sha2), plan2, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Results) != 1 || res.Results[0].Outcome != OutcomeSkipped {
+		t.Fatalf("expected skipped after source_sha-only change, got %+v", res.Results)
+	}
+}
+
 func TestEngine_ProjectScopeMovesOldInstall(t *testing.T) {
 	root := t.TempDir()
 	cacheDir := filepath.Join(root, "cache")
