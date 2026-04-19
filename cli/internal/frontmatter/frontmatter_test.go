@@ -5,15 +5,18 @@ import (
 	"testing"
 )
 
-func TestParse_Valid(t *testing.T) {
+func TestParse_MetadataCanonicalShape(t *testing.T) {
 	src := []byte(`---
 name: foo
 description: A foo skill.
-version: 1.2.3
-requires:
-  - bar
-platforms: [claude-code]
-tags: [example]
+license: MIT
+metadata:
+  author: jjfantini
+  version: 1.2.3
+  requires:
+    - bar
+  platforms: [claude-code]
+  tags: [example]
 ---
 
 # Body
@@ -27,14 +30,109 @@ Hello.
 	if fm.Name != "foo" {
 		t.Errorf("name: got %q, want %q", fm.Name, "foo")
 	}
-	if fm.Version != "1.2.3" {
-		t.Errorf("version: got %q", fm.Version)
+	if fm.License != "MIT" {
+		t.Errorf("license: got %q", fm.License)
 	}
-	if len(fm.Requires) != 1 || fm.Requires[0] != "bar" {
-		t.Errorf("requires: got %v", fm.Requires)
+	if fm.Metadata.Author != "jjfantini" {
+		t.Errorf("metadata.author: got %q", fm.Metadata.Author)
+	}
+	if fm.Version() != "1.2.3" {
+		t.Errorf("version accessor: got %q", fm.Version())
+	}
+	if fm.Metadata.Version != "1.2.3" {
+		t.Errorf("metadata.version: got %q", fm.Metadata.Version)
+	}
+	if got := fm.Requires(); len(got) != 1 || got[0] != "bar" {
+		t.Errorf("requires accessor: got %v", got)
+	}
+	if got := fm.Platforms(); len(got) != 1 || got[0] != "claude-code" {
+		t.Errorf("platforms accessor: got %v", got)
+	}
+	if got := fm.Tags(); len(got) != 1 || got[0] != "example" {
+		t.Errorf("tags accessor: got %v", got)
+	}
+	if warns := fm.DeprecationWarnings(); len(warns) != 0 {
+		t.Errorf("expected no deprecation warnings, got %v", warns)
 	}
 	if !strings.HasPrefix(string(body), "# Body") {
 		t.Errorf("body: got %q", string(body))
+	}
+}
+
+func TestParse_LegacyTopLevelFallback(t *testing.T) {
+	src := []byte(`---
+name: foo
+description: d
+version: 0.9.0
+requires:
+  - bar
+platforms: [claude-code]
+tags: [legacy]
+preserve:
+  - references/log.md
+---
+
+# Body
+`)
+	fm, _, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fm.Metadata.Version != "" {
+		t.Errorf("metadata.version should be empty on legacy input, got %q", fm.Metadata.Version)
+	}
+	if got := fm.Version(); got != "0.9.0" {
+		t.Errorf("version accessor fallback: got %q, want 0.9.0", got)
+	}
+	if got := fm.Requires(); len(got) != 1 || got[0] != "bar" {
+		t.Errorf("requires fallback: got %v", got)
+	}
+	if got := fm.Platforms(); len(got) != 1 || got[0] != "claude-code" {
+		t.Errorf("platforms fallback: got %v", got)
+	}
+	if got := fm.Tags(); len(got) != 1 || got[0] != "legacy" {
+		t.Errorf("tags fallback: got %v", got)
+	}
+	if got := fm.Preserve(); len(got) != 1 || got[0] != "references/log.md" {
+		t.Errorf("preserve fallback: got %v", got)
+	}
+	warns := fm.DeprecationWarnings()
+	if len(warns) != 5 {
+		t.Fatalf("expected 5 deprecation warnings, got %d: %v", len(warns), warns)
+	}
+	for _, w := range warns {
+		if !strings.Contains(w, "deprecated") {
+			t.Errorf("warning missing 'deprecated': %q", w)
+		}
+	}
+}
+
+func TestParse_MetadataTakesPrecedence(t *testing.T) {
+	src := []byte(`---
+name: foo
+description: d
+version: 0.9.0
+tags: [legacy-tag]
+metadata:
+  version: 1.0.0
+  tags: [canonical-tag]
+---
+body`)
+	fm, _, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := fm.Version(); got != "1.0.0" {
+		t.Errorf("metadata should win: got %q, want 1.0.0", got)
+	}
+	if got := fm.Tags(); len(got) != 1 || got[0] != "canonical-tag" {
+		t.Errorf("metadata tags should win: got %v", got)
+	}
+	// Deprecation is still flagged because legacy fields were PRESENT,
+	// even though metadata overrode them. Encourages full cleanup.
+	warns := fm.DeprecationWarnings()
+	if len(warns) == 0 {
+		t.Errorf("expected deprecation warnings even when metadata wins; got none")
 	}
 }
 
@@ -42,9 +140,9 @@ func TestParse_UnknownKeysArePassThrough(t *testing.T) {
 	src := []byte(`---
 name: foo
 description: d
-version: 0.1.0
-license: MIT
-author: someone
+metadata:
+  version: 0.1.0
+  author: someone
 custom_nested:
   key: value
 ---
@@ -56,10 +154,13 @@ body`)
 	if fm.Name != "foo" {
 		t.Errorf("expected parse to succeed with unknown keys; got name %q", fm.Name)
 	}
+	if fm.Metadata.Author != "someone" {
+		t.Errorf("metadata.author: got %q", fm.Metadata.Author)
+	}
 }
 
 func TestParse_BOMAndLeadingWhitespace(t *testing.T) {
-	src := []byte("\uFEFF\n\n---\nname: foo\ndescription: d\nversion: 0.1.0\n---\n")
+	src := []byte("\uFEFF\n\n---\nname: foo\ndescription: d\nmetadata:\n  version: 0.1.0\n---\n")
 	fm, _, err := Parse(src)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

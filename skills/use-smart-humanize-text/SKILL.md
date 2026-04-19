@@ -7,14 +7,14 @@ description: >
   marketing copy. Detects and fixes AI vocabulary, structural tells, soulless
   tone, filler, hedging, and formatting artifacts. Based on Wikipedia's
   "Signs of AI writing" guide and associated research.
-version: 2.0.0
 license: MIT
 metadata:
   author: jjfantini
-preserve:
-  - references/decisions.md
-  - references/log.md
-  - references/patterns.md
+  version: 2.0.0
+  preserve:
+    - references/decisions.md
+    - references/log.md
+    - references/patterns.md
 ---
 
 # Humanize Text (Smart)

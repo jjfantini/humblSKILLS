@@ -125,13 +125,22 @@ fi
 SKILL_MD_CONTENT='---
 name: '"$SKILL_NAME"'
 description: >
-  TODO: Describe what this skill does and when to use it. Include BOTH
-  what the skill does AND the trigger scenarios that should invoke it.
+  TODO: Describe what this skill does AND when to use it. Must include
+  BOTH the what (one tight sentence) and the trigger phrases users would
+  actually type. Add a "Do NOT use for..." negative trigger to prevent
+  over-triggering. Under 1024 characters, no `<` or `>`.
 license: MIT
-compatibility: "TODO or delete - max 500 chars. Use when skill requires specific env (bash, git, docker, Python 3.14+, network access, specific product). Most skills do not need this."
+compatibility: "TODO or delete - max 500 chars. Declare only when skill requires specific env (bash, git, docker, Python 3.14+, network access, specific product). Most skills do not need this."
+allowed-tools: "TODO or delete - e.g. Bash(bash:*) Read Write Edit. Restricts what tools Claude can use; omit for full access."
 metadata:
   author: TODO
   version: "1.0.0"
+  tags: [TODO]
+  platforms: [claude-code, cursor]
+  preserve:
+    - references/decisions.md
+    - references/log.md
+    - references/patterns.md
 ---
 
 # '"$SKILL_NAME"'
@@ -208,6 +217,61 @@ Read `references/_template.md`.
 Read `references/wiki/<context>/<category>/<concept>.md`.
 
 <!-- TODO:END -->
+
+## Examples
+
+<!-- TODO:START - REQUIRED. Fill in at least 2 concrete examples.
+     Use "User says / Actions / Result" blocks. Real user phrases,
+     not paraphrases. This section directly improves trigger accuracy. -->
+
+### Example 1: TODO short label
+
+User says: "TODO: exact phrase a user would type"
+
+Actions:
+1. TODO: first concrete action (read a wiki concept, run a script, call an MCP)
+2. TODO: second action
+3. TODO: third action
+
+Result: TODO: observable outcome.
+
+### Example 2: TODO short label
+
+User says: "TODO: second-variant phrase covering a different trigger"
+
+Actions:
+1. TODO
+2. TODO
+
+Result: TODO.
+
+<!-- TODO:END -->
+
+## Troubleshooting
+
+<!-- TODO:START - OPTIONAL. Keep if this skill has distinct failure modes
+     worth documenting (tooling errors, common misuses, integration issues).
+     Delete the entire section if there is nothing to troubleshoot.
+     Pattern: **Error/Symptom** / Cause / Fix. -->
+
+**TODO: error message or symptom**
+Cause: TODO: why it happens.
+Fix: TODO: concrete steps to resolve.
+
+<!-- TODO:END -->
+
+## Success Signals
+
+<!-- TODO:START - keep, replace, or extend. These are the checks that tell
+     you this skill is working. Quantify where possible. -->
+
+- `scripts/lint.sh` exits 0 after every ingest
+- SKILL.md stays under ~200 lines; detail lives in `references/`
+- Every wiki concept cites >=1 raw source (except intentional synthesis)
+- `log.md` grows by exactly one entry per session
+- TODO: add a skill-specific signal (e.g. "scaffold completes in under N steps", "output matches regex X")
+
+<!-- TODO:END -->
 '
 
 INDEX_MD_CONTENT='# Index
@@ -272,9 +336,16 @@ fi
 
 echo ""
 echo "Done. Next steps:"
-echo "  1. Edit $TARGET/SKILL.md - fill in description, triggers, How-to-Use"
+echo "  1. Edit $TARGET/SKILL.md - resolve every <!-- TODO --> block:"
+echo "       - frontmatter description (WHAT + WHEN + negative trigger)"
+echo "       - metadata.author, metadata.tags, compatibility, allowed-tools"
+echo "       - When to Use, How to Use routing"
+echo "       - Examples (REQUIRED - 2 minimum)"
+echo "       - Troubleshooting (optional - delete if N/A)"
+echo "       - Success Signals (quantify where possible)"
 echo "  2. Create references/wiki/<context>/<category>/<concept>.md files"
 echo "  3. Drop any source material into references/raw/ (keep original filenames)"
 echo "  4. Run scripts/lint.sh to populate references/_index.md"
 echo "  5. See $SKILL_ROOT/references/_template.md for wiki concept shape"
 echo "  6. See $SKILL_ROOT/references/_brain.md for the brain protocol"
+echo "  7. See $SKILL_ROOT/references/wiki/anthropic/ for best-practice concepts"

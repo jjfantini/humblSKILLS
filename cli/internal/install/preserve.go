@@ -36,10 +36,11 @@ func loadLocalPreserve(installPath string) (entries []string, ok bool, reason st
 	if err != nil {
 		return nil, false, "SKILL.md frontmatter parse failed: " + err.Error()
 	}
-	if perrs := frontmatter.ValidatePreserve(fm.Preserve); len(perrs) > 0 {
+	preserve := fm.Preserve()
+	if perrs := frontmatter.ValidatePreserve(preserve); len(perrs) > 0 {
 		return nil, false, "invalid preserve list: " + strings.Join(perrs, "; ")
 	}
-	return fm.Preserve, true, ""
+	return preserve, true, ""
 }
 
 const frontmatterDelimiter = "---"
@@ -159,19 +160,55 @@ func frontmatterBounds(data []byte) (yamlStart, yamlEnd, bodyStart int, err erro
 	return 0, 0, 0, errors.New("missing closing '---' frontmatter delimiter")
 }
 
-// setPreserveKey replaces or inserts the `preserve` key in a mapping node.
-// Unknown keys stay intact and in their original positions; the mapping keeps
-// its existing order (new key appended at the end).
+// setPreserveKey writes the `preserve` list into the frontmatter mapping's
+// `metadata:` sub-mapping. If `metadata:` is missing, it is created (and
+// appended at the end of the top-level mapping). Any legacy top-level
+// `preserve:` key is removed, migrating it to metadata.preserve in the same
+// pass. Every other key (and sibling metadata field) keeps its original
+// position.
 func setPreserveKey(mapping *yaml.Node, preserve []string) {
 	value := preserveSeqNode(preserve)
-	for i := 0; i+1 < len(mapping.Content); i += 2 {
+
+	// Drop any legacy top-level `preserve:` key; canonical home is
+	// metadata.preserve now.
+	for i := 0; i+1 < len(mapping.Content); {
 		if mapping.Content[i].Value == "preserve" {
-			mapping.Content[i+1] = value
+			mapping.Content = append(mapping.Content[:i], mapping.Content[i+2:]...)
+			continue
+		}
+		i += 2
+	}
+
+	// Locate or create the `metadata:` mapping.
+	var metaMap *yaml.Node
+	for i := 0; i+1 < len(mapping.Content); i += 2 {
+		if mapping.Content[i].Value == "metadata" {
+			metaMap = mapping.Content[i+1]
+			break
+		}
+	}
+	if metaMap == nil {
+		key := &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "metadata"}
+		metaMap = &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+		mapping.Content = append(mapping.Content, key, metaMap)
+	}
+	if metaMap.Kind != yaml.MappingNode {
+		// metadata exists but is not a map (e.g. null / scalar). Overwrite
+		// with a fresh mapping rather than corrupting it further.
+		metaMap.Kind = yaml.MappingNode
+		metaMap.Tag = "!!map"
+		metaMap.Value = ""
+		metaMap.Content = nil
+	}
+
+	for i := 0; i+1 < len(metaMap.Content); i += 2 {
+		if metaMap.Content[i].Value == "preserve" {
+			metaMap.Content[i+1] = value
 			return
 		}
 	}
 	key := &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "preserve"}
-	mapping.Content = append(mapping.Content, key, value)
+	metaMap.Content = append(metaMap.Content, key, value)
 }
 
 // preserveSeqNode builds a YAML sequence node for a preserve list. An empty

@@ -66,9 +66,15 @@ func run(skillsDir, outFile, repo, ref, sha string, check bool) error {
 	known := make(map[string]string, len(parsed))
 	for _, p := range parsed {
 		if existing, dup := known[p.fm.Name]; dup {
-			return fmt.Errorf("duplicate skill name %q (versions %s and %s)", p.fm.Name, existing, p.fm.Version)
+			return fmt.Errorf("duplicate skill name %q (versions %s and %s)", p.fm.Name, existing, p.fm.Version())
 		}
-		known[p.fm.Name] = p.fm.Version
+		known[p.fm.Name] = p.fm.Version()
+	}
+
+	for _, p := range parsed {
+		for _, w := range p.fm.DeprecationWarnings() {
+			fmt.Fprintf(os.Stderr, "build-registry: warning: %s: %s\n", p.fm.Name, w)
+		}
 	}
 
 	ctx := frontmatter.ValidationContext{
@@ -98,12 +104,12 @@ func run(skillsDir, outFile, repo, ref, sha string, check bool) error {
 		}
 		skills = append(skills, registry.Skill{
 			Name:        p.fm.Name,
-			Version:     p.fm.Version,
+			Version:     p.fm.Version(),
 			Description: p.fm.Description,
-			Tags:        p.fm.Tags,
-			Platforms:   p.fm.Platforms,
-			Requires:    p.fm.Requires,
-			Preserve:    p.fm.Preserve,
+			Tags:        p.fm.Tags(),
+			Platforms:   p.fm.Platforms(),
+			Requires:    p.fm.Requires(),
+			Preserve:    p.fm.Preserve(),
 			Path:        filepath.ToSlash(filepath.Join(filepath.Base(skillsDir), p.dirName)),
 			DirSHA:      dirSha,
 		})
@@ -202,7 +208,7 @@ func checkAcyclic(parsed []parsedSkill) error {
 	g := resolver.New()
 	for _, p := range parsed {
 		g.AddNode(p.fm.Name)
-		for _, raw := range p.fm.Requires {
+		for _, raw := range p.fm.Requires() {
 			dep, err := frontmatter.ParseDep(raw)
 			if err != nil {
 				return fmt.Errorf("%s: invalid dep %q: %w", p.fm.Name, raw, err)

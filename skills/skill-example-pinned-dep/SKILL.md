@@ -1,11 +1,12 @@
 ---
 name: skill-example-pinned-dep
-description: Seed skill with a minimum-version dependency — exercises @>= constraint parsing.
-version: 0.1.0
-requires:
-  - skill-example-hello@>=0.1.0
-platforms: [claude-code]
-tags: [example, seed]
+description: Seed skill with a minimum-version dependency - exercises @>= constraint parsing.
+metadata:
+  version: 0.1.0
+  requires:
+    - skill-example-hello@>=0.1.0
+  platforms: [claude-code]
+  tags: [example, seed]
 ---
 
 # skill-example-pinned-dep
