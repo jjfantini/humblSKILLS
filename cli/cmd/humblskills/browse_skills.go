@@ -208,7 +208,7 @@ func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBr
 			outdatedCount++
 		}
 	}
-	meta := func(items []tui.Item, _ int) string {
+	localMeta := func(items []tui.Item, _ int) string {
 		parts := []string{fmt.Sprintf("%d skill%s", len(items), plural(len(items)))}
 		if installedCount > 0 {
 			parts = append(parts, fmt.Sprintf("%d installed", installedCount))
@@ -217,6 +217,17 @@ func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBr
 			parts = append(parts, fmt.Sprintf("%d outdated", outdatedCount))
 		}
 		return strings.Join(parts, " · ")
+	}
+	// When launched from the dashboard, mirror the shared status line
+	// ("● healthy · N platforms · M skills"); otherwise show the command-local
+	// counts so direct `humblskills install`/`search` still feel informative.
+	meta := localMeta
+	if app.Nav.Crumb != "" {
+		status := app.Nav.Status
+		theme := app.UI.Theme()
+		meta = func(_ []tui.Item, _ int) string {
+			return tui.RenderStatusMeta(theme, status)
+		}
 	}
 
 	leftTitle := "SKILLS"
@@ -228,7 +239,7 @@ func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBr
 		cfg := tui.Config{
 			Theme:      app.UI.Theme(),
 			Version:    resolveVersion().Version,
-			Section:    section,
+			Section:    app.headerSection(section),
 			Meta:       meta,
 			Items:      items,
 			LeftTitle:  leftTitle,

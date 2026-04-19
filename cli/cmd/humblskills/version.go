@@ -5,6 +5,8 @@ import (
 	"runtime/debug"
 
 	"github.com/spf13/cobra"
+
+	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
 // These are optionally overridden via -ldflags at release time.
@@ -34,6 +36,24 @@ func runVersion(app *App) error {
 	if app.Config.JSON {
 		return app.UI.JSON(info)
 	}
+
+	// When a TTY is available, render the version info as a proper TUI page so
+	// the user stays inside the alt-screen experience (ESC returns to the
+	// dashboard when launched from there; quits otherwise).
+	if tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
+		return tui.RunVersionScreen(tui.VersionScreenConfig{
+			Theme:   app.UI.Theme(),
+			Section: app.headerSection("Version"),
+			Meta:    app.headerMeta(""),
+			Info: tui.VersionInfo{
+				Version: info.Version,
+				Commit:  info.Commit,
+				Dirty:   info.Dirty,
+			},
+		})
+	}
+
+	// Non-TTY fallback — preserves the existing pipe-friendly output.
 	th := app.UI.Theme()
 	suffix := ""
 	if info.Dirty {

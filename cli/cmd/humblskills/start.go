@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -40,16 +41,16 @@ func runStart(app *App) error {
 
 	for {
 		summary := buildDashboardSummary(app)
+		status := tui.DashboardStatus{
+			Healthy:   summary.drifted == 0,
+			Platforms: summary.platforms,
+			Skills:    summary.skills,
+		}
 		cfg := tui.DashboardConfig{
-			Theme:    app.UI.Theme(),
-			Version:  resolveVersion().Version,
-			Greeting: tui.BuildDashboardGreeting(summary.drifted),
-			Status: tui.DashboardStatus{
-				Healthy:   summary.drifted == 0,
-				Platforms: summary.platforms,
-				Skills:    summary.skills,
-			},
-			Tiles: tui.DefaultDashboardTiles(),
+			Theme:   app.UI.Theme(),
+			Version: resolveVersion().Version,
+			Status:  status,
+			Tiles:   tui.DefaultDashboardTiles(),
 		}
 		res, err := tui.RunDashboard(cfg)
 		if err != nil {
@@ -58,11 +59,28 @@ func runStart(app *App) error {
 		if res.Quit || res.Command == "" {
 			return nil
 		}
+		// Stash the breadcrumb + status on the App so every sub-screen renders
+		// the same top header as the dashboard.
+		app.Nav = NavContext{
+			Crumb:  "Dashboard > " + crumbLabel(res.Command),
+			Status: status,
+		}
 		if err := dispatchDashboardCommand(app, res.Command); err != nil {
 			// Surface the error, then loop back so the user can keep working.
 			app.UI.Error("%s: %v", res.Command, err)
 		}
+		app.Nav = NavContext{}
 	}
+}
+
+// crumbLabel maps a dashboard command back to its display label for the
+// breadcrumb. Falls back to Title-case of the command itself.
+func crumbLabel(cmd string) string {
+	switch cmd {
+	case "install", "list", "update", "search", "uninstall", "profile", "doctor", "registry", "version":
+		return strings.ToUpper(cmd[:1]) + cmd[1:]
+	}
+	return cmd
 }
 
 func dispatchDashboardCommand(app *App, cmd string) error {
@@ -95,8 +113,7 @@ func dispatchDashboardCommand(app *App, cmd string) error {
 }
 
 // dashboardSummary is the data we pull once per dashboard re-entry to
-// populate both the banner ("N updates available") and the right-anchored
-// status line ("healthy · N platforms · M skills").
+// populate the top header status line (healthy · N platforms · M skills).
 type dashboardSummary struct {
 	drifted   int
 	platforms int
@@ -131,6 +148,27 @@ func buildDashboardSummary(app *App) dashboardSummary {
 		s.drifted = len(install.PlanUpdates(reg, m, nil))
 	}
 	return s
+}
+
+// headerSection returns the header Section string the caller should render.
+// If Nav has a breadcrumb (we got here from the dashboard), use that; otherwise
+// fall back to the caller-provided default (direct CLI invocation path).
+func (a *App) headerSection(fallback string) string {
+	if a.Nav.Crumb != "" {
+		return a.Nav.Crumb
+	}
+	return fallback
+}
+
+// headerMeta returns the right-anchored header Meta string. If Nav is set
+// (dashboard-launched sub-screen), render the shared status line; otherwise
+// fall back to the caller-provided default (often "" or a command-specific
+// summary).
+func (a *App) headerMeta(fallback string) string {
+	if a.Nav.Crumb != "" {
+		return tui.RenderStatusMeta(a.UI.Theme(), a.Nav.Status)
+	}
+	return fallback
 }
 
 func printStartFallback(app *App) error {

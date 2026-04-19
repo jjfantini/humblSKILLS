@@ -90,7 +90,10 @@ func runProfileEditor(app *App) error {
 	if err != nil {
 		return err
 	}
-	updated, saved, err := tui.RunProfileEditor(app.UI.Theme(), adapterList, p)
+	updated, saved, err := tui.RunProfileEditorWith(app.UI.Theme(), adapterList, p, tui.ProfileHeaderSpec{
+		Section: app.headerSection("Profile"),
+		Meta:    app.headerMeta(""),
+	})
 	if err != nil {
 		return err
 	}
