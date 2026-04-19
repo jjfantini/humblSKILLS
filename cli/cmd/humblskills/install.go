@@ -9,14 +9,16 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
 type installFlags struct {
-	platforms []string
-	scope     string
-	force     bool
+	platforms    []string
+	platformsSet bool
+	scope        string
+	force        bool
 }
 
 func newInstallCmd(app *App) *cobra.Command {
@@ -32,6 +34,7 @@ func newInstallCmd(app *App) *cobra.Command {
 			if len(args) == 1 {
 				skill = args[0]
 			}
+			f.platformsSet = cmd.Flags().Changed("platform")
 			return runInstall(app, skill, f)
 		},
 	}
@@ -59,7 +62,24 @@ func runInstall(app *App, skill string, f installFlags) error {
 		}
 	}
 
-	selected, err := selectPlatforms(adapterList, f.platforms)
+	platforms := f.platforms
+	scope := f.scope
+	useTUIForModal := !f.platformsSet && tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
+	if useTUIForModal {
+		plats, scp, ok, err := promptInstallTargets(app, adapterList, skill)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("install cancelled")
+		}
+		platforms = plats
+		if scp != "" {
+			scope = scp
+		}
+	}
+
+	selected, err := selectPlatforms(adapterList, platforms)
 	if err != nil {
 		return err
 	}
@@ -91,7 +111,7 @@ func runInstall(app *App, skill string, f installFlags) error {
 		r, err := engine.Execute(reg, plan, install.ExecuteOpts{
 			Adapters:  adapterList,
 			Platforms: selected,
-			Scope:     f.scope,
+			Scope:     scope,
 			Force:     f.force,
 			OnEvent:   sink,
 		})
@@ -176,6 +196,38 @@ func printInstall(app *App, r install.Result) {
 	}
 	if len(installed)+len(replaced)+len(forced) == 0 {
 		app.UI.Info("%d target%s already up-to-date (use --force to reinstall)", len(skipped), plural(len(skipped)))
+	}
+}
+
+// promptInstallTargets opens a huh modal asking the user which platforms to
+// install `skill` into (defaults come from profile), returning the confirmed
+// platforms + scope. If the user picks "edit profile" inside the modal, the
+// profile editor opens and the modal re-prompts with the updated defaults.
+// Returns ok=false if the user cancelled.
+func promptInstallTargets(app *App, adapterList []adapters.Adapter, skill string) ([]string, string, bool, error) {
+	detected := map[string]bool{}
+	for _, r := range adapters.Detect(adapterList) {
+		detected[r.Name] = r.Detected
+	}
+	for {
+		p, err := profile.Load(app.Config.ProfilePath)
+		if err != nil {
+			return nil, "", false, err
+		}
+		res, err := tui.RunInstallPlatformModal(app.UI.Theme(), skill, adapterList, detected, p)
+		if err != nil {
+			return nil, "", false, err
+		}
+		if res.EditProfile {
+			if err := runProfileEditor(app); err != nil {
+				return nil, "", false, err
+			}
+			continue
+		}
+		if !res.Confirmed {
+			return nil, "", false, nil
+		}
+		return res.Platforms, res.Scope, true, nil
 	}
 }
 
