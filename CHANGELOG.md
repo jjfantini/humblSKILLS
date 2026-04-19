@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.6](https://github.com/jjfantini/humblSKILLS/compare/v2.3.5...v2.3.6) (2026-04-19)
+
+
+### Bug Fixes
+
+* **cli:** don't flag installs as drifted when only repo Source.SHA changed ([#53](https://github.com/jjfantini/humblSKILLS/issues/53)) ([46e6105](https://github.com/jjfantini/humblSKILLS/commit/46e61051eeaf17034ec1c28bbd5e6b55aeb37f08))
+
 ## [2.3.5](https://github.com/jjfantini/humblSKILLS/compare/v2.3.4...v2.3.5) (2026-04-19)
 
 
