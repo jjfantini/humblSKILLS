@@ -34,18 +34,20 @@ type Config struct {
 	Verbose      bool
 	Quiet        bool
 	Yes          bool
+	Fullscreen   bool
 }
 
 type globalFlags struct {
-	registry string
-	cacheDir string
-	manifest string
-	profile  string
-	json     bool
-	noColor  bool
-	verbose  bool
-	quiet    bool
-	yes      bool
+	registry   string
+	cacheDir   string
+	manifest   string
+	profile    string
+	json       bool
+	noColor    bool
+	verbose    bool
+	quiet      bool
+	yes        bool
+	fullscreen bool
 }
 
 func newRootCmd() *cobra.Command {
@@ -80,6 +82,7 @@ func newRootCmd() *cobra.Command {
 	f.BoolVarP(&g.verbose, "verbose", "v", false, "print extra detail")
 	f.BoolVarP(&g.quiet, "quiet", "q", false, "suppress non-error output")
 	f.BoolVarP(&g.yes, "yes", "y", false, "skip confirmation prompts (auto-accept)")
+	f.BoolVar(&g.fullscreen, "fullscreen", false, "open the interactive dashboard in full-screen TUI mode")
 
 	cmd.AddCommand(
 		newStartCmd(app),
@@ -125,6 +128,7 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 		Verbose:     g.verbose,
 		Quiet:       g.quiet,
 		Yes:         g.yes,
+		Fullscreen:  g.fullscreen,
 	}
 
 	cacheDir, err := resolveCacheDir(firstNonEmpty(g.cacheDir, os.Getenv("HUMBLSKILLS_CACHE_DIR")))

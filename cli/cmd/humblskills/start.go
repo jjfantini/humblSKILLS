@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
@@ -26,18 +27,29 @@ func newStartCmd(app *App) *cobra.Command {
 
 // runStart is the launcher loop. It re-enters the dashboard after every
 // sub-command returns, so ESC in any sub-screen bounces back to the grid.
-// Non-TTY paths fall through to the Cobra help text via printStartFallback.
+// Non-TTY paths fall through to the Cobra help text via printStartFallback,
+// unless --fullscreen was asked for explicitly — then we surface an error
+// instead of silently printing help.
 func runStart(app *App) error {
 	if !tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
+		if app.Config.Fullscreen {
+			return fmt.Errorf("--fullscreen requires an interactive terminal (no TTY detected)")
+		}
 		return printStartFallback(app)
 	}
 
 	for {
+		summary := buildDashboardSummary(app)
 		cfg := tui.DashboardConfig{
 			Theme:    app.UI.Theme(),
 			Version:  resolveVersion().Version,
-			Greeting: tui.BuildDashboardGreeting(countDrifted(app)),
-			Tiles:    tui.DefaultDashboardTiles(),
+			Greeting: tui.BuildDashboardGreeting(summary.drifted),
+			Status: tui.DashboardStatus{
+				Healthy:   summary.drifted == 0,
+				Platforms: summary.platforms,
+				Skills:    summary.skills,
+			},
+			Tiles: tui.DefaultDashboardTiles(),
 		}
 		res, err := tui.RunDashboard(cfg)
 		if err != nil {
@@ -82,18 +94,43 @@ func dispatchDashboardCommand(app *App, cmd string) error {
 	return fmt.Errorf("unknown dashboard command: %s", cmd)
 }
 
-// countDrifted counts how many installed skills have a newer registry version.
-// Returns 0 on any error — the banner treats it as "up-to-date".
-func countDrifted(app *App) int {
+// dashboardSummary is the data we pull once per dashboard re-entry to
+// populate both the banner ("N updates available") and the right-anchored
+// status line ("healthy · N platforms · M skills").
+type dashboardSummary struct {
+	drifted   int
+	platforms int
+	skills    int
+}
+
+func buildDashboardSummary(app *App) dashboardSummary {
+	var s dashboardSummary
+
+	if adapterList, err := app.Adapters(); err == nil {
+		for _, r := range adapters.Detect(adapterList) {
+			if r.Detected {
+				s.platforms++
+			}
+		}
+	}
+
 	m, err := manifest.Load(app.Config.ManifestPath)
 	if err != nil || m == nil {
-		return 0
+		return s
 	}
+	seen := map[string]bool{}
+	for _, inst := range m.Installations {
+		if !seen[inst.Skill] {
+			seen[inst.Skill] = true
+			s.skills++
+		}
+	}
+
 	reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
-	if err != nil || reg == nil {
-		return 0
+	if err == nil && reg != nil {
+		s.drifted = len(install.PlanUpdates(reg, m, nil))
 	}
-	return len(install.PlanUpdates(reg, m, nil))
+	return s
 }
 
 func printStartFallback(app *App) error {

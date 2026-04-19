@@ -39,11 +39,20 @@ type DashboardGreeting struct {
 	LastScan string // "18:04" or ""
 }
 
+// DashboardStatus feeds the header's right-anchored summary
+// (● healthy · N platforms · M skills).
+type DashboardStatus struct {
+	Healthy   bool
+	Platforms int // detected adapters
+	Skills    int // installed skills (unique)
+}
+
 // DashboardConfig bundles everything RunDashboard needs.
 type DashboardConfig struct {
 	Theme    *ui.Theme
 	Version  string
 	Greeting DashboardGreeting
+	Status   DashboardStatus
 	Tiles    []DashboardTile
 }
 
@@ -289,6 +298,7 @@ func (m dashboardModel) View() string {
 	header := Header(th, HeaderSpec{
 		Version: m.cfg.Version,
 		Section: "Dashboard",
+		Meta:    m.statusLine(),
 	}, m.width)
 
 	body := m.renderBody()
@@ -316,23 +326,40 @@ func (m dashboardModel) hints() []KeyHint {
 	if m.searchOn {
 		return []KeyHint{
 			{Keys: "type", Label: "filter"},
+			{Keys: "↑↓←→", Label: "move"},
 			{Keys: "↵", Label: "launch"},
 			{Keys: "esc", Label: "clear"},
 		}
 	}
 	return []KeyHint{
-		{Keys: "hjkl", Label: "move"},
+		{Keys: "↑↓←→", Label: "move"},
 		{Keys: "↵", Label: "launch"},
 		{Keys: "/", Label: "search"},
 		{Keys: "esc", Label: "quit"},
 	}
 }
 
+// statusLine renders the right-anchored header summary:
+// "● healthy · 2 platforms · 7 skills".
+func (m dashboardModel) statusLine() string {
+	th := m.cfg.Theme
+	dot := th.DotOK
+	label := "healthy"
+	if !m.cfg.Status.Healthy {
+		dot = th.DotWarn
+		label = "drift"
+	}
+	sep := th.Crumb.Render(" · ")
+	return dot.Render("●") + " " + th.Detail.Render(label) +
+		sep + th.Detail.Render(fmt.Sprintf("%d platform%s", m.cfg.Status.Platforms, pluralDash(m.cfg.Status.Platforms))) +
+		sep + th.Detail.Render(fmt.Sprintf("%d skill%s", m.cfg.Status.Skills, pluralDash(m.cfg.Status.Skills)))
+}
+
 func (m dashboardModel) renderBody() string {
 	th := m.cfg.Theme
 	var sb strings.Builder
 	sb.WriteString(m.renderBanner())
-	sb.WriteString("\n")
+	sb.WriteString("\n\n")
 	sb.WriteString(m.renderSearchBar())
 	sb.WriteString("\n\n")
 	sb.WriteString(m.renderGrid())
@@ -340,6 +367,17 @@ func (m dashboardModel) renderBody() string {
 		sb.WriteString("\n  " + th.Crumb.Render("no command matches "+fmt.Sprintf("%q", m.query)))
 	}
 	return sb.String()
+}
+
+// bodyWidth is the usable width between left/right margins. Every body
+// element (banner, search bar, tile grid row) targets this width so they
+// all end at the same column.
+func (m dashboardModel) bodyWidth() int {
+	w := m.width - 4
+	if w < 40 {
+		w = 40
+	}
+	return w
 }
 
 func (m dashboardModel) renderBanner() string {
@@ -364,36 +402,33 @@ func (m dashboardModel) renderBanner() string {
 
 func (m dashboardModel) renderSearchBar() string {
 	th := m.cfg.Theme
-	width := m.width - 4
-	if width < 20 {
-		width = 20
+	total := m.bodyWidth() // final display width including border
+	// Inner content width = total - 2 (border) - 2 (padding) = total - 4.
+	inner := total - 4
+	if inner < 10 {
+		inner = 10
 	}
 	sigil := th.Brand.Render("❯")
-	query := m.query
-	if query == "" && !m.searchOn {
+	var query string
+	if m.query == "" && !m.searchOn {
 		query = th.Crumb.Render("press / to search")
-	} else if query == "" {
+	} else if m.query == "" {
 		query = th.Crumb.Render("type to filter…")
 	} else {
-		query = th.Name.Render(query)
+		query = th.Name.Render(m.query)
 	}
 	count := th.Crumb.Render(fmt.Sprintf("%d / %d", len(m.visible), len(m.cfg.Tiles)))
-	inner := sigil + "  " + query
-	gap := width - lipgloss.Width(inner) - lipgloss.Width(count) - 2
-	if gap < 1 {
-		gap = 1
-	}
-	line := inner + strings.Repeat(" ", gap) + count
-	border := lipgloss.NormalBorder()
+	left := sigil + "  " + query
+	line := padBetween(left, count, inner)
 	borderColor := th.Palette.Border
 	if m.searchOn {
 		borderColor = th.Palette.Magenta
 	}
 	box := lipgloss.NewStyle().
-		Border(border).
+		Border(lipgloss.NormalBorder()).
 		BorderForeground(borderColor).
 		Padding(0, 1).
-		Width(width - 2).
+		Width(inner).
 		Render(line)
 	return "  " + box
 }
@@ -403,15 +438,18 @@ func (m dashboardModel) renderGrid() string {
 		return ""
 	}
 	cols := m.cols()
-	colW := (m.width - 6 - (cols-1)*2) / cols
-	if colW < 24 {
-		colW = 24
+	gap := 2
+	body := m.bodyWidth()
+	tileW := (body - (cols-1)*gap) / cols
+	if tileW < 24 {
+		tileW = 24
 	}
+	spacer := strings.Repeat(" ", gap)
 
 	rows := [][]string{}
 	var row []string
 	for i, idx := range m.visible {
-		tile := m.renderTile(m.cfg.Tiles[idx], i == m.cursor, colW)
+		tile := m.renderTile(m.cfg.Tiles[idx], i == m.cursor, tileW)
 		row = append(row, tile)
 		if len(row) == cols {
 			rows = append(rows, row)
@@ -419,17 +457,24 @@ func (m dashboardModel) renderGrid() string {
 		}
 	}
 	if len(row) > 0 {
-		// Pad with blanks so JoinHorizontal aligns.
+		empty := m.renderEmptyTile(tileW)
 		for len(row) < cols {
-			row = append(row, strings.Repeat(" ", colW+2))
+			row = append(row, empty)
 		}
 		rows = append(rows, row)
 	}
 
 	var sb strings.Builder
 	for i, r := range rows {
+		parts := make([]string, 0, len(r)*2-1)
+		for j, t := range r {
+			if j > 0 {
+				parts = append(parts, spacer)
+			}
+			parts = append(parts, t)
+		}
 		sb.WriteString("  ")
-		sb.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, r...))
+		sb.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, parts...))
 		if i < len(rows)-1 {
 			sb.WriteString("\n")
 		}
@@ -437,6 +482,8 @@ func (m dashboardModel) renderGrid() string {
 	return sb.String()
 }
 
+// renderTile renders one tile. The returned string is exactly `width`
+// display columns wide (border included) so JoinHorizontal aligns columns.
 func (m dashboardModel) renderTile(t DashboardTile, selected bool, width int) string {
 	th := m.cfg.Theme
 	borderColor := th.Palette.Border
@@ -448,26 +495,41 @@ func (m dashboardModel) renderTile(t DashboardTile, selected bool, width int) st
 		nameStyle = th.RowSelected
 	}
 
+	// Inner width: total minus 2 (border) minus 2 (padding).
+	inner := width - 4
+	if inner < 10 {
+		inner = 10
+	}
+
 	hot := th.KbdKey.Render(t.Hotkey)
 	name := nameStyle.Render(t.Label)
-	header := padBetween(name, hot, width-2)
+	header := padBetween(name, hot, inner)
 
-	desc := th.Desc.Width(width - 2).Render(t.Desc)
+	desc := th.Desc.Width(inner).Render(t.Desc)
 
 	footLeft := th.Detail.Render(t.Sub)
 	footRight := ""
 	if t.Status != "" {
 		footRight = th.BadgeGhost.Render(t.Status)
 	}
-	foot := padBetween(footLeft, footRight, width-2)
+	foot := padBetween(footLeft, footRight, inner)
 
 	body := header + "\n\n" + desc + "\n\n" + foot
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
 		Padding(0, 1).
+		Width(width - 2).
+		Render(body)
+}
+
+// renderEmptyTile returns a blank block the same height as a real tile so
+// short final rows still align under a full row above.
+func (m dashboardModel) renderEmptyTile(width int) string {
+	return lipgloss.NewStyle().
 		Width(width).
-		Render(body) + "  "
+		Height(5).
+		Render("")
 }
 
 func pluralDash(n int) string {
