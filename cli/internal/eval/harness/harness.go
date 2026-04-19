@@ -361,6 +361,21 @@ func (h *Harness) runSession(
 	if res.DurationMs == 0 {
 		res.DurationMs = duration.Milliseconds()
 	}
+	// Runners report transport/API errors on Result.Err rather than the
+	// returned error (so partial transcripts still survive). Surface
+	// those to the event stream - otherwise a bad API key looks like
+	// a successful zero-token session and the grader happily passes
+	// every negation-style assertion.
+	if res.Err != nil {
+		h.emit(Event{
+			Kind:    EvtError,
+			Arm:     arm,
+			Scenario: sc.ID,
+			Session: sess.N,
+			Run:     run,
+			Message: "runner: " + res.Err.Error(),
+		})
+	}
 
 	// Persist timing / transcript / metrics sidecars.
 	_ = writeJSON(filepath.Join(sessDir, "timing.json"), map[string]any{

@@ -247,9 +247,14 @@ func gradeExec(ctx context.Context, r Request, a scenarios.Assertion, cmdline st
 	ctx2, cancel := context.WithTimeout(ctx, r.ExecTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx2, "sh", "-c", cmdline)
-	cmd.Dir = r.WorkDir
-	// Make the OUTPUT_DIR available to scripts.
-	cmd.Env = append(os.Environ(), "EVAL_OUTPUT_DIR="+r.OutputDir)
+	// Run from the output dir so `test -f outreach.md` resolves against
+	// the files the agent actually wrote. r.WorkDir is still available
+	// to scripts via $EVAL_WORK_DIR.
+	cmd.Dir = r.OutputDir
+	cmd.Env = append(os.Environ(),
+		"EVAL_OUTPUT_DIR="+r.OutputDir,
+		"EVAL_WORK_DIR="+r.WorkDir,
+	)
 	out, err := cmd.CombinedOutput()
 	tail := lastLines(string(out), 3)
 	if err != nil {

@@ -14,12 +14,12 @@
           "prompt": "Rewrite the following outreach email to remove AI tells (banned vocabulary, em dashes, hedging, sycophantic openers). Keep the content. Output ONLY the rewritten email, no commentary. Write the result to outreach-v1.md. Source:\n\n\"Dear Jane, I hope this email finds you well. I'm thrilled to reach out regarding our innovative, seamless platform — it's a game-changer that can help you unlock new possibilities and leverage your data in a meaningful way. I wanted to briefly touch base to see if you might be open to a quick chat. Best regards, Dan.\"",
           "assertions": [
             { "text": "outreach-v1.md exists", "check": "path_exists:outreach-v1.md" },
-            { "text": "no em dashes", "check": "exec:! grep -q '—' outreach-v1.md" },
-            { "text": "no 'hope this email finds you well'", "check": "exec:! grep -qi 'hope this email finds you well' outreach-v1.md" },
-            { "text": "no 'game-changer'", "check": "exec:! grep -qi 'game-changer' outreach-v1.md" },
-            { "text": "no 'leverage'", "check": "exec:! grep -qi 'leverage' outreach-v1.md" },
-            { "text": "no 'seamless'", "check": "exec:! grep -qi 'seamless' outreach-v1.md" },
-            { "text": "no 'thrilled'", "check": "exec:! grep -qi 'thrilled' outreach-v1.md" }
+            { "text": "no em dashes", "check": "exec:test -f outreach-v1.md && ! grep -q '—' outreach-v1.md" },
+            { "text": "no 'hope this email finds you well'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'hope this email finds you well' outreach-v1.md" },
+            { "text": "no 'game-changer'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'game-changer' outreach-v1.md" },
+            { "text": "no 'leverage'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'leverage' outreach-v1.md" },
+            { "text": "no 'seamless'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'seamless' outreach-v1.md" },
+            { "text": "no 'thrilled'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'thrilled' outreach-v1.md" }
           ]
         },
         {
@@ -28,11 +28,11 @@
           "retention_check": "Session 1 stripped em dashes, banned vocabulary, and sycophantic openers. Session 2 must not reintroduce them.",
           "assertions": [
             { "text": "outreach-v2.md exists", "check": "path_exists:outreach-v2.md" },
-            { "text": "no em dashes", "check": "exec:! grep -q '—' outreach-v2.md" },
-            { "text": "no 'unparalleled'", "check": "exec:! grep -qi 'unparalleled' outreach-v2.md" },
-            { "text": "no 'in today's fast-paced world'", "check": "exec:! grep -qi \"fast-paced world\" outreach-v2.md" },
-            { "text": "no 'synergies'", "check": "exec:! grep -qi 'synergies' outreach-v2.md" },
-            { "text": "under 70 words", "check": "exec:test $(wc -w < outreach-v2.md) -lt 70" }
+            { "text": "no em dashes", "check": "exec:test -f outreach-v2.md && ! grep -q '—' outreach-v2.md" },
+            { "text": "no 'unparalleled'", "check": "exec:test -f outreach-v2.md && ! grep -qi 'unparalleled' outreach-v2.md" },
+            { "text": "no 'in today's fast-paced world'", "check": "exec:test -f outreach-v2.md && ! grep -qi \"fast-paced world\" outreach-v2.md" },
+            { "text": "no 'synergies'", "check": "exec:test -f outreach-v2.md && ! grep -qi 'synergies' outreach-v2.md" },
+            { "text": "under 70 words", "check": "exec:test -f outreach-v2.md && test $(wc -w < outreach-v2.md) -lt 70" }
           ]
         }
       ]
