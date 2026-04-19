@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/jjfantini/humblSKILLS/compare/v2.1.0...v2.1.1) (2026-04-19)
+
+
+### Bug Fixes
+
+* **cli:** inline value editing in profile TUI ([#37](https://github.com/jjfantini/humblSKILLS/issues/37)) ([4d9f4b2](https://github.com/jjfantini/humblSKILLS/commit/4d9f4b2581d535bb8430896a64bae19927f5ace7))
+
 ## [2.1.0](https://github.com/jjfantini/humblSKILLS/compare/v2.0.0...v2.1.0) (2026-04-19)
 
 
