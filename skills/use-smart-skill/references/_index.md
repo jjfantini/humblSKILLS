@@ -13,6 +13,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 - **anthropic** -> `description`, `frontmatter`, `patterns`, `structure`, `testing`, `troubleshooting`
 - **brain** -> `ingest`, `linking`, `lint`, `patterns`, `protocol`
+- **eval** -> `design`, `metrics`, `runner`
 - **smart** -> `create`, `migrate`, `spec`, `structure`
 
 ## Wiki
@@ -66,6 +67,21 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 #### protocol
 
 - [read-before-write-after.md](wiki/brain/protocol/read-before-write-after.md) - The Non-Negotiable Read-Before / Write-After Brain Protocol
+
+### eval
+
+#### design
+
+- [configurations.md](wiki/eval/design/configurations.md) - Three Arms - no_skill, flat_skill, smart_skill
+
+#### metrics
+
+- [learning-velocity.md](wiki/eval/metrics/learning-velocity.md) - Learning Velocity - Does the Brain Actually Compound?
+- [retention.md](wiki/eval/metrics/retention.md) - Retention Check - Brain Doesn't Forget
+
+#### runner
+
+- [interface.md](wiki/eval/runner/interface.md) - Runner Interface - One Contract, Six Backends
 
 ### smart
 

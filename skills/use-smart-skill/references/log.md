@@ -72,3 +72,5 @@ Entry shape:
   - All tests pass; registry.json regen emits zero warnings after all 5 in-repo skills migrated
 
 [LINT 2026-04-19] 19 wiki, 2 raw. Hard: 0, Soft: 12. Regenerated _index.md.
+
+[LINT 2026-04-19] 23 wiki, 2 raw. Hard: 0, Soft: 16. Regenerated _index.md.

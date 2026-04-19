@@ -42,4 +42,7 @@ Icon
 *.local
 
 # Claude Code
-.claude/settings.local.json
+.claude/
+
+# humblskills eval workspaces (opt-in per-project storage)
+.eval-workspace/

@@ -108,6 +108,7 @@ func newRootCmd() *cobra.Command {
 		newListCmd(app),
 		newSearchCmd(app),
 		newProfileCmd(app),
+		newEvalCmd(app),
 	)
 
 	return cmd

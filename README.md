@@ -73,6 +73,78 @@ humblskills uninstall use-smart-skill
 Every command accepts `--json` for machine-readable output and `--yes` to
 skip confirmation prompts.
 
+## Benchmarking skills: `humblskills eval`
+
+`eval` runs a three-arm benchmark of any skill - `no_skill` vs `flat_skill`
+vs `smart_skill` - grades the outputs, and emits a single-file HTML
+dashboard. For smart skills the same harness runs sessions in order so the
+brain state (patterns, decisions, log, wiki) carries across sessions and
+you get a longitudinal trajectory that proves the skill compounds over time.
+
+Six runners ship behind one interface - pick whichever agent you already
+use, or point an API key directly at the hosted model:
+
+| Runner         | Auth                            | Notes                                                  |
+|----------------|---------------------------------|--------------------------------------------------------|
+| `claudecode`   | Claude Code login               | Wraps `claude -p --output-format stream-json`          |
+| `cursor-agent` | Cursor login                    | Wraps `cursor-agent` headless CLI                      |
+| `codex`        | Codex login                     | Wraps the OpenAI `codex` CLI                           |
+| `anthropic-api`| `ANTHROPIC_API_KEY` / keyring   | Pure-Go Read/Write/Bash/Glob/Grep tool loop            |
+| `openai-api`   | `OPENAI_API_KEY` / keyring      | Pure-Go tool loop                                      |
+| `mock`         | none                            | For CI and dev - deterministic, zero tokens            |
+
+### Quickstart
+
+```sh
+humblskills doctor                          # check runner availability
+humblskills eval set-key anthropic          # store key in the OS keyring
+humblskills eval runners                    # one-liner per-runner status
+humblskills eval                            # dashboard entry → Eval Home TUI
+humblskills eval run use-smart-skill        # non-TUI run
+humblskills eval showcase                   # the canonical demo
+humblskills eval ls                         # iterations per skill
+humblskills eval prune use-smart-skill --keep-last 5
+```
+
+Secrets never land in the profile JSON. `eval set-key` resolves env >
+OS keyring > `$XDG_CONFIG_HOME/humblskills/secrets.json` (perm 0600) in
+that order, and the TUI prompts with a masked input.
+
+### What lands on disk
+
+Iteration artifacts under `$XDG_STATE_HOME/humblskills/evals/<skill>/iteration-N/`:
+
+```
+iteration-N/
+├── benchmark.json      cross-section stats + deltas
+├── trajectory.json     per-session time series (smart arm compounds here)
+├── report.html         single-file Plotly dashboard
+├── report.md           plaintext mirror (PR-friendly)
+├── report.json         machine-readable
+├── smart_skill/
+│   └── session-NN/
+│       ├── outputs/           files the agent wrote
+│       ├── transcript.txt     full agent transcript
+│       ├── timing.json        tokens + duration + cost
+│       ├── metrics.json       tool-call counts + brain reads
+│       ├── brain-snapshot-before/   brain state seeded into this session
+│       └── brain-snapshot-after/    brain state after this session — feeds N+1
+├── flat_skill/...
+└── no_skill/...
+```
+
+Iterations are persistent and append-only. `humblskills eval prune` is the
+retention knob.
+
+### Authoring scenarios
+
+Each skill ships an `evals/scenarios.json`. Sessions run in order; assertions
+are either `llm` (sent to a judge model) or scripted (`path_exists`, `exec`,
+`regex`, `script`, `json_valid`) - scripted beats LLM-judge for determinism.
+`humblskills eval init <skill>` scaffolds a template. See
+[`skills/use-smart-skill/evals/`](skills/use-smart-skill/evals/) for the
+canonical example with retention checks across sessions.
+
 ## Preserving user content across updates
 
 Smart skills often accumulate user-owned content over time - raw sources,

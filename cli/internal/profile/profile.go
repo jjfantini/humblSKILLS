@@ -18,9 +18,23 @@ const SchemaVersion = 1
 
 // Profile is the full on-disk document.
 type Profile struct {
-	SchemaVersion    int      `json:"schema_version"`
-	DefaultPlatforms []string `json:"default_platforms,omitempty"`
-	DefaultScope     string   `json:"default_scope,omitempty"`
+	SchemaVersion    int          `json:"schema_version"`
+	DefaultPlatforms []string     `json:"default_platforms,omitempty"`
+	DefaultScope     string       `json:"default_scope,omitempty"`
+	Eval             *EvalProfile `json:"eval,omitempty"`
+}
+
+// EvalProfile captures eval-specific defaults. Secrets (API keys) do NOT
+// live here - they go through cli/internal/secrets which supports env +
+// OS keyring + 0600 file fallback.
+type EvalProfile struct {
+	Runner                 string `json:"runner,omitempty"`                   // claudecode|cursor-agent|codex|anthropic-api|openai-api|mock
+	ExecutorModel          string `json:"executor_model,omitempty"`
+	GraderModel            string `json:"grader_model,omitempty"`
+	RunsPerConfiguration   int    `json:"runs_per_configuration,omitempty"`
+	Parallel               int    `json:"parallel,omitempty"`
+	DefaultWorkspace       string `json:"default_workspace,omitempty"`
+	IncludeBlindComparator bool   `json:"include_blind_comparator,omitempty"`
 }
 
 // DefaultPath resolves the profile path using XDG_CONFIG_HOME (falling back
