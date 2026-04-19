@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/jjfantini/humblSKILLS/compare/v2.0.0...v2.1.0) (2026-04-19)
+
+
+### Features
+
+* **cli:** profile editor is now a two-pane TUI ([#35](https://github.com/jjfantini/humblSKILLS/issues/35)) ([2e49fd3](https://github.com/jjfantini/humblSKILLS/commit/2e49fd317298d41161be435459ff10e51abe4e4e))
+
 ## [2.0.0](https://github.com/jjfantini/humblSKILLS/compare/v1.1.0...v2.0.0) (2026-04-19)
 
 
