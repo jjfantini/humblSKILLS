@@ -328,9 +328,10 @@ func (m dashboardModel) cols() int {
 
 // gridHeight is the number of rows available to the scrollable grid view.
 // Total vertical budget = height. Non-grid lines: header(2) + blank(1) +
-// search(3) + blank(1) + footer(2) = 9. So grid gets whatever is left.
+// title(2) + blank(1) + search(3) + blank(1) + footer(2) = 12. So grid
+// gets whatever is left.
 func (m dashboardModel) gridHeight() int {
-	h := m.height - 9
+	h := m.height - 12
 	if h < 3 {
 		h = 3
 	}
@@ -396,6 +397,7 @@ func (m dashboardModel) View() string {
 	right := th.Meta.Render("focused: ") + th.Brand.Render(m.focusedLabel())
 	footer := Footer(th, m.hints(), right, m.width)
 
+	title := indentBlock(m.renderTitle(), 2)
 	search := indentBlock(m.renderSearchBar(), 2)
 
 	gridView := ""
@@ -411,7 +413,18 @@ func (m dashboardModel) View() string {
 	// a predictable row regardless of content size.
 	gridView = padToHeight(gridView, m.gridHeight())
 
-	return header + "\n\n" + search + "\n\n" + gridView + "\n" + footer
+	return header + "\n\n" + title + "\n\n" + search + "\n\n" + gridView + "\n" + footer
+}
+
+// renderTitle is the prominent page-header block that sits under the thin
+// top rule on the main menu. The user's feedback: the thin `· Dashboard`
+// crumb read as a separator, not a header — this title block gives the
+// launcher a visible identity.
+func (m dashboardModel) renderTitle() string {
+	th := m.cfg.Theme
+	head := th.Brand.Render("Dashboard") + th.Crumb.Render(" · ") + th.Detail.Render("launcher")
+	sub := th.Crumb.Render(fmt.Sprintf("%d commands · ↵ launches · / searches · esc quits", len(m.cfg.Tiles)))
+	return head + "\n" + sub
 }
 
 func (m dashboardModel) focusedLabel() string {
@@ -489,8 +502,9 @@ func (m dashboardModel) renderSearchBar() string {
 		query = th.Name.Render(m.query)
 	}
 	count := th.Crumb.Render(fmt.Sprintf("%d / %d", len(m.visible), len(m.cfg.Tiles)))
-	left := sigil + "  " + query
-	line := padBetween(left, count, inner)
+	// Anchor the count on the left — right-anchoring wrapped onto a second
+	// line once the placeholder + sigil + count exceeded the inner width.
+	line := count + "  " + sigil + "  " + query
 	borderColor := th.Palette.Border
 	if m.searchOn {
 		borderColor = th.Palette.Magenta
