@@ -65,6 +65,10 @@ Each release also publishes `checksums.txt` with SHA-256 sums.
 
 ## Quickstart
 
+In a terminal, run **`humblskills`** or **`humblskills start`** to open the
+interactive **dashboard** (tile grid with fuzzy search into every command).
+Use explicit subcommands below for scripts, CI, or non-TTY environments.
+
 ```sh
 humblskills doctor                    # verify the environment
 humblskills search                    # browse the registry
