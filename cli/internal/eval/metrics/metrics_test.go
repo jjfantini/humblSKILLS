@@ -32,7 +32,7 @@ func TestAggregateTrajectoryLearningVelocity(t *testing.T) {
 		{Arm: "smart_skill", Session: 2, PassRate: 0.7, Tokens: 800},
 		{Arm: "smart_skill", Session: 3, PassRate: 0.9, Tokens: 600},
 	}
-	tr := AggregateTrajectory("demo", rows)
+	tr := AggregateTrajectory("demo", "", rows)
 	d := tr.Derived["smart_skill"]
 	if math.Abs(d.LearningVelocity-0.2) > 1e-9 {
 		t.Fatalf("learning_velocity = %v, want 0.2", d.LearningVelocity)

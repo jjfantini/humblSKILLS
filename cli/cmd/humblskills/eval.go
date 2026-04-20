@@ -37,7 +37,9 @@ func newEvalCmd(app *App) *cobra.Command {
 		Long: "eval runs a full cross-sectional + longitudinal benchmark of a skill " +
 			"against three arms (no / flat / smart), grades the outputs, and emits " +
 			"a single-file HTML dashboard. Six runners available (claudecode, " +
-			"cursor-agent, codex, anthropic-api, openai-api, mock).",
+			"cursor-agent, codex, anthropic-api, openai-api, mock). " +
+			"Skill resolution checks $HUMBLSKILLS_ROOT/skills/<name> first, then cwd/skills/<name>, " +
+			"and if the current directory is the cli module, ../skills/<name> (so `go run` from cli/ still finds repo skills).",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runEvalTUI(app)
 		},
@@ -326,7 +328,7 @@ func runEvalAggregate(app *App, iterDir string) error {
 		rows = append(rows, row)
 		return nil
 	})
-	traj := metrics.AggregateTrajectory("", rows)
+	traj := metrics.AggregateTrajectory("", "", rows)
 	bench := metrics.AggregateBenchmark("", 0, rows)
 	if err := metrics.Write(filepath.Join(iterDir, "trajectory.json"), traj); err != nil {
 		return err
@@ -362,10 +364,12 @@ func runEvalReport(app *App, iterDir string, open bool) error {
 		return err
 	}
 	html, _, _, err := report.RenderAll(iterDir, &report.Bundle{
-		SkillName:  traj.SkillName,
-		Iteration:  bench.Iteration,
-		Trajectory: traj,
-		Benchmark:  bench,
+		SkillName:   traj.SkillName,
+		Iteration:   bench.Iteration,
+		Runner:      traj.Runner,
+		ScenarioIDs: report.InferScenarioIDs(traj.Rows),
+		Trajectory:  traj,
+		Benchmark:   bench,
 	})
 	if err != nil {
 		return err
@@ -677,11 +681,21 @@ func resolveSkill(app *App, skill string) (skillDir string, f *scenarios.File, e
 	// dev copy with evals/ wins over an installed copy without one, so
 	// authoring scenarios against the repo checkout "just works".
 	var candidates []string
+	if root := os.Getenv("HUMBLSKILLS_ROOT"); root != "" {
+		candidates = append(candidates,
+			filepath.Join(root, "skills", skill),
+			filepath.Join(root, skill),
+		)
+	}
 	if cwd, err := os.Getwd(); err == nil {
 		candidates = append(candidates,
 			filepath.Join(cwd, "skills", skill),
 			filepath.Join(cwd, skill),
 		)
+		// Running `go run ./cmd/humblskills` from the cli/ module: repo skills live in ../skills/.
+		if filepath.Base(cwd) == "cli" {
+			candidates = append(candidates, filepath.Join(filepath.Dir(cwd), "skills", skill))
+		}
 	}
 	if m, err := manifest.Load(app.Config.ManifestPath); err == nil && m != nil {
 		for _, inst := range m.FindAll(skill) {

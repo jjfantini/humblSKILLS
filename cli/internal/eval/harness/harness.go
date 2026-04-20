@@ -243,7 +243,7 @@ func (h *Harness) Run(ctx context.Context) (*Result, error) {
 		h.emit(Event{Kind: EvtArmDone, Arm: arm})
 	}
 
-	traj := metrics.AggregateTrajectory(skillName, h.rowsLocked())
+	traj := metrics.AggregateTrajectory(skillName, h.opts.Runner.Name(), h.rowsLocked())
 	bench := metrics.AggregateBenchmark(skillName, n, h.rowsLocked())
 	if err := metrics.Write(filepath.Join(iterDir, "trajectory.json"), traj); err != nil {
 		return nil, err
@@ -251,12 +251,18 @@ func (h *Harness) Run(ctx context.Context) (*Result, error) {
 	if err := metrics.Write(filepath.Join(iterDir, "benchmark.json"), bench); err != nil {
 		return nil, err
 	}
+	scenarioIDs := make([]string, 0, len(h.selectedScenarios()))
+	for _, sc := range h.selectedScenarios() {
+		scenarioIDs = append(scenarioIDs, sc.ID)
+	}
+	sort.Strings(scenarioIDs)
 	htmlPath, mdPath, jsonPath, err := report.RenderAll(iterDir, &report.Bundle{
-		SkillName:  skillName,
-		Iteration:  n,
-		Runner:     h.opts.Runner.Name(),
-		Trajectory: traj,
-		Benchmark:  bench,
+		SkillName:   skillName,
+		Iteration:   n,
+		Runner:      h.opts.Runner.Name(),
+		ScenarioIDs: scenarioIDs,
+		Trajectory:  traj,
+		Benchmark:   bench,
 	})
 	if err != nil {
 		return nil, err

@@ -22,6 +22,7 @@ import (
 // Trajectory is the time-series artifact. One Row per (arm, session).
 type Trajectory struct {
 	SkillName string               `json:"skill_name"`
+	Runner    string               `json:"runner,omitempty"`
 	Rows      []TrajectoryRow      `json:"rows"`
 	Derived   map[string]Derived   `json:"derived"` // keyed by arm
 }
@@ -85,9 +86,10 @@ type DeltaSummary struct {
 }
 
 // AggregateTrajectory builds the trajectory from rows. Rows should already
-// be collected by the harness as sessions finish.
-func AggregateTrajectory(skill string, rows []TrajectoryRow) *Trajectory {
-	t := &Trajectory{SkillName: skill, Rows: append([]TrajectoryRow(nil), rows...)}
+// be collected by the harness as sessions finish. Runner is stored for report
+// rebuilds (eval report) and may be empty for legacy artifacts.
+func AggregateTrajectory(skill, runner string, rows []TrajectoryRow) *Trajectory {
+	t := &Trajectory{SkillName: skill, Runner: runner, Rows: append([]TrajectoryRow(nil), rows...)}
 	sort.Slice(t.Rows, func(i, j int) bool {
 		if t.Rows[i].Arm != t.Rows[j].Arm {
 			return t.Rows[i].Arm < t.Rows[j].Arm

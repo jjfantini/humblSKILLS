@@ -26,7 +26,7 @@ func TestRenderAll(t *testing.T) {
 		{Arm: "flat_skill", Session: 1, PassRate: 0.5, Tokens: 1100},
 		{Arm: "flat_skill", Session: 2, PassRate: 0.55, Tokens: 1100},
 	}
-	traj := metrics.AggregateTrajectory("demo", rows)
+	traj := metrics.AggregateTrajectory("demo", "mock", rows)
 	bench := metrics.AggregateBenchmark("demo", 1, rows)
 	dir := t.TempDir()
 	html, md, js, err := RenderAll(dir, &Bundle{
@@ -45,6 +45,11 @@ func TestRenderAll(t *testing.T) {
 	}
 	if !strings.Contains(string(htmlBody), "Plotly.newPlot") {
 		t.Fatalf("html missing Plotly init")
+	}
+	for _, frag := range []string{"What to read first", "learning_spans", "patterns_entries", "Cross-section"} {
+		if !strings.Contains(string(htmlBody), frag) {
+			t.Fatalf("html missing digestible section %q", frag)
+		}
 	}
 	mdBody, _ := os.ReadFile(md)
 	if !strings.Contains(string(mdBody), "# Eval report") {
