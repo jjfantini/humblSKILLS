@@ -234,7 +234,9 @@ func collectIntoOutput(scratch, outDir string) ([]string, error) {
 			return err
 		}
 		rel, _ := filepath.Rel(scratch, p)
-		if strings.HasPrefix(rel, "inputs/") {
+		// ToSlash makes the prefix check work on Windows, where
+		// filepath.Rel returns paths with backslashes.
+		if strings.HasPrefix(filepath.ToSlash(rel), "inputs/") {
 			return nil
 		}
 		dst := filepath.Join(outDir, rel)

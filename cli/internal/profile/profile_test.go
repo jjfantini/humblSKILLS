@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -198,6 +199,9 @@ func TestFilterKnownPlatforms(t *testing.T) {
 }
 
 func TestSave_FailsWhenParentUnwritable(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod 0500 does not prevent write on windows")
+	}
 	s := testutil.NewSandbox(t)
 	// Create a readonly parent directory and target a file inside it.
 	parent := filepath.Join(s.Root, "ro")

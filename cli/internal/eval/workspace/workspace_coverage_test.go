@@ -11,6 +11,18 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
 )
 
+// abs turns a forward-slashed test path into a platform-specific
+// absolute path so assertions hold on Windows (where filepath.Abs
+// returns drive-letter-prefixed strings).
+func abs(t *testing.T, p string) string {
+	t.Helper()
+	got, err := filepath.Abs(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return got
+}
+
 func TestResolver_PrefersFlagOverEnvOverProfile(t *testing.T) {
 	r := workspace.Resolver{
 		FlagOverride:   "/flag",
@@ -21,22 +33,22 @@ func TestResolver_PrefersFlagOverEnvOverProfile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != "/flag" {
-		t.Errorf("got %q, want /flag", got)
+	if got != abs(t, "/flag") {
+		t.Errorf("got %q, want %q", got, abs(t, "/flag"))
 	}
 }
 
 func TestResolver_FallsBackToEnvThenProfile(t *testing.T) {
 	r := workspace.Resolver{EnvOverride: "/env", ProfileDefault: "/profile"}
 	got, _ := r.Root()
-	if got != "/env" {
-		t.Errorf("got %q, want /env", got)
+	if got != abs(t, "/env") {
+		t.Errorf("got %q, want %q", got, abs(t, "/env"))
 	}
 
 	r = workspace.Resolver{ProfileDefault: "/profile"}
 	got, _ = r.Root()
-	if got != "/profile" {
-		t.Errorf("got %q, want /profile", got)
+	if got != abs(t, "/profile") {
+		t.Errorf("got %q, want %q", got, abs(t, "/profile"))
 	}
 }
 
@@ -63,14 +75,19 @@ func TestDefaultRoot_UsesXDGStateHome(t *testing.T) {
 }
 
 func TestSkillDir_AndRegistryPath(t *testing.T) {
-	if got := workspace.SkillDir("/r", "foo"); got != "/r/foo" {
-		t.Errorf("SkillDir = %q", got)
+	// filepath.Join uses OS-native separators; use filepath.Join in
+	// the expectations so assertions hold cross-platform.
+	want := filepath.Join("/r", "foo")
+	if got := workspace.SkillDir("/r", "foo"); got != want {
+		t.Errorf("SkillDir = %q, want %q", got, want)
 	}
-	if got := workspace.RegistryPath("/r", "foo"); got != "/r/foo/iterations.json" {
-		t.Errorf("RegistryPath = %q", got)
+	want = filepath.Join("/r", "foo", "iterations.json")
+	if got := workspace.RegistryPath("/r", "foo"); got != want {
+		t.Errorf("RegistryPath = %q, want %q", got, want)
 	}
-	if got := workspace.IterationDir("/r", "foo", 3); got != "/r/foo/iteration-3" {
-		t.Errorf("IterationDir = %q", got)
+	want = filepath.Join("/r", "foo", "iteration-3")
+	if got := workspace.IterationDir("/r", "foo", 3); got != want {
+		t.Errorf("IterationDir = %q, want %q", got, want)
 	}
 }
 

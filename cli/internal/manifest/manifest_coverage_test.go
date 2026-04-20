@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -92,6 +93,9 @@ func TestSave_NilManifestRejected(t *testing.T) {
 }
 
 func TestSave_FailsWhenParentUnwritable(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod 0500 does not prevent write on windows")
+	}
 	s := testutil.NewSandbox(t)
 	parent := filepath.Join(s.Root, "ro")
 	if err := os.MkdirAll(parent, 0o755); err != nil {

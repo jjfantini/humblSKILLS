@@ -64,6 +64,10 @@ func NewSandbox(t testing.TB) *Sandbox {
 	s.SecretsPath = filepath.Join(s.XDGConfigHome, "humblskills", "secrets.json")
 
 	setenv(t, "HOME", s.Home)
+	// Windows resolves os.UserHomeDir() via %USERPROFILE%; without this
+	// override, ~-expansion and adapter detection on Windows CI still
+	// points at the real runner home rather than the sandbox.
+	setenv(t, "USERPROFILE", s.Home)
 	setenv(t, "XDG_DATA_HOME", s.XDGDataHome)
 	setenv(t, "XDG_CONFIG_HOME", s.XDGConfigHome)
 	setenv(t, "XDG_STATE_HOME", s.XDGStateHome)

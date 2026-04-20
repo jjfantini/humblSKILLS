@@ -282,8 +282,10 @@ func collectIntoOutput(scratch, outDir string) ([]string, error) {
 			return err
 		}
 		// Skip the inputs/ subtree - that's what we staged in.
+		// ToSlash normalises path separators so this works on Windows
+		// where filepath.Rel returns "inputs\x.txt".
 		rel, _ := filepath.Rel(scratch, p)
-		if strings.HasPrefix(rel, "inputs/") {
+		if strings.HasPrefix(filepath.ToSlash(rel), "inputs/") {
 			return nil
 		}
 		dst := filepath.Join(outDir, rel)
