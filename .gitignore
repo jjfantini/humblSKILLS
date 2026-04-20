@@ -17,6 +17,9 @@ vendor/
 /bin/
 /build/
 
+# MkDocs
+/site/
+
 # goreleaser
 /dist/
 
