@@ -25,7 +25,15 @@ jobs:
         run: go vet ./...
         working-directory: cli
       - name: go test (race, coverage)
+        # -race requires a C toolchain the Windows runner doesn't ship
+        # with. Skip race mode on Windows; the ubuntu/macos jobs still
+        # exercise it and coverage travels with them.
+        if: matrix.os != 'windows-latest'
         run: go test -race -count=1 -coverprofile=coverage.out ./...
+        working-directory: cli
+      - name: go test (windows)
+        if: matrix.os == 'windows-latest'
+        run: go test -count=1 ./...
         working-directory: cli
       - name: upload coverage
         if: matrix.os == 'ubuntu-latest'

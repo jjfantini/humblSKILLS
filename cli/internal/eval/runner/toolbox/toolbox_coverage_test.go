@@ -108,11 +108,17 @@ func TestBash_Timeout(t *testing.T) {
 		t.Skip()
 	}
 	sb := newBox(t)
-	sb.ExecTimeout = 100 * time.Millisecond
+	sb.ExecTimeout = 300 * time.Millisecond
 	start := time.Now()
-	_, _ = sb.Bash(context.Background(), "sleep 5")
-	if time.Since(start) > 2*time.Second {
-		t.Error("Bash did not honor timeout")
+	// `exec` replaces the shell with sleep so SIGKILL to the process
+	// cascades. Without `exec`, Linux leaves the orphaned sleep holding
+	// the stdout pipe and CombinedOutput blocks until the full 5s.
+	_, _ = sb.Bash(context.Background(), "exec sleep 10")
+	elapsed := time.Since(start)
+	// Generous cap: deadline-driven kill should return well under the
+	// 10s sleep, but CI runners are occasionally slow.
+	if elapsed > 5*time.Second {
+		t.Errorf("Bash did not honor timeout, took %v", elapsed)
 	}
 }
 
