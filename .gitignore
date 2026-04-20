@@ -19,6 +19,7 @@ vendor/
 
 # MkDocs
 /site/
+.venv/
 
 # goreleaser
 /dist/
