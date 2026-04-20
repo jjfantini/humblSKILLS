@@ -1,3 +1,6 @@
 mkdocs==1.6.1
 mkdocs-material==9.6.7
 pymdown-extensions==10.14.3
+# Pygments 2.18+ can pass filename=None into html.escape via HtmlFormatter on Python 3.9,
+# which breaks pymdownx.highlight and causes fenced blocks to fail silently.
+pygments==2.17.2

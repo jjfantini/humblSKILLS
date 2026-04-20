@@ -75,9 +75,17 @@ theme:
 plugins:
   - search
 
+hooks:
+  - docs/mkdocs_hooks.py
+
 markdown_extensions:
   - tables
   - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
