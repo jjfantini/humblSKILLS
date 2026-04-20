@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-20T17:07:46Z",
+  "generated_at": "2026-04-20T20:37:17Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "b9cca42698ef43399dbcbb5a667ea48d4120872b"
+    "sha": "ad8ee64200e664c7a6c6992b008e4394c4f772b4"
   },
   "skills": [
     {
@@ -17,7 +17,7 @@
         "references/patterns.md"
       ],
       "path": "skills/use-smart-humanize-text",
-      "dir_sha": "c1edcdadde1046e18be08e73f2b0d7dbcc15d998685f7070e887045a3bd36611"
+      "dir_sha": "9663306adf14f0b743482db983dd0b6482e708d544c05266501c330cb02daa39"
     },
     {
       "name": "use-smart-skill",
