@@ -2,7 +2,7 @@
 
 Smart skills often accumulate user-owned content: raw sources, append-only memory (`log.md`, `decisions.md`, `patterns.md`), wiki pages, and so on. By default, `humblskills update` and `humblskills install` **overwrite** the skill directory with what the registry ships.
 
-Skills that must keep user content across updates declare a **`preserve:`** list in `SKILL.md` frontmatter.
+Skills that must keep user content across updates declare a **`preserve`** list under **`metadata:`** in `SKILL.md` frontmatter (see [Registry & skill format](registry_and_format.md)).
 
 ## Rules
 
@@ -21,13 +21,14 @@ Fresh installs always seed everything from the registry. `preserve` applies when
 ---
 name: my-smart-skill
 description: ...
-version: 0.2.0
-preserve:
-  - references/log.md
-  - references/patterns.md
-  - references/decisions.md
-  - references/raw/
-  - references/wiki/
+metadata:
+  version: 0.2.0
+  preserve:
+    - references/log.md
+    - references/patterns.md
+    - references/decisions.md
+    - references/raw/
+    - references/wiki/
 ---
 ```
 
@@ -35,17 +36,17 @@ Authors who ship a **preserve directory** should document that files the author 
 
 ## You own the preserve list after install
 
-The registry’s `preserve:` list is the **seed** on first install. After that, **`humblskills update` reads `preserve:` from the installed `SKILL.md` on disk** (per platform and scope), not from upstream.
+The registry’s preserve list under **`metadata.preserve`** is the **seed** on first install. After that, **`humblskills update` reads that list from the installed `SKILL.md` on disk** (per platform and scope), not from upstream.
 
 - Add an entry locally → that path survives the next update, even if upstream did not list it.
 - Remove an entry locally → that path is overwritten from upstream on the next update.
-- Clear `preserve:` → the next update does a full overwrite for paths that are not listed.
+- Clear **`metadata.preserve`** → the next update does a full overwrite for paths that are not listed.
 
-Only **`preserve:`** is treated as user-owned. Other frontmatter (`name`, `description`, `version`, `requires`, `platforms`, `tags`) and the markdown body are refreshed from upstream on update, while your `preserve:` list is carried forward.
+Only **`metadata.preserve`** is treated as user-owned. Top-level agent-skills fields (`name`, `description`, `license`, `compatibility`, `allowed-tools`, and similar), every other key under **`metadata:`** (`version`, `requires`, `platforms`, `tags`, and so on), and the markdown body are refreshed from upstream on update, while your preserve list is carried forward.
 
 ### Freeze all of `SKILL.md`
 
-To stop upstream from changing description, version, or body, add **`SKILL.md`** itself to `preserve:`. That is opt-in and stops those upstream updates until you remove it.
+To stop upstream from changing description, version, or body, add **`SKILL.md`** itself to **`metadata.preserve`**. That is opt-in and stops those upstream updates until you remove it.
 
 ### Broken or missing frontmatter
 
