@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.5.0](https://github.com/jjfantini/humblSKILLS/compare/v2.4.1...v2.5.0) (2026-04-20)
+
+
+### Features
+
+* **cli:** add humblskills eval command for benchmarking skills ([e6d9e6b](https://github.com/jjfantini/humblSKILLS/commit/e6d9e6b6559a0446861e4bf7778c621c4b9e7e1e))
+* **cli:** humblskills eval - benchmark skills with longitudinal trajectories ([b9cca42](https://github.com/jjfantini/humblSKILLS/commit/b9cca42698ef43399dbcbb5a667ea48d4120872b))
+* **cli:** LLM judge + .env auto-load + compounding-signal scenario ([986e3ac](https://github.com/jjfantini/humblSKILLS/commit/986e3ac87d5846baac0adda38e852e6b72984234))
+* **eval:** compounding brain loop actually compounds ([d136f7d](https://github.com/jjfantini/humblSKILLS/commit/d136f7d67fc3507a4ece7d852f676866f23799ce))
+
+
+### Bug Fixes
+
+* **ci:** enable release-please release PRs; document dashboard quickstart ([53a747a](https://github.com/jjfantini/humblSKILLS/commit/53a747a32aa907e262af1d8f62762fce4fdce193))
+* **ci:** green up Windows tests and regenerate registry ([731c803](https://github.com/jjfantini/humblSKILLS/commit/731c803fc00ccb3c144a6889db94f0bba1d55365))
+* **ci:** only deploy docs from main ([a0621a7](https://github.com/jjfantini/humblSKILLS/commit/a0621a7cc60b36c14cbcbb3068e2ca10f4485cfa))
+* **ci:** release-please release PRs + dashboard quickstart ([46bea09](https://github.com/jjfantini/humblSKILLS/commit/46bea09f007e8a75e83ef9b0d0db5cf1cf04daf9))
+* **cli:** cursor-agent runner - correct flags, prompt, and token parse ([46c4c4d](https://github.com/jjfantini/humblSKILLS/commit/46c4c4d6e68898ca071c61144635eb1ba843caff))
+* **cli:** surface runner errors + resolve exec checks against outputs ([cd571da](https://github.com/jjfantini/humblSKILLS/commit/cd571dac9bf6223be9bec52ace9efadba55b5ad3))
+* **docs:** MkDocs fenced code blocks and Pygments pin ([b1ebad9](https://github.com/jjfantini/humblSKILLS/commit/b1ebad9e2e5dd7dfea34c4bd9ff78bc33dbccf5f))
+* **docs:** restore fenced code blocks and Pygments compatibility ([8b4a7fe](https://github.com/jjfantini/humblSKILLS/commit/8b4a7fe700b88d3255bb776b942a7c48ec418823))
+
 ## [2.4.1](https://github.com/jjfantini/humblSKILLS/compare/v2.4.0...v2.4.1) (2026-04-19)
 
 
