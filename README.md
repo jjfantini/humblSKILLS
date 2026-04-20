@@ -98,6 +98,8 @@ dashboard. For smart skills the same harness runs sessions in order so the
 brain state (patterns, decisions, log, wiki) carries across sessions and
 you get a longitudinal trajectory that proves the skill compounds over time.
 
+**Latest published showcase:** [adaptive-brand-voice-discovery · 2026-04-20](docs/eval/reports/latest-brand-voice.html) — a 6-session compounding scenario over 10 idiosyncratic brand-voice rules. On cursor-agent, `smart_skill` scored pass_rate **0.935** vs `no_skill` **0.740** (**+26.3%**) and `flat_skill` **0.679** (**+37.7%**), while using **67% fewer tokens** than `no_skill`. Reproduce locally with `humblskills eval brand-voice`. Full index at [docs/eval/reports/](docs/eval/reports/).
+
 Six runners ship behind one interface - pick whichever agent you already
 use, or point an API key directly at the hosted model:
 
@@ -118,7 +120,8 @@ humblskills eval set-key anthropic          # store key in the OS keyring
 humblskills eval runners                    # one-liner per-runner status
 humblskills eval                            # dashboard entry → Eval Home TUI
 humblskills eval run use-smart-skill        # non-TUI run
-humblskills eval showcase                   # the canonical demo
+humblskills eval showcase                   # the canonical use-smart-skill demo
+humblskills eval brand-voice                # the adaptive-brand-voice-discovery showcase (3-arm compounding)
 humblskills eval ls                         # iterations per skill
 humblskills eval prune use-smart-skill --keep-last 5
 ```

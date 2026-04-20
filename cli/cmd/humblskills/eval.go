@@ -52,6 +52,7 @@ func newEvalCmd(app *App) *cobra.Command {
 		newEvalReportCmd(app),
 		newEvalCompareCmd(app),
 		newEvalShowcaseCmd(app),
+		newEvalBrandVoiceCmd(app),
 		newEvalRunnersCmd(app),
 		newEvalSetKeyCmd(app),
 		newEvalLsCmd(app),
@@ -422,6 +423,24 @@ func newEvalShowcaseCmd(app *App) *cobra.Command {
 		Short: "Run the canonical demo on use-smart-skill",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runEvalRun(app, "use-smart-skill", evalRunFlags{open: true})
+		},
+	}
+}
+
+// newEvalBrandVoiceCmd runs the adaptive-brand-voice-discovery scenario on
+// use-smart-humanize-text. This is the canonical 3-arm (smart / flat / no)
+// compounding-learning showcase: 6 sessions over a fictional company's 10
+// idiosyncratic style rules, with per-session violation charts and deltas.
+// Opens the single-file HTML report in the browser when complete.
+func newEvalBrandVoiceCmd(app *App) *cobra.Command {
+	return &cobra.Command{
+		Use:   "brand-voice",
+		Short: "Run the adaptive-brand-voice-discovery showcase (3-arm compounding demo) and open the report",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runEvalRun(app, "use-smart-humanize-text", evalRunFlags{
+				scenarioIDs: []string{"adaptive-brand-voice-discovery"},
+				open:        true,
+			})
 		},
 	}
 }
