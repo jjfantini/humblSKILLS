@@ -1,6 +1,24 @@
 # Installation
 
+## Homebrew (recommended on Linux and macOS)
+
+If you use [Homebrew](https://brew.sh), this is the simplest way to install and upgrade `humblskills`:
+
+```sh
+brew install jjfantini/humbl/humblskills
+```
+
+Tap and formula live in [`jjfantini/homebrew-humbl`](https://github.com/jjfantini/homebrew-humbl); new releases bump the formula automatically.
+
+Upgrade later with:
+
+```sh
+brew upgrade humblskills
+```
+
 ## Shell installer (Linux/macOS)
+
+Use this when you do not use Homebrew, or for scripted installs (for example in CI):
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/scripts/install.sh | sh
@@ -26,7 +44,7 @@ go install github.com/jjfantini/humblSKILLS/cli/cmd/humblskills@latest
 
 ## Direct download
 
-Grab the archive for your platform from the [releases page](https://github.com/jjfantini/humblSKILLS/releases/latest):
+Grab the archive for your platform from the [releases page](https://github.com/jjfantini/humblSKILLS/releases/latest) (including **Windows** builds):
 
 - `humblskills_<version>_linux_amd64.tar.gz`
 - `humblskills_<version>_linux_arm64.tar.gz`
@@ -36,14 +54,6 @@ Grab the archive for your platform from the [releases page](https://github.com/j
 - `humblskills_<version>_windows_arm64.zip`
 
 Each release publishes `checksums.txt` with SHA-256 sums.
-
-## Homebrew (Linux/macOS)
-
-```sh
-brew install jjfantini/humbl/humblskills
-```
-
-Formulas live in [`jjfantini/homebrew-humbl`](https://github.com/jjfantini/homebrew-humbl) and are bumped by the release workflow.
 
 ## Verify
 
