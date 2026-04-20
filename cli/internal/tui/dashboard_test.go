@@ -53,22 +53,24 @@ func TestBuildDashboardGreeting_PopulatesFields(t *testing.T) {
 }
 
 func TestCompactPath(t *testing.T) {
-	// Drive compactPath with the actual home directory as resolved by
-	// os.UserHomeDir (Unix reads $HOME, Windows reads %USERPROFILE%)
-	// so the prefix-match logic behaves the same on every platform.
-	t.Setenv("HOME", "/tmp/userhome")
-	t.Setenv("USERPROFILE", "/tmp/userhome")
+	// Use a real tempdir as the "home" so the path separators match
+	// whatever the OS natively produces. Point both HOME and
+	// USERPROFILE at it — Unix reads $HOME, Windows reads %USERPROFILE%.
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatalf("UserHomeDir: %v", err)
-	}
-	got := compactPath(filepath.Join(home, "work", "x"))
-	if !strings.HasPrefix(got, "~") {
+	inside := filepath.Join(home, "work", "x")
+	if got := compactPath(inside); !strings.HasPrefix(got, "~") {
 		t.Errorf("compactPath should prefix ~: %q", got)
 	}
-	if got := compactPath("/other/path"); got != "/other/path" {
-		t.Errorf("unrelated path changed: %q", got)
+
+	// A path unrelated to home passes through unchanged. Use the OS's
+	// temp dir root so we get an actually-unrelated absolute path on
+	// every platform.
+	unrelated := filepath.Join(os.TempDir(), "definitely-not-home-"+filepath.Base(home))
+	if got := compactPath(unrelated); got != unrelated {
+		t.Errorf("unrelated path changed: got %q want %q", got, unrelated)
 	}
 }
 
