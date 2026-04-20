@@ -4,16 +4,17 @@ Skills in this registry follow the [agentskills.io](https://agentskills.io) form
 
 ## humblSKILLS frontmatter extensions
 
-Authors may include extra keys in YAML frontmatter:
+humblSKILLS-specific keys live under the optional **`metadata:`** map so the top level stays aligned with [agentskills.io](https://agentskills.io) (`name`, `description`, and other spec fields only).
 
-| Key | Purpose |
-|-----|---------|
+| Key under `metadata:` | Purpose |
+|-------------------------|---------|
 | `requires` | Dependencies or constraints (as defined by the skill) |
 | `platforms` | Which agent platforms the skill targets |
 | `tags` | Discovery / grouping |
+| `version` | Skill package version (semver) |
 | `preserve` | Paths to keep on `update` when replacing an installed skill (see [Preserving user content](preserving_user_content.md)) |
 
-Other frontmatter fields (for example `name`, `description`, `version`) follow the normal agentskills.io expectations.
+Other top-level frontmatter follows the normal agentskills.io expectations.
 
 ## Where skills live in the repo
 
