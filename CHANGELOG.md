@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.6.0](https://github.com/jjfantini/humblSKILLS/compare/v2.5.0...v2.6.0) (2026-04-20)
+
+
+### Features
+
+* **docs:** agent-facing SKILL.md URL on GitHub Pages ([876343b](https://github.com/jjfantini/humblSKILLS/commit/876343b782935f64cb3678c555960ccfec9d82c4))
+* **docs:** publish agent-facing SKILL.md on GitHub Pages ([9090fac](https://github.com/jjfantini/humblSKILLS/commit/9090fac088350c37269bf3805a9f632c621a4e18))
+
 ## [2.5.0](https://github.com/jjfantini/humblSKILLS/compare/v2.4.1...v2.5.0) (2026-04-20)
 
 
