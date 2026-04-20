@@ -3,14 +3,13 @@ name: release
 # Single entry-point release pipeline.
 #
 # Automated path (push: main):
-#   release-please accumulates conventional commits into a Release PR. When
-#   that Release PR is merged, release-please creates the `vX.Y.Z` tag and
-#   this same workflow run continues into goreleaser - publishing binaries
-#   and updating the `jjfantini/homebrew-humbl` tap.
+#   release-please (skip-github-pull-request) evaluates conventional commits on
+#   main. When a release is due, it creates the `vX.Y.Z` tag and GitHub release
+#   in the same run, then this workflow continues into goreleaser - publishing
+#   binaries and updating the `jjfantini/homebrew-humbl` tap.
 #
 # Manual backfill (workflow_dispatch):
-#   Re-run goreleaser against an existing tag. Skips release-please so no
-#   spurious Release PR is opened.
+#   Re-run goreleaser against an existing tag. Skips release-please.
 
 on:
   push:
