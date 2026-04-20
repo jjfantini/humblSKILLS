@@ -9,7 +9,10 @@
 #     relax reviews for maintainers). Required *status checks* alone work well.
 #
 # This only targets branches created by release-please (head ref contains
-# release-please--) and PRs authored by github-actions[bot].
+# release-please--). The branch prefix is unique to release-please, so we don't
+# additionally pin on PR author — release-please switched to a PAT-authored
+# identity to escape the GITHUB_TOKEN workflow-trigger suppression, so pinning
+# to github-actions[bot] would lock this workflow out.
 
 name: Auto-merge release-please PR
 
@@ -30,7 +33,6 @@ jobs:
     if: |
       github.base_ref == 'main' &&
       contains(github.head_ref, 'release-please--') &&
-      github.event.pull_request.user.login == 'github-actions[bot]' &&
       github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
