@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -51,10 +53,17 @@ func TestBuildDashboardGreeting_PopulatesFields(t *testing.T) {
 }
 
 func TestCompactPath(t *testing.T) {
-	// Direct compactPath call — when HOME is set and path starts with
-	// it, expect ~ prefix.
+	// Drive compactPath with the actual home directory as resolved by
+	// os.UserHomeDir (Unix reads $HOME, Windows reads %USERPROFILE%)
+	// so the prefix-match logic behaves the same on every platform.
 	t.Setenv("HOME", "/tmp/userhome")
-	got := compactPath("/tmp/userhome/work/x")
+	t.Setenv("USERPROFILE", "/tmp/userhome")
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("UserHomeDir: %v", err)
+	}
+	got := compactPath(filepath.Join(home, "work", "x"))
 	if !strings.HasPrefix(got, "~") {
 		t.Errorf("compactPath should prefix ~: %q", got)
 	}

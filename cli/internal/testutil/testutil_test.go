@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -178,8 +179,9 @@ func TestUnavailableKeyring_FallsBackToFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat secrets: %v", err)
 	}
-	// 0o600 enforced on write.
-	if info.Mode().Perm() != 0o600 {
+	// 0o600 enforced on write — but Windows doesn't honor the Unix
+	// permission bits passed to OpenFile, so this assertion is POSIX-only.
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Errorf("secrets perm = %o, want 0600", info.Mode().Perm())
 	}
 }
