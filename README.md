@@ -1,5 +1,7 @@
 # humblSKILLS
 
+📖 **Full documentation:** [jjfantini.github.io/humblSKILLS](https://jjfantini.github.io/humblSKILLS/)
+
 A personal skill registry and a single-binary Go CLI (`humblskills`) that
 installs [agentskills.io](https://agentskills.io)-format skills into whichever
 agent platform you use — Claude Code, Cursor, Codex, and friends.
