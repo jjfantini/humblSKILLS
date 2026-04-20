@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.0](https://github.com/jjfantini/humblSKILLS/compare/v2.7.0...v2.8.0) (2026-04-20)
+
+
+### Features
+
+* **test:** regression safety net for upcoming CLI refactor ([#80](https://github.com/jjfantini/humblSKILLS/issues/80)) ([757381b](https://github.com/jjfantini/humblSKILLS/commit/757381be771b8a5e98d6bf15f655a02e75b87f48))
+
 ## [2.7.0](https://github.com/jjfantini/humblSKILLS/compare/v2.6.0...v2.7.0) (2026-04-20)
 
 
