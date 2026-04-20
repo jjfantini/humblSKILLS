@@ -22,7 +22,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: auto-merge-release-please-${{ github.event.pull_request.number }}
+  group: release-auto-merge-${{ github.event.pull_request.number }}
   cancel-in-progress: false
 
 jobs:
