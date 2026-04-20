@@ -3,6 +3,7 @@ package secrets
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/zalando/go-keyring"
@@ -60,13 +61,17 @@ func TestFileFallbackWhenKeyringMissing(t *testing.T) {
 	if v != "file-key" || src != SourceFile {
 		t.Fatalf("got %q/%s, want file-key/file", v, src)
 	}
-	// Permissions on the file should be 0600.
-	info, err := os.Stat(path)
-	if err != nil {
-		t.Fatalf("stat: %v", err)
-	}
-	if info.Mode().Perm() != 0o600 {
-		t.Fatalf("got perm %v, want 0600", info.Mode().Perm())
+	// Permissions on the file should be 0600 on POSIX. Windows doesn't
+	// honor Unix permission bits — Go reports -rw-rw-rw- regardless of
+	// what we pass to OpenFile — so skip the perm assertion there.
+	if runtime.GOOS != "windows" {
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatalf("stat: %v", err)
+		}
+		if info.Mode().Perm() != 0o600 {
+			t.Fatalf("got perm %v, want 0600", info.Mode().Perm())
+		}
 	}
 }
 

@@ -226,6 +226,9 @@ func inspectSnapshot(dir string) (snapshotStats, error) {
 			s.BrainBytes += info.Size()
 		}
 		rel, _ := filepath.Rel(dir, p)
+		// Normalize to forward slashes so the path-prefix checks work on
+		// Windows, where filepath.Rel returns `wiki\a\b\one.md`.
+		rel = filepath.ToSlash(rel)
 		switch {
 		case strings.HasPrefix(rel, "wiki/") && strings.HasSuffix(rel, ".md"):
 			s.WikiConcepts++

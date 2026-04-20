@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-19T23:24:50Z",
+  "generated_at": "2026-04-20T13:52:59Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "main",
-    "sha": "d5e60064e80aeab731bb20b49a82daadd656e6f0"
+    "ref": "develop",
+    "sha": "986e3ac87d5846baac0adda38e852e6b72984234"
   },
   "skills": [
     {
@@ -17,7 +17,7 @@
         "references/patterns.md"
       ],
       "path": "skills/use-smart-humanize-text",
-      "dir_sha": "05cd958d3056f4de30d9877b1f88cdedc2e2b2b7e82fd4a73b7df0f46dbb125b"
+      "dir_sha": "4fce0b7ae9eb69e12d90fd1c401f13af3f8593bb1104680b12dc6b1268597a32"
     },
     {
       "name": "use-smart-skill",
@@ -40,7 +40,7 @@
         "references/patterns.md"
       ],
       "path": "skills/use-smart-skill",
-      "dir_sha": "82f29fdfcf52a1564cfb5daca8e637a843ae67c06063f70da1ba9ac7aada049a"
+      "dir_sha": "7247d01c81262cd407092ab54ece41b9f935761a0c354899b81ffdd0e6140ef0"
     }
   ]
 }
