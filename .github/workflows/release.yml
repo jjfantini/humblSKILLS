@@ -36,6 +36,12 @@ jobs:
   release_please:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    # The `release` environment scopes RELEASE_PLEASE_TOKEN (a PAT). Using a
+    # PAT instead of GITHUB_TOKEN means the release PR is authored by a human
+    # account, so it escapes GitHub's rule that PRs opened via GITHUB_TOKEN
+    # don't trigger downstream `pull_request` workflows (CI, auto-merge). The
+    # environment has no protection rules, so this is pure secret scoping.
+    environment: release
     outputs:
       release_created: ${{ steps.rp.outputs.release_created }}
       tag_name: ${{ steps.rp.outputs.tag_name }}
@@ -45,6 +51,7 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
   goreleaser:
     needs: release_please
