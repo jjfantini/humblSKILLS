@@ -24,9 +24,50 @@ jobs:
       - name: go vet
         run: go vet ./...
         working-directory: cli
-      - name: go test
-        run: go test ./...
+      - name: go test (race, coverage)
+        # -race requires a C toolchain the Windows runner doesn't ship
+        # with. Skip race mode on Windows; the ubuntu/macos jobs still
+        # exercise it and coverage travels with them.
+        if: matrix.os != 'windows-latest'
+        run: go test -race -count=1 -coverprofile=coverage.out ./...
         working-directory: cli
+      - name: go test (windows)
+        if: matrix.os == 'windows-latest'
+        run: go test -count=1 ./...
+        working-directory: cli
+      - name: upload coverage
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: cli/coverage.out
+
+  fuzz:
+    # Short (10s per target) fuzz pass surfaces panics without blowing
+    # up CI time. Dedicated overnight fuzzing lives elsewhere.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache-dependency-path: cli/go.sum
+      - name: Run fuzz targets (short)
+        working-directory: cli
+        run: |
+          set -e
+          for target in \
+            "internal/frontmatter FuzzParse" \
+            "internal/frontmatter FuzzParseDep" \
+            "internal/env FuzzParseDotEnv" \
+            "internal/adapters FuzzExpandPath" \
+            "internal/resolver FuzzTopoSort"; do
+            pkg=$(echo "$target" | cut -d' ' -f1)
+            name=$(echo "$target" | cut -d' ' -f2)
+            echo "::group::fuzz $pkg/$name"
+            go test ./$pkg/ -run='^$' -fuzz="^$name$" -fuzztime=10s
+            echo "::endgroup::"
+          done
 
   registry-check:
     runs-on: ubuntu-latest
