@@ -12,6 +12,9 @@ name: release
 #   Do not set skip-github-pull-request: true with this layout - it breaks
 #   tagging/releases when using manifest + release PRs (see release-please#937).
 #
+#   Auto-merge: .github/workflows/release-auto-merge.yml enables GitHub
+#   auto-merge on those PRs so they land when CI passes (enable in repo settings).
+#
 # Manual backfill (workflow_dispatch):
 #   Re-run goreleaser against an existing tag. Skips release-please.
 

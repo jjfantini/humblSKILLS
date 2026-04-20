@@ -9,6 +9,7 @@ site_author: Jennings Fantini
 
 exclude_docs: |
   requirements.txt
+  getting_started/installation-agent/SKILL.md
 
 watch:
   - docs/

@@ -1,0 +1,40 @@
+# Enables GitHub auto-merge on release-please PRs so they land on main as soon as
+# required checks pass, without a manual merge click. That push then lets the
+# release workflow create the tag, GitHub Release, and GoReleaser artifacts.
+#
+# Prerequisites (repo Settings):
+#   - General → Pull Requests → Allow auto-merge: ON
+#   - Branch protection on main: if "Require approvals" is ON, auto-merge will
+#     wait forever unless you add a bypass (bot review, ruleset exception, or
+#     relax reviews for maintainers). Required *status checks* alone work well.
+#
+# This only targets branches created by release-please (head ref contains
+# release-please--) and PRs authored by github-actions[bot].
+
+name: Auto-merge release-please PR
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  enable-auto-merge:
+    if: |
+      github.base_ref == 'main' &&
+      contains(github.head_ref, 'release-please--') &&
+      github.event.pull_request.user.login == 'github-actions[bot]' &&
+      github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable auto-merge (merge commit)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge "${{ github.event.pull_request.number }}" --merge --auto
