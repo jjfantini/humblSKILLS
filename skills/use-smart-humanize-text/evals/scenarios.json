@@ -1,0 +1,108 @@
+{
+  "skill_name": "use-smart-humanize-text",
+  "schema_version": 1,
+  "configurations": ["smart_skill", "flat_skill", "no_skill"],
+  "runs_per_configuration": 1,
+  "scenarios": [
+    {
+      "id": "plain-docs-voice-calibration",
+      "family": "rewrite",
+      "tags": ["compounding", "brain-protocol", "voice", "technical-docs"],
+      "sessions": [
+        {
+          "n": 1,
+          "prompt": "Rewrite the AI-bloated technical doc at ./inputs/doc-1.md into PLAIN technical documentation. Aim for short declarative sentences, no marketing voice, no hype vocabulary.\n\nIf a skill is available at ./skill/, follow its Brain Protocol first: read ./skill/SKILL.md, then ./skill/references/_index.md, patterns.md, decisions.md, log.md, then the relevant wiki/humanize/ concepts.\n\nSTEP 1 - Write your rewrite to out-1.md in the CURRENT directory (NOT inside ./skill/ or ./inputs/).\n\nSTEP 2 - Run the deterministic voice checker and capture its JSON output to a sidecar file:\n  bash ./inputs/check-voice.sh out-1.md > out-1-check.json\nThe JSON looks like {\"violations\": [\"banned word: utilize\", \"banned word: leverage\", ...], \"count\": N}. Read it.\n\nSTEP 3 (skill arms only) - If count > 0, append a NEW entry to ./skill/references/patterns.md using the canonical entry shape. Quote the SPECIFIC violation strings from the JSON verbatim so session 2+ has concrete rules to avoid. Example:\n  ### 2026-04-20 | Session 1 check-voice: caught 3 violations\n  - Context: rewrote doc-1.md (SDK intro)\n  - Approach: kept structure, swapped hype words for plain ones\n  - Result: count=3. violations: banned 'utilize', banned 'leverage', banned 'cutting-edge'\n  - Worked: <what helped>\n  - Didn't: still slipped 3 banned words on first pass\n  - Lesson: banned-word list includes 'utilize', 'leverage', 'cutting-edge'. Next session: use 'use' / domain verb / 'new' instead.\nDo NOT mutate existing entries. Append only. If count==0, append a one-line entry to ./skill/references/log.md only.\n\nSTEP 4 - Declare done.",
+          "files": [
+            "skills/use-smart-humanize-text/evals/files/doc-1.md",
+            "skills/use-smart-humanize-text/evals/assertions/check-voice.sh"
+          ],
+          "assertions": [
+            { "text": "out-1.md exists", "check": "path_exists:out-1.md" },
+            { "text": "out-1-check.json exists (proof the agent ran the checker)", "check": "path_exists:out-1-check.json" },
+            { "text": "out-1.md has zero violations per the voice checker", "check": "exec:test -f out-1-check.json && grep -q '\"count\":0' out-1-check.json" },
+            { "text": "The rewrite in out-1.md reads as plain, unpretentious technical documentation - no AI marketing voice, no hype adjectives. Score on a 1-10 scale where 1 = plain technical prose and 10 = AI marketing slop. Pass ONLY if score <= 4. In evidence, quote two plain phrases and flag any remaining hype word.", "check": "llm" }
+          ]
+        },
+        {
+          "n": 2,
+          "prompt": "Rewrite ./inputs/doc-2.md. Same 4-step protocol.\n\nCRITICAL for skill arms: BEFORE writing, read ./skill/references/patterns.md. It contains session 1's check-voice violations with specific banned words. Do NOT use any banned word that session 1 caught - the JSON from session 1 lists them verbatim.\n\nWrite to out-2.md. Run: bash ./inputs/check-voice.sh out-2.md > out-2-check.json. If count > 0, append 'Session 2 check-voice' entry to patterns.md citing the specific violations.",
+          "files": [
+            "skills/use-smart-humanize-text/evals/files/doc-2.md",
+            "skills/use-smart-humanize-text/evals/assertions/check-voice.sh"
+          ],
+          "retention_check": "Session 1 should have logged at least one check-voice violation to patterns.md. Session 2's out-2.md must not repeat those specific banned words.",
+          "assertions": [
+            { "text": "out-2.md exists", "check": "path_exists:out-2.md" },
+            { "text": "out-2-check.json exists", "check": "path_exists:out-2-check.json" },
+            { "text": "out-2.md has zero violations per the voice checker", "check": "exec:test -f out-2-check.json && grep -q '\"count\":0' out-2-check.json" },
+            { "text": "The rewrite in out-2.md reads as plain technical documentation. Score 1-10, pass if <=4.", "check": "llm" }
+          ]
+        },
+        {
+          "n": 3,
+          "prompt": "Rewrite ./inputs/doc-3.md. Same 4-step protocol. READ patterns.md first; respect every accumulated banned-word lesson from sessions 1-2. Write to out-3.md, run checker, save JSON to out-3-check.json, log to patterns.md.",
+          "files": [
+            "skills/use-smart-humanize-text/evals/files/doc-3.md",
+            "skills/use-smart-humanize-text/evals/assertions/check-voice.sh"
+          ],
+          "retention_check": "patterns.md has at least 2 entries by start of session 3.",
+          "assertions": [
+            { "text": "out-3.md exists", "check": "path_exists:out-3.md" },
+            { "text": "out-3-check.json exists", "check": "path_exists:out-3-check.json" },
+            { "text": "out-3.md has zero violations per the voice checker", "check": "exec:test -f out-3-check.json && grep -q '\"count\":0' out-3-check.json" },
+            { "text": "The rewrite in out-3.md reads as plain technical documentation. Score 1-10, pass if <=4.", "check": "llm" }
+          ]
+        },
+        {
+          "n": 4,
+          "prompt": "Rewrite ./inputs/doc-4.md. Same protocol. Apply sessions 1-3 lessons from patterns.md. Write to out-4.md, save checker JSON to out-4-check.json, log to patterns.md.",
+          "files": [
+            "skills/use-smart-humanize-text/evals/files/doc-4.md",
+            "skills/use-smart-humanize-text/evals/assertions/check-voice.sh"
+          ],
+          "retention_check": "patterns.md has at least 3 entries by start of session 4.",
+          "assertions": [
+            { "text": "out-4.md exists", "check": "path_exists:out-4.md" },
+            { "text": "out-4-check.json exists", "check": "path_exists:out-4-check.json" },
+            { "text": "out-4.md has zero violations per the voice checker", "check": "exec:test -f out-4-check.json && grep -q '\"count\":0' out-4-check.json" },
+            { "text": "The rewrite in out-4.md reads as plain technical documentation. Score 1-10, pass if <=4.", "check": "llm" }
+          ]
+        },
+        {
+          "n": 5,
+          "prompt": "Rewrite ./inputs/doc-5.md. Final session. Apply sessions 1-4 lessons from patterns.md. Write to out-5.md, save checker JSON to out-5-check.json, log to patterns.md.",
+          "files": [
+            "skills/use-smart-humanize-text/evals/files/doc-5.md",
+            "skills/use-smart-humanize-text/evals/assertions/check-voice.sh"
+          ],
+          "retention_check": "patterns.md has at least 4 entries by start of session 5 - full compounding test. out-5.md should hit zero violations if the brain worked.",
+          "assertions": [
+            { "text": "out-5.md exists", "check": "path_exists:out-5.md" },
+            { "text": "out-5-check.json exists", "check": "path_exists:out-5-check.json" },
+            { "text": "out-5.md has zero violations per the voice checker", "check": "exec:test -f out-5-check.json && grep -q '\"count\":0' out-5-check.json" },
+            { "text": "The rewrite in out-5.md reads as plain technical documentation. Score 1-10, pass if <=4.", "check": "llm" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "de-slop-outreach-baseline",
+      "family": "rewrite",
+      "tags": ["baseline", "vocabulary"],
+      "sessions": [
+        {
+          "n": 1,
+          "prompt": "Rewrite this outreach email to remove AI tells. Keep the content. Write only the rewritten email to outreach-v1.md. Source:\n\n\"Dear Jane, I hope this email finds you well. I'm thrilled to reach out regarding our innovative, seamless platform — it's a game-changer that can help you unlock new possibilities and leverage your data in a meaningful way. I wanted to briefly touch base to see if you might be open to a quick chat. Best regards, Dan.\"",
+          "assertions": [
+            { "text": "outreach-v1.md exists", "check": "path_exists:outreach-v1.md" },
+            { "text": "no em dashes", "check": "exec:test -f outreach-v1.md && ! grep -q '—' outreach-v1.md" },
+            { "text": "no 'leverage'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'leverage' outreach-v1.md" },
+            { "text": "no 'seamless'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'seamless' outreach-v1.md" },
+            { "text": "no 'thrilled'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'thrilled' outreach-v1.md" },
+            { "text": "no 'game-changer'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'game-changer' outreach-v1.md" }
+          ]
+        }
+      ]
+    }
+  ]
+}

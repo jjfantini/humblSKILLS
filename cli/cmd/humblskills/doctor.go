@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -11,9 +13,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
+	"github.com/jjfantini/humblSKILLS/cli/internal/eval/evalruntime"
+	"github.com/jjfantini/humblSKILLS/cli/internal/eval/workspace"
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
@@ -23,7 +28,43 @@ type doctorReport struct {
 	Manifest manifestReport  `json:"manifest"`
 	Registry registryReport  `json:"registry"`
 	Updates  updatesReport   `json:"updates"`
+	Eval     evalReport      `json:"eval"`
 	Issues   []string        `json:"issues,omitempty"`
+}
+
+// evalReport is the eval-prerequisite block: per-runner availability,
+// workspace writability, per-provider API key source (never the value),
+// and the count of installed skills with evals/ on disk.
+type evalReport struct {
+	Runners       []runnerCheck  `json:"runners"`
+	Workspace     workspaceCheck `json:"workspace"`
+	APIKeys       []apiKeyCheck  `json:"api_keys"`
+	DefaultRunner string         `json:"default_runner"`
+	EvalSkills    int            `json:"eval_skills"`
+}
+
+type runnerCheck struct {
+	Name        string `json:"name"`
+	Available   bool   `json:"available"`
+	Version     string `json:"version,omitempty"`
+	Reason      string `json:"reason,omitempty"`
+	Fix         string `json:"fix,omitempty"`
+	RequiresKey string `json:"requires_key,omitempty"`
+}
+
+type workspaceCheck struct {
+	Path           string `json:"path"`
+	Exists         bool   `json:"exists"`
+	Writable       bool   `json:"writable"`
+	SizeBytes      int64  `json:"size_bytes"`
+	IterationCount int    `json:"iteration_count"`
+	SkillsWithRuns int    `json:"skills_with_runs"`
+}
+
+type apiKeyCheck struct {
+	Provider string `json:"provider"`
+	Present  bool   `json:"present"`
+	Source   string `json:"source"` // "env" | "keyring" | "file" | "absent"
 }
 
 type updatesReport struct {
@@ -179,7 +220,84 @@ func buildDoctorReport(app *App) (doctorReport, error) {
 		}
 	}
 
+	report.Eval = buildEvalReport(app)
 	return report, nil
+}
+
+// buildEvalReport collects per-runner availability + API-key presence +
+// workspace writability for the doctor report. Never touches the wire -
+// runner DoctorCheck is designed to be a fast local probe.
+func buildEvalReport(app *App) evalReport {
+	store, _ := secrets.NewStore("")
+	reg := evalruntime.DefaultRegistry(store)
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	det := reg.Detect(ctx)
+
+	er := evalReport{}
+	for _, d := range det {
+		er.Runners = append(er.Runners, runnerCheck{
+			Name:        d.Name,
+			Available:   d.Check.Available,
+			Version:     d.Check.Version,
+			Reason:      d.Check.Reason,
+			Fix:         d.Check.Fix,
+			RequiresKey: d.Check.RequiresKey,
+		})
+		if er.DefaultRunner == "" && d.Check.Available {
+			er.DefaultRunner = d.Name
+		}
+	}
+	// API keys.
+	if store != nil {
+		for _, p := range secrets.Providers() {
+			_, src, err := store.Get(p.Name)
+			present := err == nil && src != secrets.SourceAbsent
+			er.APIKeys = append(er.APIKeys, apiKeyCheck{
+				Provider: p.Name,
+				Present:  present,
+				Source:   string(src),
+			})
+		}
+	}
+	// Workspace.
+	wsRoot := resolveWorkspace(app, "")
+	ws := workspaceCheck{Path: wsRoot}
+	if fi, err := os.Stat(wsRoot); err == nil && fi.IsDir() {
+		ws.Exists = true
+		probe := filepath.Join(wsRoot, ".writable-probe")
+		if err := os.WriteFile(probe, []byte("ok"), 0o644); err == nil {
+			_ = os.Remove(probe)
+			ws.Writable = true
+		}
+		ws.SizeBytes, _ = workspace.SizeBytes(wsRoot)
+		skills, _ := workspace.ListSkills(wsRoot)
+		ws.SkillsWithRuns = len(skills)
+		for _, s := range skills {
+			if n, _ := workspace.MaxIterationN(wsRoot, s); n > 0 {
+				ws.IterationCount += n
+			}
+		}
+	} else {
+		// Non-existent is expected on first run; writability reflects the
+		// parent dir's state so we can surface real permission issues.
+		if parent := filepath.Dir(wsRoot); parent != "" {
+			if _, err := os.Stat(parent); err == nil {
+				ws.Writable = true
+			}
+		}
+	}
+	er.Workspace = ws
+	// Count installed skills with evals/ directories.
+	m, err := manifest.Load(app.Config.ManifestPath)
+	if err == nil && m != nil {
+		for _, inst := range m.Installations {
+			if _, err := os.Stat(filepath.Join(inst.Path, "evals")); err == nil {
+				er.EvalSkills++
+			}
+		}
+	}
+	return er
 }
 
 var errDoctorFailed = errors.New("doctor found issues")
@@ -189,6 +307,10 @@ func hasFailures(r doctorReport) bool {
 		return true
 	}
 	if r.Registry.Error != "" || len(r.Registry.DepIssues) > 0 {
+		return true
+	}
+	// Eval: default runner must be available for CI to claim "healthy".
+	if r.Eval.DefaultRunner == "" && len(r.Eval.Runners) > 0 {
 		return true
 	}
 	return false
@@ -201,7 +323,7 @@ func runDoctorTUI(app *App, r doctorReport) (bool, error) {
 	th := app.UI.Theme()
 	ver := resolveVersion().Version
 
-	items := make([]tui.Item, 0, len(r.Adapters)+3)
+	items := make([]tui.Item, 0, len(r.Adapters)+4)
 	for _, a := range r.Adapters {
 		items = append(items, adapterItem{a: a})
 	}
@@ -209,6 +331,7 @@ func runDoctorTUI(app *App, r doctorReport) (bool, error) {
 		manifestItem{m: r.Manifest, issue: firstIssue(r.Issues, "manifest:")},
 		registryItem{reg: r.Registry},
 		updatesItem{u: r.Updates},
+		evalItem{e: r.Eval},
 	)
 
 	detected := 0
@@ -445,6 +568,74 @@ func (u updatesItem) Detail(th *ui.Theme, width int) string {
 	return sb.String()
 }
 
+// evalItem renders the Eval block in the doctor TUI. Mirrors updatesItem's
+// shape so layout stays uniform across the listdetail pane.
+type evalItem struct{ e evalReport }
+
+func (i evalItem) Key() string         { return "eval" }
+func (i evalItem) FilterValue() string { return "eval" }
+func (i evalItem) NaturalWidth(th *ui.Theme) int {
+	badge := tui.Badge(th, tui.BadgeMissing, "no runner")
+	return rowNaturalWidth("eval", lipgloss.Width(badge))
+}
+func (i evalItem) Row(th *ui.Theme, width int, selected bool) string {
+	var dot, badge string
+	if i.e.DefaultRunner != "" {
+		dot = th.DotOK.Render("●")
+		badge = tui.Badge(th, tui.BadgeDetected, i.e.DefaultRunner)
+	} else {
+		dot = th.DotNo.Render("●")
+		badge = tui.Badge(th, tui.BadgeMissing, "no runner")
+	}
+	return rowWithTrailingBadge(dot+" "+rowName(th, "eval", selected, i.e.DefaultRunner != ""), badge, width)
+}
+func (i evalItem) Detail(th *ui.Theme, width int) string {
+	var sb strings.Builder
+	sb.WriteString(th.DetailTitle.Render("eval") + "\n\n")
+	sb.WriteString(kvRow(th, "workspace", th.KVValue.Render(i.e.Workspace.Path)))
+	if i.e.Workspace.Exists {
+		sb.WriteString(kvRow(th, "size",
+			th.KVValue.Render(fmt.Sprintf("%d iteration%s · %s",
+				i.e.Workspace.IterationCount, plural(i.e.Workspace.IterationCount),
+				workspace.HumanSize(i.e.Workspace.SizeBytes)))))
+	}
+	sb.WriteString(kvRow(th, "default", th.KVValue.Render(nonEmptyOrDash(i.e.DefaultRunner))))
+	sb.WriteString("\n")
+	sb.WriteString(th.SectionTitle.Render("RUNNERS") + "\n")
+	for _, r := range i.e.Runners {
+		dot := th.DotOK.Render("●")
+		status := th.Success.Render("ready")
+		if !r.Available {
+			dot = th.DotNo.Render("●")
+			status = th.Error.Render("missing")
+		}
+		sb.WriteString(fmt.Sprintf("  %s %s  %s  %s\n",
+			dot, th.Name.Render(padRight(r.Name, 14)), status, th.Detail.Render(firstNonEmptyStr(r.Version, r.Reason))))
+		if !r.Available && r.Fix != "" {
+			sb.WriteString("    " + th.Detail.Render("fix: "+r.Fix) + "\n")
+		}
+	}
+	if len(i.e.APIKeys) > 0 {
+		sb.WriteString("\n" + th.SectionTitle.Render("API KEYS") + "\n")
+		for _, k := range i.e.APIKeys {
+			state := th.Error.Render("absent")
+			if k.Present {
+				state = th.Success.Render("present (" + k.Source + ")")
+			}
+			sb.WriteString(fmt.Sprintf("  %s %s\n", th.Name.Render(padRight(k.Provider, 14)), state))
+		}
+	}
+	_ = width
+	return sb.String()
+}
+
+func nonEmptyOrDash(s string) string {
+	if s == "" {
+		return "—"
+	}
+	return s
+}
+
 // ---- shared detail helpers -------------------------------------------------
 
 // rowName renders an item's name in the correct palette for the left pane:
@@ -590,8 +781,60 @@ func printDoctorStatic(app *App, r doctorReport) {
 		}
 	}
 
+	printEvalStatic(app, r.Eval)
+
 	for _, i := range r.Issues {
 		app.UI.Warn(i)
+	}
+}
+
+// printEvalStatic renders the Eval doctor section in non-TTY mode. Mirrors
+// the Adapters / Manifest / Registry / Updates stack. No emoji per house
+// style - the same dot + badge pattern every other block uses.
+func printEvalStatic(app *App, e evalReport) {
+	th := app.UI.Theme()
+	app.UI.Section("Eval")
+	// Workspace.
+	app.UI.Info("  %s %s",
+		th.Label.Render("workspace"),
+		th.Name.Render(e.Workspace.Path))
+	if e.Workspace.Exists {
+		app.UI.Detail("    %d iterations · %s",
+			e.Workspace.IterationCount, workspace.HumanSize(e.Workspace.SizeBytes))
+	} else {
+		app.UI.Detail("    (will be created on first eval)")
+	}
+	// Runners.
+	for _, rn := range e.Runners {
+		var dot, badge string
+		if rn.Available {
+			dot = th.DotOK.Render("●")
+			badge = tui.Badge(th, tui.BadgeDetected, "ready")
+		} else {
+			dot = th.DotNo.Render("●")
+			badge = tui.Badge(th, tui.BadgeMissing, "missing")
+		}
+		fmt.Fprintf(app.UI.Out(), "  %s %s  %s %s\n",
+			dot, th.DetailTitle.Render(rn.Name), badge, th.Detail.Render(rn.Version))
+		if !rn.Available && rn.Fix != "" {
+			app.UI.Detail("    fix: %s", rn.Fix)
+		}
+	}
+	// API keys.
+	if len(e.APIKeys) > 0 {
+		app.UI.Detail("  api keys:")
+		for _, k := range e.APIKeys {
+			state := "absent"
+			if k.Present {
+				state = "present via " + k.Source
+			}
+			app.UI.Detail("    %s  %s", k.Provider, state)
+		}
+	}
+	if e.DefaultRunner == "" {
+		app.UI.Warn("no eval runner available — run `humblskills eval set-key anthropic` or install one of: claude, cursor-agent, codex")
+	} else {
+		app.UI.Detail("  default runner: %s", e.DefaultRunner)
 	}
 }
 

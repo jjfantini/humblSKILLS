@@ -1,0 +1,89 @@
+{
+  "skill_name": "use-smart-skill",
+  "schema_version": 1,
+  "configurations": ["smart_skill", "flat_skill", "no_skill"],
+  "runs_per_configuration": 1,
+  "scenarios": [
+    {
+      "id": "scaffold-ingest-lint",
+      "family": "create",
+      "tags": ["scaffold", "ingest", "lint"],
+      "sessions": [
+        {
+          "n": 1,
+          "prompt": "Scaffold a brand-new Smart Skill named 'meeting-notes-distiller' into a directory named meeting-notes-distiller/. Include SKILL.md with valid frontmatter (name, description, version), the four meta files under references/ (log.md, patterns.md, decisions.md, _index.md) using the Smart Skill template conventions, and a scripts/lint.sh that exits 0 on a minimal skill. Write everything relative to the current working directory.",
+          "assertions": [
+            { "text": "directory meeting-notes-distiller/ exists", "check": "path_exists:meeting-notes-distiller" },
+            { "text": "SKILL.md exists", "check": "path_exists:meeting-notes-distiller/SKILL.md" },
+            { "text": "meta files exist under references/", "check": "exec:for f in log.md patterns.md decisions.md _index.md; do test -f meeting-notes-distiller/references/$f || exit 1; done" },
+            { "text": "_index.md contains GENERATED markers", "check": "regex:meeting-notes-distiller/references/_index.md:<!-- GENERATED:START -->" },
+            { "text": "scripts/lint.sh is present", "check": "path_exists:meeting-notes-distiller/scripts/lint.sh" }
+          ]
+        },
+        {
+          "n": 2,
+          "prompt": "The user has dropped a meeting transcript into meeting-notes-distiller/references/raw/meeting-2026-04-10.md. Ingest it per the Smart Skill brain protocol: distill at least one concept into references/wiki/<context>/<category>/<concept>.md with full frontmatter (title, context, category, concept, description, tags, sources, last_ingested), cite the raw file in sources:, and append a [INGEST <date>] line to log.md.",
+          "files": ["evals/files/meeting-2026-04-10.md"],
+          "assertions": [
+            { "text": "new wiki concept file exists", "check": "exec:find meeting-notes-distiller/references/wiki -name '*.md' | grep -q . && exit 0 || exit 1" },
+            { "text": "wiki concept cites the raw source", "check": "exec:grep -rq 'references/raw/meeting-2026-04-10.md' meeting-notes-distiller/references/wiki/ || exit 1" },
+            { "text": "log.md contains an [INGEST line", "check": "regex:meeting-notes-distiller/references/log.md:^\\[INGEST " },
+            { "text": "raw file left unchanged at its original path", "check": "path_exists:meeting-notes-distiller/references/raw/meeting-2026-04-10.md" }
+          ]
+        },
+        {
+          "n": 3,
+          "prompt": "A second transcript has been added to meeting-notes-distiller/references/raw/meeting-2026-04-17.md. Ingest it following the SAME conventions you used for meeting-2026-04-10.md.",
+          "files": ["evals/files/meeting-2026-04-17.md"],
+          "retention_check": "Wiki concept filenames added in session 2 were kebab-case; session 3 must not regress to snake_case, TitleCase, or spaces.",
+          "assertions": [
+            { "text": "every wiki filename is kebab-case", "check": "exec:find meeting-notes-distiller/references/wiki -name '*.md' | awk -F/ '{print $NF}' | grep -Ev '^[a-z][a-z0-9-]*\\.md$' | head -1 | { read bad; if [ -n \"$bad\" ]; then echo bad=$bad; exit 1; fi; }" },
+            { "text": "log.md has at least two [INGEST entries", "check": "exec:test $(grep -c '^\\[INGEST ' meeting-notes-distiller/references/log.md) -ge 2" },
+            { "text": "wiki concept from session 3 cites the second raw file", "check": "exec:grep -rq 'references/raw/meeting-2026-04-17.md' meeting-notes-distiller/references/wiki/ || exit 1" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "contradictory-pattern",
+      "family": "maintain",
+      "tags": ["patterns", "decisions"],
+      "sessions": [
+        {
+          "n": 1,
+          "prompt": "In meeting-notes-distiller, record a patterns.md entry for an attempted approach on 2026-04-15: extracted action items using 'pattern X: lead with a disaster-story hook'. Result: impressions up 3x, comments up 5x, lesson: lead with disaster story first. Use the canonical patterns.md entry shape.",
+          "assertions": [
+            { "text": "patterns.md has a new ### 2026-04-15 entry", "check": "regex:meeting-notes-distiller/references/patterns.md:^### 2026-04-15" },
+            { "text": "entry includes a numeric Result", "check": "regex:meeting-notes-distiller/references/patterns.md:3x|5x|impressions|comments" },
+            { "text": "entry includes a Lesson", "check": "regex:meeting-notes-distiller/references/patterns.md:^- Lesson:" }
+          ]
+        },
+        {
+          "n": 2,
+          "prompt": "Record a follow-up patterns.md entry for 2026-05-20: the 'disaster-story' formula was attempted a third time and impressions dropped 62% vs the first run. Following the Smart Skill protocol, do NOT edit the earlier entry; add a new entry that references the original by date.",
+          "retention_check": "Session 1 stated the entry shape is append-only. The agent must add a new entry rather than modify the 2026-04-15 one.",
+          "assertions": [
+            { "text": "2026-04-15 entry still present (append-only honoured)", "check": "regex:meeting-notes-distiller/references/patterns.md:^### 2026-04-15" },
+            { "text": "new 2026-05-20 entry exists", "check": "regex:meeting-notes-distiller/references/patterns.md:^### 2026-05-20" },
+            { "text": "new entry references the 2026-04-15 one", "check": "regex:meeting-notes-distiller/references/patterns.md:2026-04-15" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stale-concept-refresh",
+      "family": "maintain",
+      "tags": ["lint", "freshness"],
+      "sessions": [
+        {
+          "n": 1,
+          "prompt": "Audit meeting-notes-distiller/references/wiki/ for concepts whose last_ingested is older than 180 days (treat today as 2026-05-01). Write a `STALE.md` file at the root of the skill listing every wiki file whose last_ingested precedes 2025-11-01, along with the date. Use a markdown bulleted list.",
+          "assertions": [
+            { "text": "STALE.md exists", "check": "path_exists:meeting-notes-distiller/STALE.md" },
+            { "text": "file is markdown with at least one bullet", "check": "regex:meeting-notes-distiller/STALE.md:^[-*] " }
+          ]
+        }
+      ]
+    }
+  ]
+}

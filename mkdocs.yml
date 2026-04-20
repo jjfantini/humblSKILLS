@@ -1,0 +1,100 @@
+site_name: humblSKILLS
+repo_url: https://github.com/jjfantini/humblSKILLS
+site_url: https://jjfantini.github.io/humblSKILLS/
+repo_name: humblSKILLS
+site_dir: site
+copyright: Copyright &copy; 2026 Jennings Fantini
+edit_uri: edit/develop/docs/
+site_author: Jennings Fantini
+
+exclude_docs: |
+  requirements.txt
+
+watch:
+  - docs/
+  - mkdocs.yml
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - getting_started/index.md
+    - Installation: getting_started/installation.md
+    - Quickstart: getting_started/quickstart.md
+  - Using humblskills:
+    - Registry & skill format: using_humblskills/registry_and_format.md
+    - Preserving user content: using_humblskills/preserving_user_content.md
+  - Eval:
+    - Overview: eval/index.md
+    - Quickstart: eval/quickstart.md
+    - Artifacts: eval/artifacts.md
+    - Scenarios: eval/scenarios.md
+  - Roadmap: roadmap.md
+
+theme:
+  name: material
+  features:
+    - content.action.edit
+    - content.action.view
+    - content.code.copy
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.instant.preview
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      accent: green
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      accent: green
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  font:
+    text: Fira Code
+
+plugins:
+  - search
+
+markdown_extensions:
+  - tables
+  - admonition
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.details
+  - def_list
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: "¤"
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/jjfantini/humblSKILLS

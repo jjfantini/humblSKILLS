@@ -77,7 +77,7 @@ func runStart(app *App) error {
 // breadcrumb. Falls back to Title-case of the command itself.
 func crumbLabel(cmd string) string {
 	switch cmd {
-	case "install", "list", "update", "search", "uninstall", "profile", "doctor", "registry", "version":
+	case "install", "list", "update", "search", "uninstall", "profile", "eval", "doctor", "registry", "version":
 		return strings.ToUpper(cmd[:1]) + cmd[1:]
 	}
 	return cmd
@@ -102,6 +102,8 @@ func dispatchDashboardCommand(app *App, cmd string) error {
 		return runUninstallPicker(app, true)
 	case "profile":
 		return runProfileEditor(app)
+	case "eval":
+		return runEvalTUI(app)
 	case "doctor":
 		return runDoctor(app)
 	case "registry":

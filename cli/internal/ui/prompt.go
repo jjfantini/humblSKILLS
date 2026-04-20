@@ -113,6 +113,26 @@ func (p *Prompter) MultiSelect(title string, options []MultiSelectOption) ([]str
 	return selected, nil
 }
 
+// Secret shows a masked text prompt (password-style). Returns the entered
+// value unchanged. Requires an interactive TTY - no safe fallback exists
+// when we can't read from the user.
+func (p *Prompter) Secret(title string) (string, error) {
+	if !p.Interactive {
+		return "", ErrNonInteractive
+	}
+	var v string
+	err := huh.NewInput().
+		Title(title).
+		EchoMode(huh.EchoModePassword).
+		Value(&v).
+		WithTheme(theme()).
+		Run()
+	if err != nil {
+		return "", fmt.Errorf("prompt: %w", err)
+	}
+	return v, nil
+}
+
 // SelectOption is one entry shown in a Select.
 type SelectOption struct {
 	// Label is the visible text. Falls back to Value when empty.

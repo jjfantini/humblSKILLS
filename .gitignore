@@ -17,6 +17,9 @@ vendor/
 /bin/
 /build/
 
+# MkDocs
+/site/
+
 # goreleaser
 /dist/
 
@@ -42,4 +45,10 @@ Icon
 *.local
 
 # Claude Code
-.claude/settings.local.json
+.claude/
+
+# Cursor plans / scratch
+.cursor/
+
+# humblskills eval workspaces (opt-in per-project storage)
+.eval-workspace/
