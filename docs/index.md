@@ -9,7 +9,7 @@ humblSKILLS is a **skill registry** plus a single-binary Go CLI, **`humblskills`
 
 ## Next steps
 
-- [Installation](getting_started/installation.md) - Homebrew (recommended), shell, Go, releases
+- [Installation](getting_started/installation.md) - **Recommended:** agent prompt + raw `SKILL.md`; Homebrew, shell, Go, releases
 - [Quickstart](getting_started/quickstart.md) - dashboard (`start`), `doctor`, `search`, `install`, `update`
 - [Eval](eval/index.md) - benchmark skills and inspect compound smart-skill runs
 - [Preserving user content](using_humblskills/preserving_user_content.md) - `preserve:` in `SKILL.md`

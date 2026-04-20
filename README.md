@@ -14,7 +14,15 @@ agent platform you use — Claude Code, Cursor, Codex, and friends.
 
 ## Install
 
-### Homebrew (recommended on Linux and macOS)
+**Recommended:** send this to your agent so it loads the published install + CLI
+`SKILL.md` and walks through setup on your machine (works from any OS the docs
+cover):
+
+```text
+Read https://jjfantini.github.io/humblSKILLS/getting_started/installation/SKILL.md and install humblskills on this machine following those instructions. When finished, run humblskills doctor and fix anything it reports until it passes.
+```
+
+### Homebrew (Linux and macOS)
 
 If you use [Homebrew](https://brew.sh), install and upgrade with:
 
