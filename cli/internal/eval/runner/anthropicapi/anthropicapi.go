@@ -37,11 +37,21 @@ var defaultPricing = &runner.Pricing{
 // Runner is the anthropic-api backend.
 type Runner struct {
 	Store secrets.Store
+	// extraOptions is appended to the SDK client options after the API
+	// key is resolved. Tests can inject option.WithBaseURL to point at
+	// an httptest server; production callers leave it empty.
+	extraOptions []option.RequestOption
 }
 
 // New returns a Runner. Caller passes the secrets store (the CLI always
 // hands over the same one; tests can substitute an in-memory stub).
 func New(store secrets.Store) *Runner { return &Runner{Store: store} }
+
+// NewWithOptions returns a Runner with extra SDK options (e.g. base URL
+// override for tests). Production code should use New.
+func NewWithOptions(store secrets.Store, opts ...option.RequestOption) *Runner {
+	return &Runner{Store: store, extraOptions: opts}
+}
 
 func (r *Runner) Name() string { return "anthropic-api" }
 
@@ -87,7 +97,8 @@ func (r *Runner) Execute(ctx context.Context, req runner.Request) (*runner.Resul
 	if err != nil || key == "" {
 		return &runner.Result{Err: fmt.Errorf("no API key")}, fmt.Errorf("no API key")
 	}
-	client := anthropic.NewClient(option.WithAPIKey(key))
+	opts := append([]option.RequestOption{option.WithAPIKey(key)}, r.extraOptions...)
+	client := anthropic.NewClient(opts...)
 
 	scratch, err := os.MkdirTemp(filepath.Dir(req.OutputDir), "scratch-")
 	if err != nil {

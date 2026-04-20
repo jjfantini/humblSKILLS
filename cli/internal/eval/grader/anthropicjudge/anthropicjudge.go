@@ -35,11 +35,18 @@ type Judge struct {
 // New returns a Judge using the given API key. An empty model falls back
 // to DefaultModel.
 func New(apiKey, model string) *Judge {
+	return NewWithOptions(model, option.WithAPIKey(apiKey))
+}
+
+// NewWithOptions builds a Judge with arbitrary SDK options. Useful in
+// tests that want to pin the base URL at an httptest.Server or inject
+// a custom http.Client with timeout semantics.
+func NewWithOptions(model string, opts ...option.RequestOption) *Judge {
 	if model == "" {
 		model = DefaultModel
 	}
 	return &Judge{
-		client: anthropic.NewClient(option.WithAPIKey(apiKey)),
+		client: anthropic.NewClient(opts...),
 		model:  model,
 	}
 }
