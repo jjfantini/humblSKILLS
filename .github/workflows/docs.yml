@@ -44,7 +44,11 @@ jobs:
           path: site
 
   deploy:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
+    # The github-pages environment is gated to main only, so deploying from
+    # develop always fails the environment protection check. Build still
+    # runs on develop pushes + PRs to validate the site compiles; the
+    # actual publish only fires once main advances.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: build
     environment:
