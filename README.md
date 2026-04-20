@@ -14,7 +14,20 @@ agent platform you use — Claude Code, Cursor, Codex, and friends.
 
 ## Install
 
+### Homebrew (recommended on Linux and macOS)
+
+If you use [Homebrew](https://brew.sh), install and upgrade with:
+
+```sh
+brew install jjfantini/humbl/humblskills
+```
+
+Formulas live in [`jjfantini/homebrew-humbl`](https://github.com/jjfantini/homebrew-humbl)
+and are bumped automatically by the release workflow. Upgrade with `brew upgrade humblskills`.
+
 ### Shell installer (Linux/macOS)
+
+For machines without Homebrew, or for scripted installs:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/scripts/install.sh | sh
@@ -38,7 +51,8 @@ go install github.com/jjfantini/humblSKILLS/cli/cmd/humblskills@latest
 ### Direct download
 
 Grab the archive for your platform from the
-[releases page](https://github.com/jjfantini/humblSKILLS/releases/latest):
+[releases page](https://github.com/jjfantini/humblSKILLS/releases/latest)
+(including Windows):
 
 - `humblskills_<version>_linux_amd64.tar.gz`
 - `humblskills_<version>_linux_arm64.tar.gz`
@@ -48,15 +62,6 @@ Grab the archive for your platform from the
 - `humblskills_<version>_windows_arm64.zip`
 
 Each release also publishes `checksums.txt` with SHA-256 sums.
-
-### Homebrew (Linux/macOS)
-
-```sh
-brew install jjfantini/humbl/humblskills
-```
-
-Formulas live in [`jjfantini/homebrew-humbl`](https://github.com/jjfantini/homebrew-humbl)
-and are bumped automatically by the release workflow.
 
 ## Quickstart
 
