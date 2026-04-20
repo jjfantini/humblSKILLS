@@ -132,12 +132,13 @@ type learningSpan struct {
 }
 
 type seriesPayload struct {
-	Sessions []int     `json:"sessions"`
-	PassRate []float64 `json:"pass_rate"`
-	PassAtK  []float64 `json:"pass_at_k"`
-	Tokens   []int     `json:"tokens"`
-	Wiki     []int64   `json:"wiki_concepts"`
-	Patterns []int64   `json:"patterns_entries"`
+	Sessions   []int     `json:"sessions"`
+	PassRate   []float64 `json:"pass_rate"`
+	PassAtK    []float64 `json:"pass_at_k"`
+	Tokens     []int     `json:"tokens"`
+	Wiki       []int64   `json:"wiki_concepts"`
+	Patterns   []int64   `json:"patterns_entries"`
+	Violations []int     `json:"violations"`
 }
 
 // rawData is the subset serialized into the HTML for Plotly. Keeps the
@@ -213,11 +214,13 @@ func buildPayload(b *Bundle) payload {
 			var tok int64
 			var wiki int64
 			var patt int64
+			var viol int64
 			var allPassed int
 			nRuns := len(bySession[s])
 			for _, r := range bySession[s] {
 				pr += r.PassRate
 				tok += int64(r.Tokens)
+				viol += int64(r.Violations)
 				if r.WikiConcepts > wiki {
 					wiki = r.WikiConcepts
 				}
@@ -235,6 +238,7 @@ func buildPayload(b *Bundle) payload {
 			sp.Tokens = append(sp.Tokens, int(tok/int64(nRuns)))
 			sp.Wiki = append(sp.Wiki, wiki)
 			sp.Patterns = append(sp.Patterns, patt)
+			sp.Violations = append(sp.Violations, int(viol/int64(nRuns)))
 		}
 		p.Series[arm] = sp
 	}
@@ -454,13 +458,16 @@ func writeMarkdown(path string, b *Bundle) error {
 		if len(b.Benchmark.Delta) > 0 {
 			fmt.Fprintln(&sb, "## Deltas")
 			fmt.Fprintln(&sb, "")
-			fmt.Fprintln(&sb, "| pair | Δ pass_rate | Δ tokens | Δ time (s) |")
-			fmt.Fprintln(&sb, "|------|-------------|----------|------------|")
+			fmt.Fprintln(&sb, "| pair | Δ pass_rate | % | Δ tokens | % | Δ time (s) | % |")
+			fmt.Fprintln(&sb, "|------|-------------|---|----------|---|------------|---|")
 			deltas := sortedKeys(b.Benchmark.Delta)
 			for _, k := range deltas {
 				d := b.Benchmark.Delta[k]
-				fmt.Fprintf(&sb, "| %s | %+.3f | %+d | %+.1f |\n",
-					k, d.PassRate, int(d.Tokens), d.TimeSeconds)
+				fmt.Fprintf(&sb, "| %s | %+.3f | %+.1f%% | %+d | %+.1f%% | %+.1f | %+.1f%% |\n",
+					k,
+					d.PassRate, d.PassRatePct,
+					int(d.Tokens), d.TokensPct,
+					d.TimeSeconds, d.TimeSecondsPct)
 			}
 			fmt.Fprintln(&sb, "")
 		}

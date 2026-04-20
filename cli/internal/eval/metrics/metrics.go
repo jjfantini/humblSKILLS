@@ -43,6 +43,11 @@ type TrajectoryRow struct {
 	BrainBytes     int64   `json:"brain_bytes,omitempty"`
 	ReadsFromBrain int     `json:"reads_from_brain,omitempty"`
 	ToolCalls      int     `json:"tool_calls,omitempty"`
+	// Violations is the sum of "count" fields across any `*-check.json`
+	// sidecar files the agent produced in the session output dir. Scenarios
+	// that run a deterministic rule checker use this to chart per-session
+	// compliance across arms.
+	Violations int `json:"violations,omitempty"`
 }
 
 // Derived surfaces aggregate insights - learning velocity, token decay,
@@ -77,12 +82,26 @@ type StatPair struct {
 	StdDev float64 `json:"stddev"`
 }
 
-// DeltaSummary reports deltas between two arms.
+// DeltaSummary reports deltas between two arms. Absolute deltas are the
+// raw mean difference. Percent deltas are (lead - base) / base * 100;
+// they are NaN-safe (a zero baseline yields 0 so the JSON stays small).
 type DeltaSummary struct {
-	PassRate    float64 `json:"pass_rate"`
-	TimeSeconds float64 `json:"time_seconds"`
-	Tokens      float64 `json:"tokens"`
-	CostUSD     float64 `json:"cost_usd"`
+	PassRate       float64 `json:"pass_rate"`
+	TimeSeconds    float64 `json:"time_seconds"`
+	Tokens         float64 `json:"tokens"`
+	CostUSD        float64 `json:"cost_usd"`
+	PassRatePct    float64 `json:"pass_rate_pct"`
+	TimeSecondsPct float64 `json:"time_seconds_pct"`
+	TokensPct      float64 `json:"tokens_pct"`
+	CostUSDPct     float64 `json:"cost_usd_pct"`
+}
+
+// pctDelta returns (lead - base) / base * 100, or 0 when base is 0.
+func pctDelta(lead, base float64) float64 {
+	if base == 0 {
+		return 0
+	}
+	return (lead - base) / base * 100
 }
 
 // AggregateTrajectory builds the trajectory from rows. Rows should already
@@ -124,18 +143,26 @@ func AggregateBenchmark(skill string, iteration int, rows []TrajectoryRow) *Benc
 	none, hasNone := b.RunSummary["no_skill"]
 	if hasSmart && hasFlat {
 		b.Delta["smart_vs_flat"] = DeltaSummary{
-			PassRate:    smart.PassRate.Mean - flat.PassRate.Mean,
-			TimeSeconds: smart.TimeSeconds.Mean - flat.TimeSeconds.Mean,
-			Tokens:      smart.Tokens.Mean - flat.Tokens.Mean,
-			CostUSD:     smart.CostUSD.Mean - flat.CostUSD.Mean,
+			PassRate:       smart.PassRate.Mean - flat.PassRate.Mean,
+			TimeSeconds:    smart.TimeSeconds.Mean - flat.TimeSeconds.Mean,
+			Tokens:         smart.Tokens.Mean - flat.Tokens.Mean,
+			CostUSD:        smart.CostUSD.Mean - flat.CostUSD.Mean,
+			PassRatePct:    pctDelta(smart.PassRate.Mean, flat.PassRate.Mean),
+			TimeSecondsPct: pctDelta(smart.TimeSeconds.Mean, flat.TimeSeconds.Mean),
+			TokensPct:      pctDelta(smart.Tokens.Mean, flat.Tokens.Mean),
+			CostUSDPct:     pctDelta(smart.CostUSD.Mean, flat.CostUSD.Mean),
 		}
 	}
 	if hasSmart && hasNone {
 		b.Delta["smart_vs_none"] = DeltaSummary{
-			PassRate:    smart.PassRate.Mean - none.PassRate.Mean,
-			TimeSeconds: smart.TimeSeconds.Mean - none.TimeSeconds.Mean,
-			Tokens:      smart.Tokens.Mean - none.Tokens.Mean,
-			CostUSD:     smart.CostUSD.Mean - none.CostUSD.Mean,
+			PassRate:       smart.PassRate.Mean - none.PassRate.Mean,
+			TimeSeconds:    smart.TimeSeconds.Mean - none.TimeSeconds.Mean,
+			Tokens:         smart.Tokens.Mean - none.Tokens.Mean,
+			CostUSD:        smart.CostUSD.Mean - none.CostUSD.Mean,
+			PassRatePct:    pctDelta(smart.PassRate.Mean, none.PassRate.Mean),
+			TimeSecondsPct: pctDelta(smart.TimeSeconds.Mean, none.TimeSeconds.Mean),
+			TokensPct:      pctDelta(smart.Tokens.Mean, none.Tokens.Mean),
+			CostUSDPct:     pctDelta(smart.CostUSD.Mean, none.CostUSD.Mean),
 		}
 	}
 	return b

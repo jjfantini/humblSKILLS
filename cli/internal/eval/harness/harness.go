@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -215,6 +216,16 @@ func (h *Harness) Run(ctx context.Context) (*Result, error) {
 					if err := ctx.Err(); err != nil {
 						_ = workspace.MarkIteration(h.opts.WorkspaceRoot, skillName, n, workspace.StatusAborted)
 						return nil, err
+					}
+					// Flat skill must be stateless per session: re-derive the
+					// flat variant before each session so nothing the agent
+					// appended to patterns.md / decisions.md / log.md in the
+					// previous session leaks forward. Smart skill uses its
+					// own snapshot chain (prevSnapAfter) and is unaffected.
+					if arm == scenarios.ArmFlatSkill && skillForArm != "" {
+						if _, derr := brain.DeriveFlat(h.opts.SkillDir, skillForArm); derr != nil {
+							h.emit(Event{Kind: EvtError, Arm: arm, Scenario: sc.ID, Session: sess.N, Message: "re-derive flat: " + derr.Error()})
+						}
 					}
 					row, snapDir, err := h.runSession(ctx, arm, skillForArm, sc, sess, run, brainState)
 					if err != nil {
@@ -446,6 +457,7 @@ func (h *Harness) runSession(
 		DurationMs:   res.DurationMs,
 		CostUSD:      res.CostUSD,
 		ToolCalls:    totalToolCalls(res.ToolCalls),
+		Violations:   sumCheckerViolations(outputDir),
 	}
 	// Brain stats (smart only).
 	if snapAfter != "" {
@@ -458,6 +470,42 @@ func (h *Harness) runSession(
 		row.ReadsFromBrain = brain.ReadsFromBrain(res.Transcript)
 	}
 	return row, snapAfter, nil
+}
+
+// sumCheckerViolations walks outputDir for files matching `*-check.json`,
+// parses each as {"count": N}, and returns the sum. Scenarios that drop a
+// deterministic rule-checker sidecar get per-session violation counts
+// automatically surfaced in the trajectory + report.
+func sumCheckerViolations(outputDir string) int {
+	if outputDir == "" {
+		return 0
+	}
+	entries, err := os.ReadDir(outputDir)
+	if err != nil {
+		return 0
+	}
+	total := 0
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if !strings.HasSuffix(name, "-check.json") {
+			continue
+		}
+		body, err := os.ReadFile(filepath.Join(outputDir, name))
+		if err != nil {
+			continue
+		}
+		var v struct {
+			Count int `json:"count"`
+		}
+		if err := json.Unmarshal(body, &v); err != nil {
+			continue
+		}
+		total += v.Count
+	}
+	return total
 }
 
 // --- helpers ----------------------------------------------------------------
