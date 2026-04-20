@@ -5,34 +5,91 @@
   "runs_per_configuration": 1,
   "scenarios": [
     {
-      "id": "de-slop-outreach",
+      "id": "learn-from-mistakes",
       "family": "rewrite",
-      "tags": ["vocabulary", "padding", "voice"],
+      "tags": ["compounding", "ai-slop", "brain-protocol"],
       "sessions": [
         {
           "n": 1,
-          "prompt": "Rewrite the following outreach email to remove AI tells (banned vocabulary, em dashes, hedging, sycophantic openers). Keep the content. Output ONLY the rewritten email, no commentary. Write the result to outreach-v1.md. Source:\n\n\"Dear Jane, I hope this email finds you well. I'm thrilled to reach out regarding our innovative, seamless platform — it's a game-changer that can help you unlock new possibilities and leverage your data in a meaningful way. I wanted to briefly touch base to see if you might be open to a quick chat. Best regards, Dan.\"",
+          "prompt": "You are rewriting text to remove AI-generated tells. The source is at ./inputs/slop-1-outreach.md.\n\nSTEP 1 - If a skill is available at ./skill/, follow its Brain Protocol: read ./skill/SKILL.md, then ./skill/references/_index.md, patterns.md, decisions.md, log.md, then relevant wiki concepts.\n\nSTEP 2 - Read the source file and rewrite it to sound authentically human. Keep the meaning. Write the result to out-1.md in the current directory (NOT inside ./skill/).\n\nSTEP 3 (skill arms only) - Self-audit out-1.md:\n  - Grep out-1.md against every banned word in ./skill/references/wiki/humanize/vocabulary/hard-ban-list.md (if present) and soft-ban-list.md (if present). Also check for: rule-of-three parallelism, 'meaningful way', 'unlock potential/possibilities', 'leverage', 'in today's fast-paced world', 'game-changer', sycophantic openers ('hope this finds you well', 'thrilled to reach out'), em dashes.\n  - If you find ANY violations, append a new entry to ./skill/references/patterns.md using the canonical entry shape:\n      ### <today's date> | Session 1 audit: <one-line title>\n      - Context: rewrote slop-1-outreach.md\n      - Approach: <what you did>\n      - Result: caught <N> violations in your own output (<list them>)\n      - Worked: <what helped avoid them>\n      - Didn't: <what slipped through>\n      - Lesson: <the rule to apply next time>\n    Do NOT mutate existing patterns.md entries. Append only.\n\nSTEP 4 - Declare done.",
+          "files": ["skills/use-smart-humanize-text/evals/files/slop-1-outreach.md"],
           "assertions": [
-            { "text": "outreach-v1.md exists", "check": "path_exists:outreach-v1.md" },
-            { "text": "no em dashes", "check": "exec:test -f outreach-v1.md && ! grep -q '—' outreach-v1.md" },
-            { "text": "no 'hope this email finds you well'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'hope this email finds you well' outreach-v1.md" },
-            { "text": "no 'game-changer'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'game-changer' outreach-v1.md" },
-            { "text": "no 'leverage'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'leverage' outreach-v1.md" },
-            { "text": "no 'seamless'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'seamless' outreach-v1.md" },
-            { "text": "no 'thrilled'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'thrilled' outreach-v1.md" }
+            { "text": "out-1.md exists", "check": "path_exists:out-1.md" },
+            { "text": "out-1.md is under 90 words", "check": "exec:test -f out-1.md && test $(wc -w < out-1.md) -lt 90" },
+            { "text": "out-1.md has no em dashes", "check": "exec:test -f out-1.md && ! grep -q '—' out-1.md" },
+            { "text": "The rewrite in out-1.md reads as human-written, not AI-generated. Rate on a scale where 1 = purely human and 10 = obviously AI. Pass ONLY if the score is 4 or lower. In evidence, quote the three most human-sounding phrases." },
+            { "text": "The rewrite in out-1.md avoids ALL of these subtle AI tells: rule-of-three parallelism, sycophantic opener, 'meaningful way', 'unlock potential/possibilities', 'leverage', hedging phrases ('might be', 'perhaps', 'could potentially'), 'game-changer', em dashes, filler openers like 'I hope this email finds you well' or 'I'm thrilled to'. Pass only if NONE are present. In evidence, quote any tell you find or state 'none detected'." }
           ]
         },
         {
           "n": 2,
-          "prompt": "Rewrite a follow-up email with the same constraints you applied in session 1. Keep it under 70 words. Write result to outreach-v2.md. Source:\n\n\"Hi Jane, I'm reaching out to follow up on my previous note. I truly believe our solution offers unparalleled value and could dramatically transform your operations. In today's fast-paced world, staying ahead is crucial. Would you be open to a brief 15-minute discussion to explore synergies? Warm regards, Dan.\"",
-          "retention_check": "Session 1 stripped em dashes, banned vocabulary, and sycophantic openers. Session 2 must not reintroduce them.",
+          "prompt": "Source: ./inputs/slop-2-linkedin.md. Follow the same 4-step protocol as session 1.\n\nSTEP 1 - Read the skill at ./skill/ (if present). Specifically READ ./skill/references/patterns.md first - it may contain lessons from prior sessions. Apply those lessons.\n\nSTEP 2 - Rewrite the source. Write to out-2.md.\n\nSTEP 3 (skill arms only) - Self-audit out-2.md using the same rule list from session 1 + any additional rules you find in patterns.md. If violations appear, append a NEW entry to patterns.md (never modify existing entries). The title should be 'Session 2 audit: ...'.\n\nSTEP 4 - Declare done.",
+          "files": ["skills/use-smart-humanize-text/evals/files/slop-2-linkedin.md"],
+          "retention_check": "patterns.md must have at least one entry (logged by session 1) and session 2 must not repeat the specific violations that session 1 caught.",
           "assertions": [
-            { "text": "outreach-v2.md exists", "check": "path_exists:outreach-v2.md" },
-            { "text": "no em dashes", "check": "exec:test -f outreach-v2.md && ! grep -q '—' outreach-v2.md" },
-            { "text": "no 'unparalleled'", "check": "exec:test -f outreach-v2.md && ! grep -qi 'unparalleled' outreach-v2.md" },
-            { "text": "no 'in today's fast-paced world'", "check": "exec:test -f outreach-v2.md && ! grep -qi \"fast-paced world\" outreach-v2.md" },
-            { "text": "no 'synergies'", "check": "exec:test -f outreach-v2.md && ! grep -qi 'synergies' outreach-v2.md" },
-            { "text": "under 70 words", "check": "exec:test -f outreach-v2.md && test $(wc -w < outreach-v2.md) -lt 70" }
+            { "text": "out-2.md exists", "check": "path_exists:out-2.md" },
+            { "text": "out-2.md is under 110 words (LinkedIn posts are slightly longer than emails)", "check": "exec:test -f out-2.md && test $(wc -w < out-2.md) -lt 110" },
+            { "text": "out-2.md has no em dashes", "check": "exec:test -f out-2.md && ! grep -q '—' out-2.md" },
+            { "text": "The rewrite in out-2.md reads as human-written. Score 1-10 (1=human, 10=AI). Pass if <=4. Quote the three most human-sounding phrases." },
+            { "text": "The rewrite in out-2.md avoids the same subtle AI tells listed in session 1 assertions. Pass only if NONE appear. Quote any tell you find or state 'none detected'." }
+          ]
+        },
+        {
+          "n": 3,
+          "prompt": "Source: ./inputs/slop-3-product-announce.md. Same 4-step protocol. Apply lessons from patterns.md. Write to out-3.md. Append a 'Session 3 audit:' entry to patterns.md if you find violations in your own output.",
+          "files": ["skills/use-smart-humanize-text/evals/files/slop-3-product-announce.md"],
+          "retention_check": "patterns.md must have at least two entries by now (sessions 1 and 2). Session 3's output must not repeat earlier violations.",
+          "assertions": [
+            { "text": "out-3.md exists", "check": "path_exists:out-3.md" },
+            { "text": "out-3.md is under 120 words", "check": "exec:test -f out-3.md && test $(wc -w < out-3.md) -lt 120" },
+            { "text": "out-3.md has no em dashes", "check": "exec:test -f out-3.md && ! grep -q '—' out-3.md" },
+            { "text": "The rewrite in out-3.md reads as human-written. Score 1-10 (1=human, 10=AI). Pass if <=4. Quote the three most human-sounding phrases." },
+            { "text": "The rewrite in out-3.md avoids the subtle AI tells from session 1's list. Pass only if NONE appear. Quote any tell or 'none detected'." }
+          ]
+        },
+        {
+          "n": 4,
+          "prompt": "Source: ./inputs/slop-4-cold-dm.md. Same 4-step protocol. Apply patterns.md. Write to out-4.md. Append 'Session 4 audit:' if violations.",
+          "files": ["skills/use-smart-humanize-text/evals/files/slop-4-cold-dm.md"],
+          "retention_check": "patterns.md must have at least three entries by session 4.",
+          "assertions": [
+            { "text": "out-4.md exists", "check": "path_exists:out-4.md" },
+            { "text": "out-4.md is under 90 words (DMs are short)", "check": "exec:test -f out-4.md && test $(wc -w < out-4.md) -lt 90" },
+            { "text": "out-4.md has no em dashes", "check": "exec:test -f out-4.md && ! grep -q '—' out-4.md" },
+            { "text": "The rewrite in out-4.md reads as human-written. Score 1-10 (1=human, 10=AI). Pass if <=4. Quote the three most human-sounding phrases." },
+            { "text": "The rewrite in out-4.md avoids the subtle AI tells. Pass only if NONE appear. Quote any tell or 'none detected'." }
+          ]
+        },
+        {
+          "n": 5,
+          "prompt": "Source: ./inputs/slop-5-blog-intro.md. Same 4-step protocol. Apply patterns.md. Write to out-5.md. Append 'Session 5 audit:' if violations.",
+          "files": ["skills/use-smart-humanize-text/evals/files/slop-5-blog-intro.md"],
+          "retention_check": "patterns.md must have at least four entries by session 5 — the full compounding test.",
+          "assertions": [
+            { "text": "out-5.md exists", "check": "path_exists:out-5.md" },
+            { "text": "out-5.md is under 130 words (blog intros run longer)", "check": "exec:test -f out-5.md && test $(wc -w < out-5.md) -lt 130" },
+            { "text": "out-5.md has no em dashes", "check": "exec:test -f out-5.md && ! grep -q '—' out-5.md" },
+            { "text": "The rewrite in out-5.md reads as human-written. Score 1-10 (1=human, 10=AI). Pass if <=4. Quote the three most human-sounding phrases." },
+            { "text": "The rewrite in out-5.md avoids the subtle AI tells. Pass only if NONE appear. Quote any tell or 'none detected'." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "de-slop-outreach-baseline",
+      "family": "rewrite",
+      "tags": ["baseline", "vocabulary"],
+      "sessions": [
+        {
+          "n": 1,
+          "prompt": "Rewrite this outreach email to remove AI tells. Keep the content. Write only the rewritten email to outreach-v1.md. Source:\n\n\"Dear Jane, I hope this email finds you well. I'm thrilled to reach out regarding our innovative, seamless platform — it's a game-changer that can help you unlock new possibilities and leverage your data in a meaningful way. I wanted to briefly touch base to see if you might be open to a quick chat. Best regards, Dan.\"",
+          "assertions": [
+            { "text": "outreach-v1.md exists", "check": "path_exists:outreach-v1.md" },
+            { "text": "no em dashes", "check": "exec:test -f outreach-v1.md && ! grep -q '—' outreach-v1.md" },
+            { "text": "no 'leverage'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'leverage' outreach-v1.md" },
+            { "text": "no 'seamless'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'seamless' outreach-v1.md" },
+            { "text": "no 'thrilled'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'thrilled' outreach-v1.md" },
+            { "text": "no 'game-changer'", "check": "exec:test -f outreach-v1.md && ! grep -qi 'game-changer' outreach-v1.md" }
           ]
         }
       ]

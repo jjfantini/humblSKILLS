@@ -27,9 +27,6 @@ import (
 //go:embed assets/report.html.tmpl
 var reportHTMLTemplate string
 
-//go:embed assets/plotly.min.js
-var plotlyJS string
-
 // Bundle is the full set of inputs a Render call needs.
 type Bundle struct {
 	SkillName  string
@@ -66,7 +63,6 @@ type templatePayload struct {
 	SkillName string
 	Iteration int
 	Runner    string
-	PlotlyJS  template.JS
 	DataJSON  template.JS
 	Arms      []string
 }
@@ -85,8 +81,7 @@ func writeHTML(path string, b *Bundle) error {
 		SkillName: b.SkillName,
 		Iteration: b.Iteration,
 		Runner:    b.Runner,
-		PlotlyJS:  template.JS(plotlyJS), //nolint:gosec // first-party embed
-		DataJSON:  template.JS(data),     //nolint:gosec // trusted JSON
+		DataJSON:  template.JS(data), //nolint:gosec // trusted JSON
 		Arms:      payload.arms(),
 	}
 	tmp := path + ".tmp"

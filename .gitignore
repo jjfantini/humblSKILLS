@@ -44,5 +44,8 @@ Icon
 # Claude Code
 .claude/
 
+# Cursor plans / scratch
+.cursor/
+
 # humblskills eval workspaces (opt-in per-project storage)
 .eval-workspace/

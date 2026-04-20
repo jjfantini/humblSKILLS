@@ -16,6 +16,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/evalruntime"
+	"github.com/jjfantini/humblSKILLS/cli/internal/eval/grader"
+	"github.com/jjfantini/humblSKILLS/cli/internal/eval/grader/anthropicjudge"
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/harness"
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/metrics"
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/report"
@@ -131,11 +133,29 @@ func runEvalRun(app *App, skill string, f evalRunFlags) error {
 	if runs == 0 {
 		runs = evalsFile.RunsPerConfiguration
 	}
+	// LLM judge: construct one when an Anthropic key is available
+	// (env / keyring / file). "llm" assertions otherwise auto-fail with a
+	// clear evidence note, which is the documented no-judge behaviour.
+	var judge grader.LLMJudge
+	if key, _, err := store.Get("anthropic"); err == nil && key != "" {
+		judge = anthropicjudge.New(key, f.grader)
+		if !app.Config.JSON {
+			model := f.grader
+			if model == "" {
+				model = anthropicjudge.DefaultModel
+			}
+			app.UI.Detail("LLM judge: %s", model)
+		}
+	} else if !app.Config.JSON {
+		app.UI.Detail("LLM judge: disabled (no anthropic key) — 'llm' assertions will auto-fail")
+	}
+
 	opts := harness.Options{
 		SkillDir:             skillDir,
 		Scenarios:            evalsFile,
 		Arms:                 arms,
 		Runner:               rn,
+		Grader:               judge,
 		WorkspaceRoot:        ws,
 		RunsPerConfiguration: runs,
 		Parallel:             f.parallel,

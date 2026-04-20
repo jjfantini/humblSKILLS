@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <title>humblskills eval · {{.SkillName}} · iter {{.Iteration}}</title>
+<!-- Direct script tag (not createElement) so the parser blocks until
+     Plotly is loaded before running the inline render block below. -->
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
   body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
          margin: 0; padding: 24px; background: #0c0d12; color: #e6e7ec; }
@@ -13,6 +16,8 @@
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .card { background: #13141b; border: 1px solid #24262f; border-radius: 6px;
           padding: 12px; }
+  .empty { color: #8d8f98; padding: 24px; text-align: center;
+           font-size: 13px; font-style: italic; }
   table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
   th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #24262f; }
   th { color: #8d8f98; font-weight: 500; text-transform: uppercase;
@@ -56,10 +61,20 @@
   {{range .Arms}}<code>{{.}}</code> {{end}}
 </div>
 
-<script>{{.PlotlyJS}}</script>
 <script>
 (function() {
   const data = {{.DataJSON}};
+
+  // Empty-data guard: if no series ran, show a helpful message instead
+  // of four blank Plotly divs + two empty tables.
+  const hasSeries = data && data.series && Object.keys(data.series).length > 0;
+  if (!hasSeries) {
+    const empty = `<div class="empty">No trajectory data - did the runner error out? Check the per-session transcripts.</div>`;
+    for (const id of ["pass_rate", "tokens", "pass_at_k", "wiki"]) {
+      document.getElementById(id).innerHTML = empty;
+    }
+  }
+
   const layout = {
     paper_bgcolor: "#13141b", plot_bgcolor: "#13141b",
     font: { family: "Inter, -apple-system, sans-serif", color: "#e6e7ec", size: 12 },
@@ -69,7 +84,7 @@
   };
   const palette = { smart_skill: "#a78bfa", flat_skill: "#60a5fa", no_skill: "#94a3b8" };
   function tracesFor(field) {
-    return Object.keys(data.series).sort().map(arm => ({
+    return Object.keys(data.series || {}).sort().map(arm => ({
       x: data.series[arm].sessions,
       y: data.series[arm][field],
       name: arm,
@@ -78,22 +93,27 @@
       marker: { size: 6 }
     }));
   }
-  Plotly.newPlot("pass_rate", tracesFor("pass_rate"),
-    Object.assign({}, layout, { title: "pass_rate vs session" }),
-    { displayModeBar: false, responsive: true });
-  Plotly.newPlot("tokens", tracesFor("tokens"),
-    Object.assign({}, layout, { title: "tokens vs session" }),
-    { displayModeBar: false, responsive: true });
-  Plotly.newPlot("pass_at_k", tracesFor("pass_at_k"),
-    Object.assign({}, layout, { title: "pass^k (reliability) vs session" }),
-    { displayModeBar: false, responsive: true });
-  Plotly.newPlot("wiki", tracesFor("wiki_concepts"),
-    Object.assign({}, layout, { title: "brain growth (wiki concepts)" }),
-    { displayModeBar: false, responsive: true });
+  if (hasSeries && typeof Plotly !== "undefined") {
+    Plotly.newPlot("pass_rate", tracesFor("pass_rate"),
+      Object.assign({}, layout, { title: "pass_rate vs session" }),
+      { displayModeBar: false, responsive: true });
+    Plotly.newPlot("tokens", tracesFor("tokens"),
+      Object.assign({}, layout, { title: "tokens vs session" }),
+      { displayModeBar: false, responsive: true });
+    Plotly.newPlot("pass_at_k", tracesFor("pass_at_k"),
+      Object.assign({}, layout, { title: "pass^k (reliability) vs session" }),
+      { displayModeBar: false, responsive: true });
+    Plotly.newPlot("wiki", tracesFor("wiki_concepts"),
+      Object.assign({}, layout, { title: "brain growth (wiki concepts)" }),
+      { displayModeBar: false, responsive: true });
+  }
 
   // Cross-section + deltas tables
   const tbody = document.querySelector("#cross_section tbody");
   const arms = Object.keys(data.summary || {}).sort();
+  if (arms.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty">no cross-section data</td></tr>`;
+  }
   for (const arm of arms) {
     const s = data.summary[arm];
     const tr = document.createElement("tr");
@@ -105,7 +125,11 @@
     tbody.appendChild(tr);
   }
   const dtbody = document.querySelector("#deltas tbody");
-  for (const pair of Object.keys(data.delta || {}).sort()) {
+  const dkeys = Object.keys(data.delta || {}).sort();
+  if (dkeys.length === 0) {
+    dtbody.innerHTML = `<tr><td colspan="5" class="empty">no deltas (need two or more arms with data)</td></tr>`;
+  }
+  for (const pair of dkeys) {
     const d = data.delta[pair];
     const cls = v => v >= 0 ? "pos" : "neg";
     const tr = document.createElement("tr");

@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
+	"github.com/jjfantini/humblSKILLS/cli/internal/env"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
@@ -134,6 +135,16 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 	})
 	// JSON mode is inherently non-interactive; callers get machine output.
 	app.Prompt = ui.NewPrompter(g.yes || g.json)
+
+	// Load .env from repo root if present BEFORE reading env vars below,
+	// so users who drop API keys in .env get them picked up on every
+	// invocation without export-ing. Env always wins over file.
+	if res, err := env.LoadDotEnv(""); err != nil {
+		app.UI.Warn(".env: %v", err)
+	} else if res.Path != "" && g.verbose {
+		app.UI.Detail("loaded %d key(s) from %s (kept %d that were already set)",
+			len(res.Loaded), res.Path, len(res.Kept))
+	}
 
 	cfg := Config{
 		RegistryURL: firstNonEmpty(g.registry, os.Getenv("HUMBLSKILLS_REGISTRY"), registry.DefaultURL),
