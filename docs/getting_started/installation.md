@@ -1,8 +1,16 @@
 # Installation
 
-## Homebrew (recommended on Linux and macOS)
+## Using an AI agent (recommended)
 
-If you use [Homebrew](https://brew.sh), this is the simplest way to install and upgrade `humblskills`:
+Paste this into your coding agent (Claude Code, Cursor, Codex, or similar). It loads the published install + CLI [`SKILL.md`](https://jjfantini.github.io/humblSKILLS/getting_started/installation/SKILL.md) so the model can follow OS-specific steps and verify the binary.
+
+```text
+Read https://jjfantini.github.io/humblSKILLS/getting_started/installation/SKILL.md and install humblskills on this machine following those instructions. When finished, run humblskills doctor and fix anything it reports until it passes.
+```
+
+## Homebrew (Linux and macOS)
+
+If you use [Homebrew](https://brew.sh), this is the simplest way to install and upgrade `humblskills` yourself in a terminal:
 
 ```sh
 brew install jjfantini/humbl/humblskills
