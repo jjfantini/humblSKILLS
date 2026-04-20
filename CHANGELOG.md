@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.7.0](https://github.com/jjfantini/humblSKILLS/compare/v2.6.0...v2.7.0) (2026-04-20)
+
+
+### Features
+
+* **eval:** adaptive-brand-voice showcase with clean 3-arm comparison ([ad8ee64](https://github.com/jjfantini/humblSKILLS/commit/ad8ee64200e664c7a6c6992b008e4394c4f772b4))
+* **eval:** adaptive-brand-voice showcase with clean 3-arm comparison ([ad946eb](https://github.com/jjfantini/humblSKILLS/commit/ad946ebf186bfc86f9b5ae65eb0f400dabc997c6))
+
 ## [2.6.0](https://github.com/jjfantini/humblSKILLS/compare/v2.5.0...v2.6.0) (2026-04-20)
 
 
