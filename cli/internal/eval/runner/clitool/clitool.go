@@ -212,6 +212,22 @@ func (r *Runner) Execute(ctx context.Context, req runner.Request) (*runner.Resul
 	if files, err := collectScratchOutputs(scratch, req.OutputDir); err == nil {
 		result.OutputFiles = files
 	}
+	// Sync the brain (scratch/skill/references/) back to req.SkillDir so
+	// any lessons the agent appended to patterns.md / decisions.md /
+	// log.md survive past this session. The harness's brain.Snapshot()
+	// then captures the real post-session state.
+	//
+	// Without this, the agent writes into the scratch-private copy, we
+	// rm-rf scratch, and every session starts fresh - compounding never
+	// compounds. Scope the sync to `references/` to avoid surprising
+	// mutations to SKILL.md or scripts/.
+	if req.SkillDir != "" {
+		src := filepath.Join(scratch, "skill", "references")
+		dst := filepath.Join(req.SkillDir, "references")
+		if _, err := os.Stat(src); err == nil {
+			_ = syncTree(src, dst)
+		}
+	}
 	// Also persist the stderr tail so the grader has something useful
 	// when the CLI exited non-zero.
 	if stderr.Len() > 0 {
@@ -277,6 +293,20 @@ func copyTree(src, dst string) error {
 		}
 		return copyFile(p, target)
 	})
+}
+
+// syncTree mirrors src into dst by replacing dst entirely. Used to sync
+// the agent-mutated `scratch/skill/references/` back to the harness's
+// persistent working copy so brain updates (patterns.md, log.md,
+// decisions.md, wiki additions) survive past the session.
+func syncTree(src, dst string) error {
+	if err := os.RemoveAll(dst); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dst, 0o755); err != nil {
+		return err
+	}
+	return copyTree(src, dst)
 }
 
 func copyFile(src, dst string) error {
