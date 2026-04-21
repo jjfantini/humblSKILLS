@@ -3,10 +3,10 @@ title: "Prompt A Template: The Starting Frame"
 context: prompt
 category: image
 concept: start-frame
-description: "Commercial-director-grade prompt template for the first frame of the video. Emphasizes reproducibility so Prompt B can reference it exactly."
+description: "Guidance for Prompt A (the first frame of the video). Rules + worked example here; raw template at assets/templates/prompt-a-start-frame.tmpl."
 tags: prompt-a, start-frame, image-generation, commercial-director
 sources: []
-last_ingested: 2026-04-20
+last_ingested: 2026-04-21
 ---
 
 ## Purpose
@@ -21,23 +21,27 @@ Skip this concept when `mode = start_only` or `mode = both`.
 
 ## Template
 
+The raw fill-in-the-blank template lives at:
+
 ```
-PROMPT A - STARTING FRAME
-
-Subject: <specific noun phrase — the object / scene / character>.
-Composition: <angle, framing, distance>. <subject-in-frame description>.
-Environment: <background / setting>, <color palette>, <mood>.
-
-Camera: <sensor, lens, f-stop, focus>. <locked-off or handheld>.
-Lighting: <key + fill + rim>, <direction>, <color temperature in Kelvin>,
-<soft/hard>. Shadows: <hard/soft, direction>.
-Materials: <per-surface specificity: metal finish, fabric type, glass,
-liquid state>. Textures: <sharpness, grain>.
-
-Style: photorealistic, commercial-grade, <lens-brand cue if relevant>.
-Aspect ratio: $VIDEO_ASPECT_RATIO. Ultra-sharp detail, natural color
-science, no text overlays, no logos.
+assets/templates/prompt-a-start-frame.tmpl
 ```
+
+Read the template file, substitute every `<...>` placeholder with a
+specific, reproducible value (see rules below), and keep
+`$VIDEO_ASPECT_RATIO` as a literal token so the HTML settings modal can
+swap it live.
+
+## Rules
+
+1. **Name real things.** "Phase One IQ4 150MP" > "high-end camera".
+   "5500K daylight" > "soft light".
+2. **No vague adjectives.** Remove "beautiful", "stunning", "amazing" —
+   they are noise to the image model.
+3. **Lock the composition** so Prompt B can match: same angle, same
+   distance, same framing, same background.
+4. **Leave `$VIDEO_ASPECT_RATIO` as a literal token** — the HTML settings
+   modal substitutes it live.
 
 ## Worked example (smoothie)
 
@@ -66,22 +70,20 @@ aesthetic. Aspect ratio: $VIDEO_ASPECT_RATIO. Ultra-sharp, natural color,
 no text.
 ```
 
-## Rules
-
-1. **Name real things.** "Phase One IQ4 150MP" > "high-end camera". "5500K daylight" > "soft light".
-2. **No vague adjectives.** Remove "beautiful", "stunning", "amazing" — they are noise to the image model.
-3. **Lock the composition** so Prompt B can match: same angle, same distance, same framing, same background.
-4. **Leave `$VIDEO_ASPECT_RATIO` as a literal token** — the HTML settings modal substitutes it live.
-
 ## Incorrect (vague, unreproducible)
 
 ```
 A beautiful smoothie on a white background, looking fresh and tropical.
 ```
 
+No specificity. Next run will diverge. Prompt B will not be able to
+match — it has no lighting direction, no camera system, no materials to
+preserve.
+
 ## Correct
 
-See the worked example above.
+See the worked example above. Every surface, every light, every camera
+parameter has a concrete value.
 
 ## Sources
 

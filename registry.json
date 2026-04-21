@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-20T23:56:27Z",
+  "generated_at": "2026-04-21T01:04:57Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "skill/create-video-transition",
-    "sha": "9f7a06d66190c6b26bcd9f947a42333f377b2a32"
+    "sha": "ba79498defc60082c803019fc65502988ba1fa2c"
   },
   "skills": [
     {
@@ -33,7 +33,7 @@
         "references/patterns.md"
       ],
       "path": "skills/create-scroll-animation",
-      "dir_sha": "fa3184c1e669d79729d8c1069325bb693b426f779680909d26119d2021287fbc"
+      "dir_sha": "89ef63803695be84d2f6dc1778f4e7190887743abce3b3cfe4f370611f2e6e71"
     },
     {
       "name": "create-video-transition",
@@ -57,7 +57,7 @@
         "references/patterns.md"
       ],
       "path": "skills/create-video-transition",
-      "dir_sha": "30a2491a8c582c83664a2d2405fced8e88e4c77b402359eeea359754f9d3d47f"
+      "dir_sha": "cd97f67c9f9a0ac4837eaa98a10c4a8e03b1d4386a4a2a22348252c6e36a07d7"
     },
     {
       "name": "use-smart-humanize-text",

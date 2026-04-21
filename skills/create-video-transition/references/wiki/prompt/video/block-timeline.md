@@ -3,10 +3,10 @@ title: "Prompt C Template: Video Transition in Exact 2-Second Blocks"
 context: prompt
 category: video
 concept: block-timeline
-description: "Authoritative spec for Prompt C. Each 2-second block is a single dense sentence describing camera, subject, lighting, and focus. Block count is derived from $VIDEO_LENGTH."
+description: "Authoritative spec for Prompt C. Each 2-second block is a single dense sentence describing camera, subject, lighting, and focus. Block count is derived from $VIDEO_LENGTH. Raw template at assets/templates/prompt-c-block-timeline.tmpl."
 tags: prompt-c, video, timeline, 2-second-blocks, transition
 sources: []
-last_ingested: 2026-04-20
+last_ingested: 2026-04-21
 ---
 
 ## Purpose
@@ -17,6 +17,20 @@ user can inspect and reason about the per-second motion instead of
 trusting a generic "make it smooth" directive.
 
 Prompt C is always generated, regardless of mode.
+
+## Template
+
+The raw fill-in-the-blank template lives at:
+
+```
+assets/templates/prompt-c-block-timeline.tmpl
+```
+
+Read the template file, fill in START FRAME + END FRAME anchors from the
+Prompt A / Prompt B output (or from the uploaded images), then write
+exactly `total_blocks` Block sentences per the rule below. Keep
+`$VIDEO_LENGTH`, `$VIDEO_ASPECT_RATIO`, `$VIDEO_AUDIO`, `$VIDEO_FPS` as
+literal tokens — the HTML settings modal substitutes them live.
 
 ## Block count rule
 
@@ -35,42 +49,19 @@ total_blocks = full_blocks + (1 if tail_seconds > 0 else 0)
 | 8s           | 4              | —          | 4     |
 | 10s          | 5              | —          | 5     |
 
-## Authoritative output shape
-
-```
-PROMPT C - VIDEO TRANSITION
-
-START FRAME: <one-sentence anchor matching Prompt A's output or the
-uploaded start image>.
-END FRAME: <one-sentence anchor matching Prompt B's output or the
-uploaded end image>.
-
-TIMELINE (total duration $VIDEO_LENGTH seconds at $VIDEO_FPS fps,
-$VIDEO_ASPECT_RATIO):
-
-Block 1 (0-2s): <camera move + subject motion + lighting shift + focal
-concern, one dense sentence>.
-Block 2 (2-4s): <continues from Block 1 — no jump cut>.
-Block 3 (4-6s): <...>.
-Block N (last — tail length noted if less than 2s): <...>.
-
-AUDIO: $VIDEO_AUDIO.
-STYLE: photorealistic, commercial-grade, <lens/sensor cue consistent with
-Prompt A>. Camera: <locked-off | handheld | dolly | push-in>, no unplanned
-movement.
-CAMERA CONTINUITY: same focal length, same framing anchor as Prompt A,
-same color science as Prompt A and B.
-QUALITY: high fidelity, smooth at $VIDEO_FPS fps, no artifacts, no
-morph-y in-betweens.
-```
-
 ## Five rules for each block
 
 1. **One dense sentence.** No lists, no sub-bullets inside a block.
-2. **Name the motion.** Use a verb from `wiki/prompt/video/director-style.md` — push-in, dolly-back, rack focus, orbit, whip pan, etc. Never just "the camera moves".
-3. **Cumulative motion.** Block N+1 picks up where Block N left off. No cuts. No teleporting.
-4. **Name the focus.** Say what the viewer's eye is drawn to in that block — the foreground element, the shattering edge, the rising dust.
-5. **Include lighting shift if any.** If the lighting changes between start and end, distribute the change across blocks rather than snapping.
+2. **Name the motion.** Use a verb from `wiki/prompt/video/director-style.md`
+   — push-in, dolly-back, rack focus, orbit, whip pan, etc. Never just
+   "the camera moves".
+3. **Cumulative motion.** Block N+1 picks up where Block N left off. No
+   cuts. No teleporting.
+4. **Name the focus.** Say what the viewer's eye is drawn to in that
+   block — the foreground element, the shattering edge, the rising dust.
+5. **Include lighting shift if any.** If the lighting changes between
+   start and end, distribute the change across blocks rather than
+   snapping.
 
 ## Worked example (4 blocks, 8s, smoothie explosion)
 
@@ -116,7 +107,9 @@ QUALITY: high fidelity, smooth at $VIDEO_FPS fps, no morph artifacts.
 
 ## Rules recap
 
-- `$VIDEO_LENGTH`, `$VIDEO_ASPECT_RATIO`, `$VIDEO_AUDIO`, `$VIDEO_FPS` stay as LITERAL tokens in the output — the HTML settings modal substitutes them live.
+- `$VIDEO_LENGTH`, `$VIDEO_ASPECT_RATIO`, `$VIDEO_AUDIO`, `$VIDEO_FPS`
+  stay as LITERAL tokens in the output — the HTML settings modal
+  substitutes them live.
 - Block count MUST match the rule above. No fudging.
 - Blocks must be narratively cumulative — no jump cuts.
 

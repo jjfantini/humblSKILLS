@@ -3,10 +3,10 @@ title: "Prompt B Template: The Ending Frame"
 context: prompt
 category: image
 concept: end-frame
-description: "Template for the final frame of the transition. Describes the delta from Prompt A (or from the uploaded reference) and preserves everything else."
+description: "Guidance for Prompt B (the final frame of the transition). Describes the delta from Prompt A (or the uploaded reference) and preserves everything else. Raw template at assets/templates/prompt-b-end-frame.tmpl."
 tags: prompt-b, end-frame, image-generation, delta, continuity
 sources: []
-last_ingested: 2026-04-20
+last_ingested: 2026-04-21
 ---
 
 ## Purpose
@@ -24,29 +24,27 @@ use the upload as a visual reference.
 
 ## Template
 
+The raw fill-in-the-blank template lives at:
+
 ```
-PROMPT B - ENDING FRAME
-
-Reference: <either "follows from Prompt A's output with the changes below"
-OR "use the uploaded image as the visual reference; preserve every
-attribute below except the explicit deltas">.
-
-Preserved from the reference (must be identical):
-- Subject: <same noun>, same position in frame
-- Composition: same angle, same framing, same distance
-- Camera: same sensor, same lens, same f-stop
-- Lighting: same direction, same color temperature, same intensity
-- Materials: same finishes, same colors, same textures
-- Background: same surface, same gradient, same mood
-
-Deltas (what changes):
-- <explicit change 1 — new position / new state / new color of one specific element>
-- <explicit change 2>
-- <explicit change N>
-
-Aspect ratio: $VIDEO_ASPECT_RATIO. Photorealistic, same color science as
-reference, no drift.
+assets/templates/prompt-b-end-frame.tmpl
 ```
+
+Read the template file, fill the "Preserved" list exhaustively (don't
+paraphrase "same as Prompt A" — enumerate), and list the deltas in
+order of visual impact.
+
+## Rules
+
+1. **Preserve list must be explicit.** "Same as Prompt A" is not enough
+   — enumerate every surface, light, material, and framing attribute
+   the image model needs to keep identical.
+2. **Deltas must be enumerated in order of visual impact.** Big changes
+   first.
+3. **If count matters** (shards, ingredients, droplets), state it
+   numerically.
+4. **Never rewrite the subject** — swapping the subject breaks
+   transition continuity.
 
 ## Worked example (smoothie explosion)
 
@@ -78,13 +76,6 @@ Deltas:
 Aspect ratio: $VIDEO_ASPECT_RATIO. Photorealistic, same color science,
 1/10000s freeze-frame feel.
 ```
-
-## Rules
-
-1. **Preserve list must be explicit.** "Same as Prompt A" is not enough — enumerate.
-2. **Deltas must be enumerated in order of visual impact.** Big changes first.
-3. **If count matters** (shards, ingredients, droplets), state it numerically.
-4. **Never rewrite the subject** — swapping the subject breaks transition continuity.
 
 ## Incorrect (drifting from the reference)
 

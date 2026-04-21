@@ -26,3 +26,12 @@ Entry shape:
   - HTML template forked at assets/prompt-page-template.html with settings modal, gear icon, and "Provided by user" placeholder for skipped tabs.
   - Remaining work for future sessions: smoke-test HTML in a browser (manual), then drop real-world Prompt A/B/C samples into references/raw/ and convert synthesis orphans into source-cited concepts as patterns emerge.
 
+
+[QUERY 2026-04-21] Extracted Prompt A/B/C templates from wiki concepts into assets/templates/.
+  - New files: assets/templates/prompt-a-start-frame.tmpl, prompt-b-end-frame.tmpl, prompt-c-block-timeline.tmpl (raw fill-in-the-blank templates)
+  - Wiki concepts rewritten as thin guidance layers: purpose + rules + worked example + incorrect/correct, with a Template section that routes to the asset path
+  - Matches the create-scroll-animation pattern (templates in assets/, conceptual rules in wiki/)
+  - SKILL.md routes unchanged — concepts still live at the same wiki paths; they now route onward to the asset files
+  - Block-count table + per-block rules retained in block-timeline.md (they're rules, not template)
+
+[LINT 2026-04-21] 12 wiki, 0 raw. Hard: 0, Soft: 12. Regenerated _index.md.
