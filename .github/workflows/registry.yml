@@ -1,8 +1,13 @@
 name: Registry
 
+# Self-healing registry.json. Runs on every push (any branch) whose paths
+# could affect the generated registry. If drift is detected, regenerates
+# and commits back to the pushed branch with [skip ci] so the bot's own
+# commit does not loop. This replaces the former pre-merge "registry-check"
+# gate — drift is now auto-fixed rather than blocking merges.
+
 on:
   push:
-    branches: [main]
     paths:
       - "skills/**"
       - "cli/cmd/build-registry/**"
@@ -14,14 +19,23 @@ permissions:
   contents: write
 
 concurrency:
-  group: registry-rebuild
+  # Per-branch so a PR push does not block a simultaneous main push.
+  group: registry-rebuild-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   rebuild:
+    # Belt-and-suspenders: even without [skip ci], refuse to process the
+    # bot's own auto-fix commits to guarantee no loop.
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Check out the branch explicitly so `git push` knows where to
+          # send the auto-fix commit (avoids detached-HEAD push failures
+          # on PR branches).
+          ref: ${{ github.ref_name }}
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"

@@ -1,12 +1,64 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-20T23:17:38Z",
+  "generated_at": "2026-04-21T12:42:19Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "main",
-    "sha": "757381be771b8a5e98d6bf15f655a02e75b87f48"
+    "ref": "skill/create-video-transition",
+    "sha": "6052d45c4ab5ac19fb55d0d8eab5305bc630d5a0"
   },
   "skills": [
+    {
+      "name": "create-scroll-animation",
+      "version": "0.1.0",
+      "description": "Generates a production-grade React/Next.js scroll-driven canvas hero from an MP4. Extracts frames via FFmpeg, batch-converts to WebP, emits a single .tsx that scrubs frames against scroll progress using Framer Motion's useScroll + useMotionValueEvent. Mobile-first, LCP target under 1.2s, JS budget under 100KB. Trigger on \"scroll-stop build\", \"scroll animation website\", \"scroll-driven video\", \"Apple-style scroll animation\", \"video on scroll\", or when the user provides an MP4 and asks for a scroll-scrubbed React hero. Do NOT use for HTML-only sites (use scroll-stop-builder), two-frame transitions (use create-video-transition), or non-scroll canvas animations.\n",
+      "tags": [
+        "scroll",
+        "canvas",
+        "framer-motion",
+        "nextjs",
+        "react",
+        "ffmpeg",
+        "webp",
+        "apple-style",
+        "hero",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor"
+      ],
+      "preserve": [
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/create-scroll-animation",
+      "dir_sha": "89ef63803695be84d2f6dc1778f4e7190887743abce3b3cfe4f370611f2e6e71"
+    },
+    {
+      "name": "create-video-transition",
+      "version": "1.0.0",
+      "description": "Generates the prompts needed to produce a video transition between two frames: Prompt A (start image), Prompt B (end image), and Prompt C (video transition, decomposed into exact 2-second blocks). Detects which prompts to produce based on whether the user uploaded a start image, an end image, both, or neither. Prompt C interpolates $VIDEO_LENGTH, $VIDEO_ASPECT_RATIO, $VIDEO_AUDIO, $VIDEO_FPS. Delivers an HTML page with tabbed A/B/C copy buttons and a settings modal for live variable swaps. Trigger when the user says \"video transition prompt\", \"start frame to end frame\", \"animate between these images\", \"transition video from image to image\", or uploads a reference image and asks for a transition. Do NOT use for standalone image prompts (use scroll-stop-prompter) or for writing Runway/Kling UI copy.\n",
+      "tags": [
+        "video",
+        "prompt",
+        "transition",
+        "image-generation",
+        "commercial-director",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor"
+      ],
+      "preserve": [
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/create-video-transition",
+      "dir_sha": "ddcaa44dda982e72a61ccb8b753f8f1d21055dc79e2a5f497f795f9242c256d5"
+    },
     {
       "name": "use-smart-humanize-text",
       "version": "2.0.0",
