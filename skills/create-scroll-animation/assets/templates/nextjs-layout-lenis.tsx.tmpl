@@ -1,0 +1,30 @@
+// =============================================================================
+// Optional: Next.js App Router root layout with Lenis smooth scroll.
+//
+// Emit this ONLY if the user opted into Lenis during the interview.
+// Otherwise omit entirely — the base ScrollFrameCanvas works fine with
+// native browser scroll.
+//
+// Install:  npm i lenis
+//
+// This goes at app/layout.tsx (or wraps an existing layout). Adjust to the
+// user's existing layout if one already exists — just add <ReactLenis root>
+// around {children}.
+// =============================================================================
+
+'use client';
+
+import { ReactLenis } from 'lenis/react';
+import type { ReactNode } from 'react';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <ReactLenis root options={{ lerp: 0.1, smoothWheel: true }}>
+          {children}
+        </ReactLenis>
+      </body>
+    </html>
+  );
+}
