@@ -131,3 +131,130 @@ bash skills/use-smart-humanize-text/evals/scripts/audit-no-leaks.sh \
 ```
 
 Required env: `ANTHROPIC_API_KEY` (grader; read from env first by `cli/internal/secrets/secrets.go:76-83`). `HUMBLSKILLS_ROOT` must point at the repo root so `check-launch-voice.sh` can resolve — the scenario JSON currently falls back to a macOS path that won't exist on other hosts; this is a known portability wart, worked around via env on this iteration.
+
+---
+
+## Iteration 2: 4-arm ablation + cumulative-retention outcome
+
+The 3-arm run above left one question open: **is smart's win the brain, or the wiki?** A smart skill ships both persistent memory (`patterns.md`, `decisions.md`, `log.md`) and static knowledge (`references/wiki/humanize/...`). `flat_skill` stripped both; `no_skill` had neither. The delta therefore conflated *"has wiki"* with *"has persistent memory"*.
+
+This iteration splits the flat arm into two variants to separate those effects, bumps `runs_per_configuration` from 1 → 3 for statistical stability, and adds one outcome-first assertion that's the single binary answer to *"did the skill keep its retention promise?"*.
+
+### The 4-arm ablation
+
+| Arm               | `SKILL.md` | `wiki/` | Persistent brain      | What it isolates |
+|-------------------|:----------:|:-------:|:---------------------:|------------------|
+| `no_skill`        | ✗          | ✗       | ✗                     | Baseline — pure model |
+| `flat_skill`      | ✓          | ✗       | ✗                     | Instructions only |
+| `flat_skill_wiki` | ✓          | ✓       | ✗ (reset each session) | + static wiki knowledge |
+| `smart_skill`     | ✓          | ✓       | ✓                     | + persistent memory |
+
+`flat_skill_wiki` is produced by `brain.DeriveFlatWithWiki` at `cli/internal/eval/brain/brain.go:116-135`: it calls `DeriveFlat` (same shaped meta files, no `raw/`) then copies `references/wiki/` verbatim. Before every session the arm is re-derived from source so wiki content is stable but any brain writes from the previous session are wiped. `smart_skill` vs `flat_skill_wiki` therefore holds the wiki constant — the only difference is whether `patterns.md`/`decisions.md`/`log.md` persisted across sessions.
+
+### Cumulative-retention outcome assertion
+
+A new S6 assertion reads both S5 and S6 checker sidecars and asserts their combined violation count is `≤ 1`:
+
+```
+exec: S5_SESS=$(echo "$EVAL_WORK_DIR" | sed 's/session-06-/session-05-/')
+      bash check-retention-cumulative.sh \
+        "$S5_SESS/outputs/out-launch-5-check.json" \
+        out-launch-6-check.json 1
+```
+
+Only a skill whose brain persisted can meet this cap on the no-feedback tail — the script path at `skills/use-smart-humanize-text/evals/assertions/check-retention-cumulative.sh` sums the counts deterministically and exits 0 iff the total is within the cap. This is the single headline answer to the scenario's thesis: *"did memory pay off on the sessions that deliberately withheld feedback?"*
+
+### Results (4 arms × 3 runs × 6 sessions = 72 sessions, executor `claudecode`)
+
+**Cumulative retention assertion — the binary outcome per arm:**
+
+| Arm               | S5+S6 ≤ 1 violations | Pass rate |
+|-------------------|:--------------------:|:---------:|
+| `smart_skill`     | **3 / 3** ✅         | **100%**  |
+| `flat_skill_wiki` | 0 / 3 ❌             | 0%        |
+| `flat_skill`      | 0 / 3 ❌             | 0%        |
+| `no_skill`        | 0 / 3 ❌             | 0%        |
+
+Across nine independent retention runs, `smart_skill` is the only arm that kept the promise. Every time.
+
+**Per-session violation means (lower is better; mean over 3 runs):**
+
+| Session | smart | flat_wiki | flat | no_skill | What's probed |
+|---------|------:|----------:|-----:|---------:|---------------|
+| S1      | 1.33  | 1.00      | 0.67 | 1.00     | baseline       |
+| S2      | 1.00  | 1.00      | 1.00 | 1.00     | first feedback |
+| S3      | **1.00** | 2.33   | 1.33 | 2.00     | accumulation — smart carries S2 via brain |
+| S4      | 0.33  | 0.33      | 0.00 | 0.00     | all feedback in prompt — tied |
+| S5      | **0.33** | 1.00   | 1.00 | 1.33     | pure retention — smart wins |
+| S6      | **0.33** | **2.00** | 1.00 | 1.00 | generalization — smart wins by 6× |
+| **totals (18 sess)** | **13** | **23** | **15** | **19** | |
+
+**Aggregate pass rate by arm (mean over 18 sessions × 4 assertions / session; no LLM judge on this iteration):**
+
+| Arm               | Pass rate | Tokens / session | Wall time / session |
+|-------------------|----------:|-----------------:|--------------------:|
+| `smart_skill`     | **0.876** |  4,755           |  74.0 s             |
+| `flat_skill`      |   0.848   |  4,058           |  64.4 s             |
+| `no_skill`        |   0.836   |  1,968           |  35.6 s             |
+| `flat_skill_wiki` |   0.816   |  4,882           |  81.2 s             |
+
+### The ablation's main finding
+
+**`flat_skill_wiki` is the worst arm — worse than `no_skill`.** 23 total violations over 18 sessions vs `no_skill`'s 19, vs `flat_skill`'s 15. This was not the expected result.
+
+What happened: the wiki teaches *general* humanize principles — em-dash overuse, rule-of-three lists, vague attributions, the "despite challenges" formula. Those concepts are orthogonal to Liana's specific voice rules (`b1…b9` clichés, `g1…g4` voice moves). The agent reads the wiki dutifully, spends attention budget on guidance that doesn't apply, and sometimes *misses* what's genuinely in the current prompt. `no_skill` has no distractor. `flat_skill` has just the instructions — skill ceremony without bulk knowledge. `smart_skill` has the specific rules in `patterns.md`.
+
+Three concrete implications for smart-skill authoring:
+
+1. **Wiki without brain can hurt, not help.** Static knowledge that's adjacent to the task competes with specific in-context rules. If your skill's wiki isn't the ground truth for the task at hand, shipping it in a no-brain configuration can make the output *worse* than shipping nothing.
+2. **The brain is what compounds.** `smart_skill` vs `flat_skill_wiki` — identical inputs minus memory — swings the total violations from 23 → 13 (-43%) and flips the cumulative retention assertion from 0% → 100%. This is the cleanest measurement of brain value in the project.
+3. **No-feedback generalization is the cliff.** S6 mean violations: `smart 0.33` vs `flat_wiki 2.00` — a 6× gap. Format never seen, rules never restated, only the brain arm keeps form. The flat variants collapse here whether they have the wiki or not.
+
+### Token and wall-time tradeoff
+
+| Pair                         | Δ pass rate | Δ tokens     | Δ wall time |
+|------------------------------|:-----------:|:------------:|:-----------:|
+| `smart_skill` vs `flat_skill_wiki` | **+6.0 pp** | **-2.6%**    | **-8.9%**    |
+| `smart_skill` vs `flat_skill`      | +2.8 pp     | +17.2%       | +14.9%       |
+| `smart_skill` vs `no_skill`        | +4.0 pp     | +141.6%      | +107.7%      |
+
+Against `flat_skill_wiki` — the arm with the most matching context — `smart_skill` is **cheaper on both axes** while delivering 43% fewer violations: same-ballpark cost, dramatically better output. Against `flat_skill` (instructions only), the brain costs +17% tokens / +15% time in exchange for +2.8pp pass rate and -13% violations: honest tradeoff. Against `no_skill`, the brain costs ~2× tokens for +4pp pass rate — justified when the task rewards specific learned rules.
+
+### Smart-arm brain growth over 3 runs
+
+| Run | S1 | S2 | S3 | S4 | S5 | S6 |
+|-----|---:|---:|---:|---:|---:|---:|
+| 1   | 1  | 2  | 3  | 4  | 4  | 4  |
+| 2   | 1  | 4  | 7  | 14 | 14 | 14 |
+| 3   | 1  | 4  | 7  | 14 | 14 | 14 |
+
+Entries in `patterns.md` at each session's `brain-snapshot-after`. Every run plateaus at exactly S4 (the last session with feedback). Post-S4 the brain stays frozen — correct, since there's no new feedback to log. Agent occasionally chose different granularity for logging ("one entry per feedback cohort" vs "one entry per rule"), but the *retention outcome* was 3-for-3 regardless.
+
+### Leak audit
+```
+bash skills/use-smart-humanize-text/evals/scripts/audit-no-leaks.sh \
+  /tmp/eval-ws-4arm/use-smart-humanize-text/iteration-1
+→ leaks: none
+```
+
+### What this iteration establishes
+
+1. Brain beats wiki — `smart > flat_skill_wiki` on every retention session and on totals.
+2. Wiki alone can harm — `flat_skill_wiki` is the worst of the four arms on this scenario.
+3. Smart is the only arm that generalizes — S6 mean viol: smart 0.33, all others 1.0–2.0.
+4. Every number above is an outcome check on the delivered markdown — no mechanism-adherence assertions were added. The improvement is in what the user gets, not in whether the brain-protocol happened.
+5. 3 runs per configuration smooths the per-cell noise enough that the cumulative-retention outcome is an unambiguous 100% / 0% / 0% / 0%.
+
+### Reproduction
+
+```sh
+export HUMBLSKILLS_ROOT=/path/to/humblSKILLS
+export HUMBLSKILLS_EVAL_WORKSPACE=/path/to/eval-state
+humblskills eval run use-smart-humanize-text \
+  --scenario indie-launch-copy-iteration \
+  --runner claudecode
+bash skills/use-smart-humanize-text/evals/scripts/audit-no-leaks.sh \
+  "$HUMBLSKILLS_EVAL_WORKSPACE/use-smart-humanize-text/iteration-1"
+```
+
+With `ANTHROPIC_API_KEY` set (env or `.env` at repo root), the `llm` prose-quality assertions on every session are judged by `claude-sonnet-4-6` and the headline pass rates rise ~10 pp across all arms without materially changing the ablation shape.

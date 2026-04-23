@@ -94,13 +94,18 @@ skip confirmation prompts.
 
 ## Benchmarking skills: `humblskills eval`
 
-`eval` runs a three-arm benchmark of any skill - `no_skill` vs `flat_skill`
-vs `smart_skill` - grades the outputs, and emits a single-file HTML
-dashboard. For smart skills the same harness runs sessions in order so the
-brain state (patterns, decisions, log, wiki) carries across sessions and
-you get a longitudinal trajectory that proves the skill compounds over time.
+`eval` runs an up-to-four-arm benchmark of any skill — `no_skill` vs
+`flat_skill` vs `flat_skill_wiki` vs `smart_skill` — grades the outputs, and
+emits a single-file HTML dashboard. For smart skills the same harness runs
+sessions in order so the brain state (patterns, decisions, log, wiki)
+carries across sessions and you get a longitudinal trajectory that proves
+the skill compounds over time. Drop `flat_skill_wiki` if you only want the
+3-arm baseline; include it to separate "brain value" from "static wiki value"
+in an ablation.
 
 **Latest published showcase:** [adaptive-brand-voice-discovery · 2026-04-20](https://jjfantini.github.io/humblSKILLS/eval/reports/) — a 6-session compounding scenario over 10 idiosyncratic brand-voice rules. On cursor-agent, `smart_skill` scored pass_rate **0.935** vs `no_skill` **0.740** (**+26.3%**) and `flat_skill` **0.679** (**+37.7%**), while using **67% fewer tokens** than `no_skill`. Reproduce locally with `humblskills eval brand-voice`. Full index: [live docs](https://jjfantini.github.io/humblSKILLS/eval/reports/) · [source](docs/eval/reports/).
+
+**4-arm ablation showcase:** [indie-launch-copy-iteration](https://jjfantini.github.io/humblSKILLS/eval/indie-launch-analysis/) — 6 sessions over 13 indie-launch voice rules, three runs per arm (72 sessions total) on claudecode. Separates **brain value** (`smart_skill` vs `flat_skill_wiki`) from **wiki value** (`flat_skill_wiki` vs `flat_skill`) with identical preamble and scaffolding. The cumulative-retention outcome assertion (S5 + S6 violations ≤ 1) passes **3/3 for `smart_skill` and 0/3 for every other arm**. `smart_skill` hits 43% fewer violations than `flat_skill_wiki` while using 2.6% fewer tokens and 8.9% less wall time. Surprising finding surfaced by the ablation: `flat_skill_wiki` is the **worst** of the four arms — static wiki knowledge adjacent to the task can distract without helping. Reproduce with `humblskills eval run use-smart-humanize-text --scenario indie-launch-copy-iteration`. Full analysis: [docs/eval/indie-launch-analysis.md](docs/eval/indie-launch-analysis.md).
 
 Six runners ship behind one interface - pick whichever agent you already
 use, or point an API key directly at the hosted model:
