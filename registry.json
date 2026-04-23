@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-23T19:54:07Z",
+  "generated_at": "2026-04-23T21:18:22Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "claude/smart-humanize-eval-example-SJx2L",
-    "sha": "61914c8fbd882c0a87cde64294a99eb99714b310"
+    "sha": "9a0040688e27aada3b019e7fb1b3d11abaae2a54"
   },
   "skills": [
     {
@@ -69,7 +69,7 @@
         "references/patterns.md"
       ],
       "path": "skills/use-smart-humanize-text",
-      "dir_sha": "b50948dbdbc9479d89eae3a30432d474185dea146e0fb0eb2b7cd94cf6c404d3"
+      "dir_sha": "6386add08f8ba015f28beadd9e5fcf9851a4bc41613ff71711266f4802e14096"
     },
     {
       "name": "use-smart-skill",
