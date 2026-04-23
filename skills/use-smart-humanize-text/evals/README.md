@@ -1,6 +1,13 @@
 # evals/ for use-smart-humanize-text
 
-One scenario: `adaptive-brand-voice-discovery`. Six sessions. Three arms (smart_skill, flat_skill, no_skill). Designed to prove Smart Skills learn idiosyncratic, non-derivable rules over repeated use — with hard numbers.
+Two scenarios, both 6 sessions, both three arms (`smart_skill`, `flat_skill`, `no_skill`). They test different axes of learning:
+
+| Scenario | Tests | What "bad" looks like | What "good" looks like |
+|----------|-------|-----------------------|------------------------|
+| `adaptive-brand-voice-discovery` | **Rejection of rigid surface rules** (naming, spelling, formatting, terminology) | A rule is violated (e.g. `Arc Factor` instead of `ArcFactor`) | Every rule absent |
+| `indie-launch-copy-iteration`    | **Rejection of clichés AND reinforcement of positive voice moves** | A banned cliché appears **or** a required voice move is missing | Zero banned clichés, all four voice moves present |
+
+The two scenarios together prove the brain learns **both** "don't do X" (banned patterns fade over time) and "always do Y" (good patterns get reinforced over time). Dashboards render them side by side as part of a single iteration.
 
 ## Running
 
@@ -10,6 +17,12 @@ humblskills eval brand-voice
 
 # Equivalent long form:
 humblskills eval run use-smart-humanize-text --scenario adaptive-brand-voice-discovery --open
+
+# Run only the new scenario:
+humblskills eval run use-smart-humanize-text --scenario indie-launch-copy-iteration --open
+
+# Run both scenarios (default when --scenario is omitted):
+humblskills eval run use-smart-humanize-text --open
 
 # Head-to-head subset:
 humblskills eval run use-smart-humanize-text --config smart_skill,no_skill
@@ -68,12 +81,64 @@ Each session has a count-ceiling assertion (inline `awk` parsing `out-brand-N-ch
 
 Sessions 3, 4, 5 include explicit brain-retention checks: rules disclosed in earlier sessions' feedback **must not** reappear in the checker output. The only channel carrying those rules forward is the brain, so passing these proves the agent read and applied `patterns.md`.
 
+## Scenario: `indie-launch-copy-iteration`
+
+### What makes it hard
+
+Liana Koval is a solo indie maker. Her voice is **specific**: she hates SaaS clichés and insists every blurb has a named audience, a concrete number, a first-person sentence, and a named limitation. Those rules are not in any model's priors — they can only be learned by reading Liana's feedback and carrying it forward.
+
+Each session ships a new micro-product (Thinkmoss → Tabpile → Spritemash → Queuedeck → Warpshelf → Plipspace). The feedback is progressive: 9 clichés to **avoid** and 4 moves to **include**, disclosed across sessions 2–4, never restated after.
+
+| Session | Product        | New rules in prompt (bad / good)                | Cumulative rules the arm knows |
+|---------|----------------|-------------------------------------------------|--------------------------------|
+| 1       | Thinkmoss      | none                                             | 0 (baseline)                   |
+| 2       | Tabpile        | b1 (powerful), b2 (seamless) / g1 (audience)    | 3                              |
+| 3       | Spritemash     | b3 (leverage), b4 (unleash) / g2 (number)       | smart: 6 / flat+no: 3          |
+| 4       | Queuedeck      | b5–b9 (intuitive, effortless, revolutionary, game-changer, cutting-edge) / g3 (first-person), g4 (limitation) | smart: 13 / flat+no: 7 |
+| 5       | Warpshelf      | **none — pure retention**                        | smart: 13 / flat+no: 0         |
+| 6       | Plipspace (thread) | **none — generalization to 3-post thread**  | smart: 13 / flat+no: 0         |
+
+Sessions 5 and 6 are the crucial tests: zero feedback in the prompt, so only a skill with a persistent brain produces compliant output.
+
+### Why it pairs with the ArcFactor scenario
+
+Where `adaptive-brand-voice-discovery` tests whether the brain can learn **surface-level rules that must not be violated**, `indie-launch-copy-iteration` tests whether it can learn **positive voice moves that must be present**. The checker's `count` field sums both kinds of deviations (banned cliché present == violation; required move missing == violation), so the same ceiling / retention assertions work for both axes.
+
+### Graduated violation ceilings
+
+| Session | Ceiling (of 13 rule units) |
+|---------|----------------------------|
+| 1       | ≤ 11 (baseline)            |
+| 2       | ≤ 9 (3 units disclosed)    |
+| 3       | ≤ 6 (smart: 6 in brain; flat: 3 in prompt) |
+| 4       | ≤ 2 (smart: 13 in brain; flat: 7 in prompt) |
+| 5       | ≤ 1 (retention — smart has 13 in brain) |
+| 6       | = 0 (generalization to a new format)    |
+
+### Leak audit
+
+`scripts/audit-no-leaks.sh <iteration-dir>` proves the three-arm comparison is honest:
+
+- For `no_skill` and `flat_skill`, the session-5 and session-6 prompts and transcripts contain **none** of the rule-disclosure fragments from sessions 2–4.
+- For `flat_skill`, every `brain-snapshot-before/references/patterns.md` is free of scenario-specific entries (proving the harness resets the flat brain per session).
+- For `smart_skill`, `patterns.md` grows monotonically session over session.
+
+Run it after any `eval run` that included this scenario; it exits 0 with `leaks: none` when the comparison is valid.
+
 ## Files
 
 ### `assertions/`
 
-- `check-brand-voice.sh` — deterministic ArcFactor rule detector. Emits JSON `{violations, count, rules_violated}`. Invoked by harness assertions (not staged to the agent), so its comments cannot leak rules to the model.
+- `check-brand-voice.sh` — deterministic ArcFactor rule detector for `adaptive-brand-voice-discovery`. Emits JSON `{violations, count, rules_violated}`.
+- `check-launch-voice.sh` — deterministic Liana-voice detector for `indie-launch-copy-iteration`. Same JSON shape (`{violations, count, rules_checked, rules_violated}`) so the ceiling / retention awk snippet is identical across scenarios. Violations cover both banned clichés (`b1`…`b9`) and missing positive moves (`g1`…`g4`).
+
+Both checkers are invoked by harness assertions, not staged to the agent, so their comments cannot leak rules to the model.
 
 ### `files/`
 
-- `arcfactor-brief-1.md` … `arcfactor-brief-6.md` — content briefs with casual/incorrect formats that must be translated to ArcFactor house style. Each brief includes company context, required data, and an output-path instruction.
+- `arcfactor-brief-1.md` … `arcfactor-brief-6.md` — content briefs for the ArcFactor scenario.
+- `indie-brief-1.md` … `indie-brief-6.md` — content briefs for the Liana-voice scenario. Each brief names one of Liana's products, lists raw analyst-style bullets (with dirty formats and clichés seeded), and instructs the agent to write to `out-launch-N.md`.
+
+### `scripts/`
+
+- `audit-no-leaks.sh` — post-eval auditor for the `indie-launch-copy-iteration` three-arm comparison (see "Leak audit" above).
