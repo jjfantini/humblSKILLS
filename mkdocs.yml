@@ -29,6 +29,7 @@ nav:
     - Quickstart: eval/quickstart.md
     - Artifacts: eval/artifacts.md
     - Scenarios: eval/scenarios.md
+    - Indie-launch analysis: eval/indie-launch-analysis.md
     - Published reports: eval/reports/index.md
   - Roadmap: roadmap.md
 
