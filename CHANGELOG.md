@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.9.1](https://github.com/jjfantini/humblSKILLS/compare/v2.9.0...v2.9.1) (2026-04-23)
+
+
+### Bug Fixes
+
+* **ci:** scope auto-merge job to release environment for PAT access ([#91](https://github.com/jjfantini/humblSKILLS/issues/91)) ([8184c3c](https://github.com/jjfantini/humblSKILLS/commit/8184c3c924f6cce7096fa509f6dfa68fcf3a47c6))
+* **ci:** use PAT for auto-merge so release workflow triggers on merge ([#88](https://github.com/jjfantini/humblSKILLS/issues/88)) ([5d028a0](https://github.com/jjfantini/humblSKILLS/commit/5d028a0ad4b77f09ae2f3416ae6a535a891e46e6))
+* **ci:** use PAT for sibling cli/ tag push ([#90](https://github.com/jjfantini/humblSKILLS/issues/90)) ([436c0a5](https://github.com/jjfantini/humblSKILLS/commit/436c0a53336488c8aa4151ddb03243d2c4f58396))
+
 ## [2.9.0](https://github.com/jjfantini/humblSKILLS/compare/v2.8.0...v2.9.0) (2026-04-23)
 
 
