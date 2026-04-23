@@ -36,10 +36,16 @@ jobs:
       github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
+      # Use the release-please PAT, not GITHUB_TOKEN. When auto-merge fires
+      # with GITHUB_TOKEN, the resulting merge commit is authored by
+      # github-actions[bot] and GitHub suppresses downstream workflow
+      # triggers — so the `release` workflow never runs, no v tag, no
+      # GoReleaser artifacts. A PAT-authored merge cascades normally.
+      #
       # `gh pr merge` shells out to `git` to auto-discover the repo, which
-      # fails ("not a git repository") when we haven't done actions/checkout.
-      # Passing -R skips the git lookup entirely — no checkout needed.
+      # fails ("not a git repository") without actions/checkout. Passing -R
+      # skips the git lookup entirely.
       - name: Enable auto-merge (merge commit)
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
         run: gh pr merge -R "${{ github.repository }}" "${{ github.event.pull_request.number }}" --merge --auto
