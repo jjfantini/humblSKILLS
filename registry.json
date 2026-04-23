@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-23T18:48:01Z",
+  "generated_at": "2026-04-23T19:54:07Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "claude/test-llm-judge-env-PfliN",
-    "sha": "b162f741e9ea26dc7aec948bd60a890302d0f1eb"
+    "ref": "claude/smart-humanize-eval-example-SJx2L",
+    "sha": "61914c8fbd882c0a87cde64294a99eb99714b310"
   },
   "skills": [
     {
