@@ -35,6 +35,10 @@ jobs:
       contains(github.head_ref, 'release-please--') &&
       github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    # RELEASE_PLEASE_TOKEN is an environment secret on `release`. Without
+    # this declaration, secrets.RELEASE_PLEASE_TOKEN resolves to empty
+    # and gh errors out with "GH_TOKEN ... not set".
+    environment: release
     steps:
       # Use the release-please PAT, not GITHUB_TOKEN. When auto-merge fires
       # with GITHUB_TOKEN, the resulting merge commit is authored by
