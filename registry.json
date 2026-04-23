@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-21T12:42:19Z",
+  "generated_at": "2026-04-23T18:25:55Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "skill/create-video-transition",
-    "sha": "6052d45c4ab5ac19fb55d0d8eab5305bc630d5a0"
+    "ref": "claude/lucid-kilby-7e5e39",
+    "sha": "b2ef9efd121033a4c1e4914669bf0b20c23299e3"
   },
   "skills": [
     {
