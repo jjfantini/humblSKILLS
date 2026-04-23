@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-21T12:42:19Z",
+  "generated_at": "2026-04-23T14:49:31Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "skill/create-video-transition",
-    "sha": "6052d45c4ab5ac19fb55d0d8eab5305bc630d5a0"
+    "ref": "claude/smart-humanize-eval-example-SJx2L",
+    "sha": "2ceb12874c2b76b8ac9f934d890424af0f20b6e2"
   },
   "skills": [
     {
@@ -69,7 +69,7 @@
         "references/patterns.md"
       ],
       "path": "skills/use-smart-humanize-text",
-      "dir_sha": "9663306adf14f0b743482db983dd0b6482e708d544c05266501c330cb02daa39"
+      "dir_sha": "368218e84262c667e26ed8abe45eb840f41b21f28d907f21a5f9d2d6dd256301"
     },
     {
       "name": "use-smart-skill",
