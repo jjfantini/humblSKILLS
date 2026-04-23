@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-23T21:18:22Z",
+  "generated_at": "2026-04-23T23:43:29Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "claude/smart-humanize-eval-example-SJx2L",
-    "sha": "9a0040688e27aada3b019e7fb1b3d11abaae2a54"
+    "ref": "develop",
+    "sha": "081f21db2dc47bb464688fefd05fe99f624c0940"
   },
   "skills": [
     {
