@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.9.0](https://github.com/jjfantini/humblSKILLS/compare/v2.8.0...v2.9.0) (2026-04-23)
+
+
+### Features
+
+* **install:** prefer claude-code default, add info pane, dedupe keys ([#85](https://github.com/jjfantini/humblSKILLS/issues/85)) ([3facb5e](https://github.com/jjfantini/humblSKILLS/commit/3facb5ee195f0c0c3092cdf20749f65a857b8f5b))
+* **skills:** add create-video-transition + create-scroll-animation humblSKILLs ([#82](https://github.com/jjfantini/humblSKILLS/issues/82)) ([9a2357a](https://github.com/jjfantini/humblSKILLS/commit/9a2357ae485aebe04f2ebf1f9f1d9bc039396778))
+
+
+### Bug Fixes
+
+* **ci:** pass -R to gh pr merge so auto-merge doesn't need checkout ([#87](https://github.com/jjfantini/humblSKILLS/issues/87)) ([6fe1836](https://github.com/jjfantini/humblSKILLS/commit/6fe18361861c80ac20c3852b2cf24c59bfac7d12))
+
 ## [2.8.0](https://github.com/jjfantini/humblSKILLS/compare/v2.7.0...v2.8.0) (2026-04-20)
 
 
