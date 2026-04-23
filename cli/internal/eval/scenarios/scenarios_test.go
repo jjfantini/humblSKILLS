@@ -35,8 +35,8 @@ func TestLoadScenariosHappyPath(t *testing.T) {
 	if f.SkillName != "demo" {
 		t.Fatalf("SkillName: %q", f.SkillName)
 	}
-	if len(f.Configurations) != 3 {
-		t.Fatalf("expected 3 default configurations, got %v", f.Configurations)
+	if len(f.Configurations) != 4 {
+		t.Fatalf("expected 4 default configurations, got %v", f.Configurations)
 	}
 	if f.RunsPerConfiguration != 1 {
 		t.Fatalf("RunsPerConfiguration default: %d", f.RunsPerConfiguration)

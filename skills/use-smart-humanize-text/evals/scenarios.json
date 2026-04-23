@@ -1,8 +1,8 @@
 {
   "skill_name": "use-smart-humanize-text",
   "schema_version": 1,
-  "configurations": ["smart_skill", "flat_skill", "no_skill"],
-  "runs_per_configuration": 1,
+  "configurations": ["smart_skill", "flat_skill_wiki", "flat_skill", "no_skill"],
+  "runs_per_configuration": 3,
   "scenarios": [
     {
       "id": "adaptive-brand-voice-discovery",
@@ -239,6 +239,7 @@
             { "text": "BRAIN-RETENTION TEST: g2 (concrete number) must appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'g2 voice' out-launch-6-check.json" },
             { "text": "BRAIN-RETENTION TEST: g3 (first-person sentence) must appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'g3 voice' out-launch-6-check.json" },
             { "text": "BRAIN-RETENTION TEST: g4 (named limitation) must appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'g4 voice' out-launch-6-check.json" },
+            { "text": "OUTCOME: cumulative retention across S5 + S6 — combined violations must be ≤ 1 (pass iff the skill kept its retention promise on the two no-feedback tail sessions)", "check": "exec:S5_SESS=$(echo \"$EVAL_WORK_DIR\" | sed 's/session-06-/session-05-/'); bash \"${HUMBLSKILLS_ROOT:-/Users/jjfantini/github/humblSKILLS}/skills/use-smart-humanize-text/evals/assertions/check-retention-cumulative.sh\" \"$S5_SESS/outputs/out-launch-5-check.json\" out-launch-6-check.json 1" },
             { "text": "The thread reads as three plausible launch posts separated by '---' lines. Score 1-10; pass if >= 5.", "check": "llm" }
           ]
         }

@@ -1,6 +1,6 @@
 # evals/ for use-smart-humanize-text
 
-Two scenarios, both 6 sessions, both three arms (`smart_skill`, `flat_skill`, `no_skill`). They test different axes of learning:
+Two scenarios, both 6 sessions. The `indie-launch-copy-iteration` scenario runs a **4-arm ablation** — `smart_skill`, `flat_skill_wiki`, `flat_skill`, `no_skill` — at 3 runs per arm, to isolate which layer of the skill actually produces the compounding win. `adaptive-brand-voice-discovery` still runs the original 3-arm setup. Both cover different axes of learning:
 
 | Scenario | Tests | What "bad" looks like | What "good" looks like |
 |----------|-------|-----------------------|------------------------|
@@ -100,6 +100,21 @@ Each session ships a new micro-product (Thinkmoss → Tabpile → Spritemash →
 
 Sessions 5 and 6 are the crucial tests: zero feedback in the prompt, so only a skill with a persistent brain produces compliant output.
 
+### The 4-arm ablation
+
+| Arm               | `SKILL.md` | `wiki/` | Persistent brain | What it isolates |
+|-------------------|:----------:|:-------:|:----------------:|------------------|
+| `no_skill`        | ✗          | ✗       | ✗                | Baseline — pure model |
+| `flat_skill`      | ✓          | ✗       | ✗                | Instructions only (no static knowledge, no memory) |
+| `flat_skill_wiki` | ✓          | ✓       | ✗ (reset each session) | + static wiki knowledge |
+| `smart_skill`     | ✓          | ✓       | ✓                | + persistent memory |
+
+`flat_skill_wiki` vs `flat_skill` measures whether the wiki's static content helps on its own; `smart_skill` vs `flat_skill_wiki` measures the pure compounding value of the persistent brain (identical inputs minus memory). The scenario's premise — Liana's voice rules are non-derivable from general humanize knowledge — predicts that `flat_skill_wiki` will **not** beat `flat_skill` on Liana-specific outcomes; the only arm that should compound is `smart_skill`. If this prediction holds, you're looking at a clean measurement of brain value, not just skill-vs-no-skill.
+
+### Cumulative retention outcome
+
+Session 6's assertion list ends with an **outcome-based cumulative check**: `violations(S5) + violations(S6) ≤ 1`. This is the single headline that answers *"did the skill keep its retention promise on the no-feedback tail?"* across the retention + generalization sessions. Only `smart_skill` should hit this cap; every other arm should fail it because its brain was reset (flat variants) or never existed (no_skill). The check runs `evals/assertions/check-retention-cumulative.sh`, which reads both sidecar JSONs directly.
+
 ### Why it pairs with the ArcFactor scenario
 
 Where `adaptive-brand-voice-discovery` tests whether the brain can learn **surface-level rules that must not be violated**, `indie-launch-copy-iteration` tests whether it can learn **positive voice moves that must be present**. The checker's `count` field sums both kinds of deviations (banned cliché present == violation; required move missing == violation), so the same ceiling / retention assertions work for both axes.
@@ -133,6 +148,7 @@ Run it after any `eval run` that included this scenario; it exits 0 with `leaks:
 
 - `check-brand-voice.sh` — deterministic ArcFactor rule detector for `adaptive-brand-voice-discovery`. Emits JSON `{violations, count, rules_violated}`.
 - `check-launch-voice.sh` — deterministic Liana-voice detector for `indie-launch-copy-iteration`. Same JSON shape (`{violations, count, rules_checked, rules_violated}`) so the ceiling / retention awk snippet is identical across scenarios. Violations cover both banned clichés (`b1`…`b9`) and missing positive moves (`g1`…`g4`).
+- `check-retention-cumulative.sh` — reads two `*-check.json` sidecars (S5 + S6) and asserts their combined violation count is at or below a cap. Used by the S6 cumulative-retention outcome assertion.
 
 Both checkers are invoked by harness assertions, not staged to the agent, so their comments cannot leak rules to the model.
 

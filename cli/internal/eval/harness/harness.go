@@ -156,9 +156,10 @@ func New(opts Options) (*Harness, error) {
 	}
 	// Validate arms.
 	known := map[string]bool{
-		scenarios.ArmSmartSkill: true,
-		scenarios.ArmFlatSkill:  true,
-		scenarios.ArmNoSkill:    true,
+		scenarios.ArmSmartSkill:    true,
+		scenarios.ArmFlatSkillWiki: true,
+		scenarios.ArmFlatSkill:     true,
+		scenarios.ArmNoSkill:       true,
 	}
 	for _, a := range opts.Arms {
 		if !known[a] {
@@ -225,6 +226,11 @@ func (h *Harness) Run(ctx context.Context) (*Result, error) {
 					if arm == scenarios.ArmFlatSkill && skillForArm != "" {
 						if _, derr := brain.DeriveFlat(h.opts.SkillDir, skillForArm); derr != nil {
 							h.emit(Event{Kind: EvtError, Arm: arm, Scenario: sc.ID, Session: sess.N, Message: "re-derive flat: " + derr.Error()})
+						}
+					}
+					if arm == scenarios.ArmFlatSkillWiki && skillForArm != "" {
+						if _, derr := brain.DeriveFlatWithWiki(h.opts.SkillDir, skillForArm); derr != nil {
+							h.emit(Event{Kind: EvtError, Arm: arm, Scenario: sc.ID, Session: sess.N, Message: "re-derive flat+wiki: " + derr.Error()})
 						}
 					}
 					row, snapDir, err := h.runSession(ctx, arm, skillForArm, sc, sess, run, brainState)
@@ -306,10 +312,11 @@ func (h *Harness) Run(ctx context.Context) (*Result, error) {
 }
 
 // prepareSkillForArm returns a path suitable for passing to the runner:
-//   - smart_skill: a fresh copy of the source skill that the harness can
-//     mutate between sessions
-//   - flat_skill:  the derive-flat variant under the workspace
-//   - no_skill:    empty string (runner skips the system prompt for skills)
+//   - smart_skill:      a fresh copy of the source skill that the harness can
+//                       mutate between sessions
+//   - flat_skill_wiki:  the derive-flat+wiki variant (SKILL.md + wiki, brain reset)
+//   - flat_skill:       the derive-flat variant (SKILL.md only, brain reset)
+//   - no_skill:         empty string (runner skips the system prompt for skills)
 func (h *Harness) prepareSkillForArm(arm string) (skillPath string, cleanup func(), err error) {
 	switch arm {
 	case scenarios.ArmNoSkill:
@@ -317,6 +324,12 @@ func (h *Harness) prepareSkillForArm(arm string) (skillPath string, cleanup func
 	case scenarios.ArmFlatSkill:
 		dst := filepath.Join(h.iterDir, "derived-flat-skill")
 		if _, err := brain.DeriveFlat(h.opts.SkillDir, dst); err != nil {
+			return "", nil, err
+		}
+		return dst, func() {}, nil
+	case scenarios.ArmFlatSkillWiki:
+		dst := filepath.Join(h.iterDir, "derived-flat-skill-wiki")
+		if _, err := brain.DeriveFlatWithWiki(h.opts.SkillDir, dst); err != nil {
 			return "", nil, err
 		}
 		return dst, func() {}, nil
