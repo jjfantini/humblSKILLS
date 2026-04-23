@@ -79,10 +79,15 @@ jobs:
             echo "tag=${{ needs.release_please.outputs.tag_name }}" >> "$GITHUB_OUTPUT"
           fi
 
+      # token: RELEASE_PLEASE_TOKEN so the sibling tag push below can touch
+      # commits that include workflow file changes. GITHUB_TOKEN cannot
+      # push refs referencing commits that modify .github/workflows/
+      # without the `workflows` app permission, which it doesn't have.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ steps.resolve.outputs.tag }}
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
       - name: Push sibling cli/* tag for go install
         # Go's nested-module resolution requires `cli/vX.Y.Z` to exist on the
