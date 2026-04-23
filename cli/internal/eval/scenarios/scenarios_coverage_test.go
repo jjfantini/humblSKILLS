@@ -66,7 +66,7 @@ func TestLoad_LegacyEvalsJSONLifted(t *testing.T) {
 		t.Errorf("lift mismatch: %+v", f.Scenarios[0])
 	}
 	// applyDefaults fills in configurations.
-	if len(f.Configurations) != 3 {
+	if len(f.Configurations) != 4 {
 		t.Errorf("configurations = %v", f.Configurations)
 	}
 	if f.RunsPerConfiguration != 1 {
