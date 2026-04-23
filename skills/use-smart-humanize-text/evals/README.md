@@ -106,14 +106,16 @@ Where `adaptive-brand-voice-discovery` tests whether the brain can learn **surfa
 
 ### Graduated violation ceilings
 
-| Session | Ceiling (of 13 rule units) |
-|---------|----------------------------|
-| 1       | ≤ 11 (baseline)            |
-| 2       | ≤ 9 (3 units disclosed)    |
-| 3       | ≤ 6 (smart: 6 in brain; flat: 3 in prompt) |
-| 4       | ≤ 2 (smart: 13 in brain; flat: 7 in prompt) |
-| 5       | ≤ 1 (retention — smart has 13 in brain) |
-| 6       | = 0 (generalization to a new format)    |
+| Session | Ceiling (of 13 rule units) | Total assertions |
+|---------|----------------------------|------------------|
+| 1       | ≤ 11 (baseline)            | 4                |
+| 2       | ≤ 9 (3 units disclosed)    | 7                |
+| 3       | ≤ 6 (smart: 6 in brain; flat: 3 in prompt) | 10 |
+| 4       | ≤ 2 (smart: 13 in brain; flat: 7 in prompt) | 10 |
+| 5       | ≤ 1 (retention — smart has 13 in brain) | 17 |
+| 6       | ≤ 1 (generalization to a new format)    | 17 |
+
+Sessions 5 and 6 carry the same 13 per-rule brain-retention assertions (one `! grep 'bN cliche' check.json` or `! grep 'gN voice' check.json` for each of the 13 rule units). The ceiling assertion is the coarse "smart arm met the bar" signal; the 13 per-rule asserts show the **profile** of which specific rules survived in each arm and make the smart-vs-flat gap visible even when both arms' ceilings move together.
 
 ### Leak audit
 

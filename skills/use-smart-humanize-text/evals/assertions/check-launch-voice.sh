@@ -89,8 +89,12 @@ else
 fi
 
 # g4: names a limitation / missing feature. Honest-about-limits is a signature
-# Liana move. Detects common phrasings in both contractions and full forms.
-g4_limit_re="(does not|doesn['’]t|can not|can['’]t|won['’]t|not yet|no [a-z]+ yet|missing|known limitation|limitation:|caveat:|rough edges|rough edge)"
+# Liana move. Generous enough to catch any credible acknowledgement of an
+# unfinished surface (contractions with or without "does", multi-word "no X
+# Y yet", preamble words, "coming soon" / "on the roadmap" phrasings) so the
+# detector measures "did the draft admit a limit?" rather than "did the
+# draft use the exact keyword 'caveat'?".
+g4_limit_re="(does not|doesn['’]t|don['’]t|can not|can['’]t|won['’]t|not yet|not ready|not there|not available|not supported|no [a-z]+(([ -][a-z]+){0,2}) yet|coming soon|on the roadmap|known (limitation|gap)|limitation:|caveat:|trade[ -]?off:|gap:|rough edges?|missing)"
 if grep -qiE "$g4_limit_re" "$file"; then
   rule_hits_g[4]=0
 else

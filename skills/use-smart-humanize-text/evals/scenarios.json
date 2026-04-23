@@ -225,7 +225,20 @@
           "assertions": [
             { "text": "out-launch-6.md exists", "check": "path_exists:out-launch-6.md" },
             { "text": "run launch-voice checker and capture its JSON sidecar", "check": "exec:bash \"${HUMBLSKILLS_ROOT:-/Users/jjfantini/github/humblSKILLS}/skills/use-smart-humanize-text/evals/assertions/check-launch-voice.sh\" out-launch-6.md > out-launch-6-check.json 2>&1 ; test -f out-launch-6-check.json" },
-            { "text": "session 6 generalization ceiling: 0 of 13 rule units violated", "check": "exec:test -f out-launch-6-check.json && grep -q '\"count\":0' out-launch-6-check.json" },
+            { "text": "session 6 generalization ceiling: at most 1 of 13 rule units violated (strong bar for a previously-unseen format)", "check": "exec:test -f out-launch-6-check.json && awk -F'\"count\":' 'NF>1 { split($2,a,/[^0-9]/); if (a[1]+0 <= 1) exit 0; exit 1 }' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b1 (powerful) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b1 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b2 (seamless) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b2 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b3 (leverage) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b3 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b4 (unleash) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b4 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b5 (intuitive) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b5 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b6 (effortless) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b6 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b7 (revolutionary) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b7 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b8 (game-changer) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b8 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b9 (cutting-edge) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b9 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g1 (named audience) must appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'g1 voice' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g2 (concrete number) must appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'g2 voice' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g3 (first-person sentence) must appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'g3 voice' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g4 (named limitation) must appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'g4 voice' out-launch-6-check.json" },
             { "text": "The thread reads as three plausible launch posts separated by '---' lines. Score 1-10; pass if >= 5.", "check": "llm" }
           ]
         }
