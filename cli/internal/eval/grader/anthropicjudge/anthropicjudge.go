@@ -21,10 +21,11 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/scenarios"
 )
 
-// DefaultModel is the grader model. Opus is the right call here - graders
-// should be smarter than the executor so false positives/negatives are
-// minimized.
-const DefaultModel = "claude-opus-4-5"
+// DefaultModel is the grader model. Our "llm" assertions are short 1-10
+// rubric judgments (pass iff score >= threshold), not deep reasoning, so
+// sonnet-4-6 is the right cost/robustness tradeoff. Override per-run with
+// --grader-model when a specific scenario warrants heavier grading.
+const DefaultModel = "claude-sonnet-4-6"
 
 // Judge is an LLM-backed grader.
 type Judge struct {
