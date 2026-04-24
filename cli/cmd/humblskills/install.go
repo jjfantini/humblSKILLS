@@ -145,7 +145,9 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 
 // selectPlatforms returns the adapter names to install onto. If the user
 // passed --platform, it's the intersection of that list with the declared
-// adapters; otherwise it's every detected adapter.
+// adapters; otherwise it falls back to the same default cascade the TUI
+// uses (issue #84: prefer claude-code over cursor when both are detected,
+// since Cursor can read ~/.claude/skills natively).
 func selectPlatforms(adapterList []adapters.Adapter, requested []string) ([]string, error) {
 	known := adapters.NameSet(adapterList)
 	if len(requested) > 0 {
@@ -159,13 +161,11 @@ func selectPlatforms(adapterList []adapters.Adapter, requested []string) ([]stri
 		return out, nil
 	}
 
-	detected := adapters.Detect(adapterList)
-	out := make([]string, 0, len(detected))
-	for _, d := range detected {
-		if d.Detected {
-			out = append(out, d.Name)
-		}
+	detected := map[string]bool{}
+	for _, d := range adapters.Detect(adapterList) {
+		detected[d.Name] = d.Detected
 	}
+	out := adapters.PreferredDefaults(adapterList, detected, nil)
 	sort.Strings(out)
 	return out, nil
 }

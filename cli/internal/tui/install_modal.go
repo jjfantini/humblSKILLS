@@ -30,18 +30,8 @@ func RunInstallPlatformModal(
 	}
 
 	selected := map[string]bool{}
-	if len(p.DefaultPlatforms) > 0 {
-		for _, name := range p.DefaultPlatforms {
-			if detected[name] {
-				selected[name] = true
-			}
-		}
-	} else {
-		for _, a := range adapterList {
-			if detected[a.Name] {
-				selected[a.Name] = true
-			}
-		}
+	for _, name := range adapters.PreferredDefaults(adapterList, detected, p.DefaultPlatforms) {
+		selected[name] = true
 	}
 
 	scopes := []scopeOpt{
@@ -199,8 +189,7 @@ func (m installModalModel) togglePlatform() installModalModel {
 func (m installModalModel) onEnter() (tea.Model, tea.Cmd) {
 	switch m.group {
 	case groupPlatforms:
-		// Enter toggles in the platforms group, matching `space`.
-		return m.togglePlatform(), nil
+		return m.nextGroup(1), nil
 	case groupScope:
 		m.scopeIdx = m.cursor
 		return m.nextGroup(1), nil
@@ -283,12 +272,44 @@ func (m installModalModel) groupLabel() string {
 }
 
 func (m installModalModel) renderBody() string {
-	th := m.theme
 	width := m.width - 4
 	if width < 40 {
 		width = 40
 	}
 
+	// Narrow terminals fall back to the single-column layout — the info pane
+	// would wrap past legibility below ~80 cols.
+	if m.width < 80 {
+		return m.renderLeftStacked(width)
+	}
+
+	leftW, rightW := m.paneWidths(width)
+	left := m.renderLeftStacked(leftW)
+	left = padLinesToWidth(left, leftW)
+	right := m.renderRight(rightW)
+	return lipgloss.JoinHorizontal(lipgloss.Top, left, right)
+}
+
+// paneWidths splits the body width between the left groups and the right
+// info pane. Right pane stays in [24, 48] cols so the message is always
+// readable without dominating the screen.
+func (m installModalModel) paneWidths(total int) (int, int) {
+	right := total * 2 / 5
+	if right < 24 {
+		right = 24
+	}
+	if right > 48 {
+		right = 48
+	}
+	left := total - right - 1
+	if left < 40 {
+		left = 40
+	}
+	return left, right
+}
+
+func (m installModalModel) renderLeftStacked(width int) string {
+	th := m.theme
 	var sb strings.Builder
 	sb.WriteString("  ")
 	sb.WriteString(th.DetailTitle.Render("Install " + m.skill + " to:"))
@@ -301,6 +322,84 @@ func (m installModalModel) renderBody() string {
 	sb.WriteString(m.renderGroup(groupAction, "ACTION", m.actionRows(), width))
 
 	return sb.String()
+}
+
+// renderRight draws the contextual INFO pane to the right of the groups.
+// Title sits in col 0 (no bar); every row below gets a `│` prefix so the
+// divider reads as one unbroken vertical line from `I` downward — matching
+// the DETAIL pane in listdetail.go.
+func (m installModalModel) renderRight(width int) string {
+	th := m.theme
+	bar := th.Divider.Render("│")
+	title := th.SectionTitle.Render("INFO")
+
+	contentW := width - 2
+	if contentW < 10 {
+		contentW = 10
+	}
+
+	heading, body := m.infoContent(contentW)
+
+	lines := []string{title, bar}
+	if heading != "" {
+		lines = append(lines, bar+" "+heading, bar)
+	}
+	for _, ln := range strings.Split(body, "\n") {
+		lines = append(lines, bar+" "+ln)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// infoContent returns (heading, body) for the right pane based on the
+// current platform selection. Pure function of m.selected + m.detected —
+// no state field needed, so no bookkeeping and no flicker.
+func (m installModalModel) infoContent(width int) (heading, body string) {
+	th := m.theme
+	wrap := lipgloss.NewStyle().Width(width)
+
+	hasClaude := m.selected["claude-code"]
+	hasCursor := m.selected["cursor"]
+
+	switch {
+	case hasClaude && hasCursor:
+		heading = th.Warn.Render("! Duplicate install")
+		body = wrap.Render(
+			"Installing to both creates two copies of each skill that can drift. " +
+				"Cursor can read ~/.claude/skills directly — enable \"Include " +
+				"Third-Party Plugins, Skills and other configs\" in Cursor → Rules, " +
+				"Skills and Plugins, then deselect cursor here.",
+		)
+	case hasClaude:
+		heading = th.DetailTitle.Render("Tip")
+		body = wrap.Render(
+			"Skills install to .claude/skills. Enable \"Include Third-Party " +
+				"Plugins, Skills and other configs\" in Cursor → Rules, Skills and " +
+				"Plugins so it picks them up natively — no duplication.",
+		)
+	case hasCursor:
+		heading = th.DetailTitle.Render("Note")
+		msg := "claude-code is not selected; these skills won't be available in Claude Code."
+		if !m.detected["claude-code"] {
+			msg += "\n(claude-code not detected)"
+		}
+		body = wrap.Render(msg)
+	default:
+		body = wrap.Render("Select a platform on the left.")
+	}
+	return heading, body
+}
+
+// padLinesToWidth right-pads every line of s to `width` display cells so
+// lipgloss.JoinHorizontal lines the right pane up at a fixed column.
+func padLinesToWidth(s string, width int) string {
+	lines := strings.Split(s, "\n")
+	for i, ln := range lines {
+		w := lipgloss.Width(ln)
+		if w < width {
+			lines[i] = ln + strings.Repeat(" ", width-w)
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 func (m installModalModel) renderGroup(g modalGroup, label string, rows []string, width int) string {
@@ -388,18 +487,19 @@ func (m installModalModel) actionRows() []string {
 }
 
 func (m installModalModel) hints() []KeyHint {
-	base := []KeyHint{
-		{Keys: "↑↓", Label: "select"},
-		{Keys: "tab", Label: "next group"},
-	}
+	base := []KeyHint{{Keys: "↑↓", Label: "select"}}
 	switch m.group {
 	case groupPlatforms:
-		base = append(base, KeyHint{Keys: "space", Label: "toggle"})
+		base = append(base,
+			KeyHint{Keys: "space", Label: "toggle"},
+			KeyHint{Keys: "↵", Label: "next"},
+		)
+	case groupScope:
+		base = append(base, KeyHint{Keys: "↵", Label: "next"})
+	case groupAction:
+		base = append(base, KeyHint{Keys: "↵", Label: "confirm"})
 	}
-	base = append(base,
-		KeyHint{Keys: "↵", Label: "confirm"},
-		KeyHint{Keys: "esc", Label: "back"},
-	)
+	base = append(base, KeyHint{Keys: "esc", Label: "back"})
 	return base
 }
 

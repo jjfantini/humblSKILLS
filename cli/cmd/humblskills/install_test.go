@@ -266,6 +266,94 @@ func TestInstall_SelectPlatforms_DetectedOnly(t *testing.T) {
 	}
 }
 
+func TestInstall_DefaultsPreferClaudeCodeWhenBothDetected(t *testing.T) {
+	// Issue #84: when both Claude Code and Cursor are detected and the user
+	// doesn't pass --platform, only claude-code should be installed — Cursor
+	// can read ~/.claude/skills natively.
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+	if err := os.MkdirAll(filepath.Join(s.Home, ".cursor"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{
+			Name: "foo", Version: "1.0.0",
+			Platforms: []string{"claude-code", "cursor"},
+			Files:     testutil.SkillTree{"SKILL.md": sampleSkillMD},
+		},
+	})
+	res := runCLIWithStdoutCapture(t,
+		"install", "foo",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--scope", "user",
+		"--yes", "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	m, err := manifest.Load(s.ManifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, inst := range m.Installations {
+		if inst.Platform == "cursor" {
+			t.Errorf("cursor should not be installed by default when claude-code is also detected: %+v", inst)
+		}
+	}
+	found := false
+	for _, inst := range m.Installations {
+		if inst.Platform == "claude-code" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("claude-code missing from manifest")
+	}
+}
+
+func TestInstall_ExplicitPlatformBothStillWorks(t *testing.T) {
+	// Users who really want both IDEs can still ask for them via --platform.
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+	if err := os.MkdirAll(filepath.Join(s.Home, ".cursor"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{
+			Name: "foo", Version: "1.0.0",
+			Platforms: []string{"claude-code", "cursor"},
+			Files:     testutil.SkillTree{"SKILL.md": sampleSkillMD},
+		},
+	})
+	res := runCLIWithStdoutCapture(t,
+		"install", "foo",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--platform", "claude-code,cursor",
+		"--scope", "user",
+		"--yes", "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	m, err := manifest.Load(s.ManifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	platforms := map[string]bool{}
+	for _, inst := range m.Installations {
+		platforms[inst.Platform] = true
+	}
+	if !platforms["claude-code"] || !platforms["cursor"] {
+		t.Errorf("explicit --platform both should install to both; got %v", platforms)
+	}
+}
+
 func TestInstall_NoPlatformsDetectedErrors(t *testing.T) {
 	s := testutil.NewSandbox(t)
 	// Neither ~/.claude nor ~/.cursor exist. Auto-detect yields nothing.
