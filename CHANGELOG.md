@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.10.0](https://github.com/jjfantini/humblSKILLS/compare/v2.9.1...v2.10.0) (2026-04-27)
+
+
+### Features
+
+* **eval:** add flat_skill_wiki arm + cumulative retention outcome ([9a00406](https://github.com/jjfantini/humblSKILLS/commit/9a0040688e27aada3b019e7fb1b3d11abaae2a54))
+* **eval:** add indie-launch-copy-iteration scenario to use-smart-humanize-text ([081f21d](https://github.com/jjfantini/humblSKILLS/commit/081f21db2dc47bb464688fefd05fe99f624c0940))
+
 ## [2.9.1](https://github.com/jjfantini/humblSKILLS/compare/v2.9.0...v2.9.1) (2026-04-23)
 
 
