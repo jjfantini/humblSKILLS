@@ -2,13 +2,21 @@
 //
 // The CLI is invoked as:
 //
-//	claude -p "<prompt>" --output-format stream-json \
-//	       --skill-dir <scratch>/skill \
-//	       --output-dir <scratch>/outputs
+//	claude -p "<prompt>" --output-format stream-json --verbose \
+//	       --permission-mode acceptEdits
 //
-// Exact flags vary by Claude Code version; the driver passes a minimal
-// sensible set and relies on the agent to interpret. Users can customize
-// via CLAUDE_CODE_EXTRA_ARGS (space-separated) in their profile.
+// The harness stages the skill and input files under <scratch>/skill/ and
+// <scratch>/inputs/ before invocation, and `cmd.Dir` is set to <scratch>.
+// The agent follows the prompt's relative paths (./skill, ./inputs,
+// ./out-*.md) from there. Output files are collected by clitool's
+// collectScratchOutputs after exit, so we do not need CLI flags to
+// designate a skill or output dir.
+//
+// --permission-mode acceptEdits is required for headless -p runs; the
+// default mode asks for per-tool approval which blocks indefinitely.
+//
+// Users can customize via CLAUDE_CODE_EXTRA_ARGS (space-separated) in
+// their profile for experimentation without editing this file.
 package claudecode
 
 import (
@@ -30,10 +38,8 @@ func New() *clitool.Runner {
 			args := []string{
 				"-p", req.Prompt,
 				"--output-format", "stream-json",
-				"--output-dir", "outputs",
-			}
-			if req.SkillDir != "" {
-				args = append(args, "--skill-dir", "skill")
+				"--verbose",
+				"--permission-mode", "acceptEdits",
 			}
 			if req.Model != "" {
 				args = append(args, "--model", req.Model)

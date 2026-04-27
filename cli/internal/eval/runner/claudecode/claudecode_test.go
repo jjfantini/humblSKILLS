@@ -37,17 +37,21 @@ func TestArgs_IncludesPromptAndOutputFormat(t *testing.T) {
 	}
 }
 
-func TestArgs_SkillDirAddsSkillFlag(t *testing.T) {
+func TestArgs_IncludesPermissionModeAcceptEdits(t *testing.T) {
+	// Headless -p runs need --permission-mode because the default mode asks
+	// for per-tool approval on every Write / Edit / Bash, which blocks
+	// indefinitely without a user. acceptEdits auto-approves file writes
+	// (the only tool the scenario needs) and keeps bash behind a prompt.
 	r := New()
-	args := r.D.Args(runner.Request{Prompt: "p", SkillDir: "/x"}, "/s", "/s/p")
-	hasSkill := false
+	args := r.D.Args(runner.Request{Prompt: "p"}, "/s", "/s/p")
+	has := false
 	for i, a := range args {
-		if a == "--skill-dir" && i+1 < len(args) && args[i+1] == "skill" {
-			hasSkill = true
+		if a == "--permission-mode" && i+1 < len(args) && args[i+1] == "acceptEdits" {
+			has = true
 		}
 	}
-	if !hasSkill {
-		t.Errorf("missing --skill-dir: %v", args)
+	if !has {
+		t.Errorf("missing --permission-mode acceptEdits: %v", args)
 	}
 }
 

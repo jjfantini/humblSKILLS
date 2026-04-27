@@ -114,6 +114,29 @@ func DeriveFlat(srcSkill, dst string) (string, error) {
 	return dst, nil
 }
 
+// DeriveFlatWithWiki is DeriveFlat plus wiki/ (static, human-authored
+// knowledge) copied verbatim. raw/ is still omitted - it's source material
+// the skill's wiki already distilled. The brain (patterns/decisions/log) is
+// still shape-only, so this arm has static knowledge but no persistent
+// memory across sessions.
+//
+// Use case: ablation studies that separate "static wiki knowledge" from
+// "dynamic brain knowledge" in a 4-arm comparison
+// (no_skill / flat_skill / flat_skill_wiki / smart_skill).
+func DeriveFlatWithWiki(srcSkill, dst string) (string, error) {
+	if _, err := DeriveFlat(srcSkill, dst); err != nil {
+		return "", err
+	}
+	srcWiki := filepath.Join(srcSkill, "references", "wiki")
+	if _, err := os.Stat(srcWiki); err == nil {
+		dstWiki := filepath.Join(dst, "references", "wiki")
+		if err := copyTree(srcWiki, dstWiki); err != nil {
+			return "", fmt.Errorf("copy wiki: %w", err)
+		}
+	}
+	return dst, nil
+}
+
 // shape truncates a meta file to its preamble: keep everything up to the
 // first `---` separator line, preserving the entry shape documentation.
 // If no separator exists, keep the first paragraph.

@@ -101,7 +101,7 @@ func newEvalRunCmd(app *App) *cobra.Command {
 	cmd.Flags().StringVar(&f.workspace, "workspace", "", "workspace root (default: XDG_STATE_HOME/humblskills/evals)")
 	cmd.Flags().StringVar(&f.runnerName, "runner", "", "runner id (claudecode|cursor-agent|codex|anthropic-api|openai-api|mock; auto-detects when empty)")
 	cmd.Flags().StringVar(&f.executor, "executor-model", "", "model for the executor runner (default: runner's DefaultModel)")
-	cmd.Flags().StringVar(&f.grader, "grader-model", "", "model for LLM-judge grading (default: anthropic opus-4-5)")
+	cmd.Flags().StringVar(&f.grader, "grader-model", "", "model for LLM-judge grading (default: anthropic sonnet-4-6)")
 	cmd.Flags().BoolVar(&f.noGrade, "no-grade", false, "skip grading (useful to batch grade later)")
 	cmd.Flags().BoolVar(&f.noReport, "no-report", false, "skip report rendering")
 	cmd.Flags().BoolVar(&f.resume, "resume", false, "(reserved) resume an interrupted iteration")

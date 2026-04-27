@@ -1,8 +1,8 @@
 {
   "skill_name": "use-smart-humanize-text",
   "schema_version": 1,
-  "configurations": ["smart_skill", "flat_skill", "no_skill"],
-  "runs_per_configuration": 1,
+  "configurations": ["smart_skill", "flat_skill_wiki", "flat_skill", "no_skill"],
+  "runs_per_configuration": 3,
   "scenarios": [
     {
       "id": "adaptive-brand-voice-discovery",
@@ -109,6 +109,138 @@
             { "text": "run brand-voice checker and capture its JSON sidecar", "check": "exec:bash /Users/jjfantini/github/humblSKILLS/skills/use-smart-humanize-text/evals/assertions/check-brand-voice.sh out-brand-6.md > out-brand-6-check.json 2>&1 ; test -f out-brand-6-check.json" },
             { "text": "session 6 generalization ceiling: 0 of 10 rules violated", "check": "exec:test -f out-brand-6-check.json && grep -q '\"count\":0' out-brand-6-check.json" },
             { "text": "The letter excerpt reads as a plausible annual-letter reflection. Score 1-10; pass if >= 5.", "check": "llm" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "indie-launch-copy-iteration",
+      "family": "draft",
+      "tags": ["compounding", "brain-protocol", "voice", "cliche-rejection", "pattern-reinforcement", "generalization"],
+      "sessions": [
+        {
+          "n": 1,
+          "prompt": "You are drafting a launch blurb for Liana Koval, a solo indie maker. Read the brief at ./inputs/indie-brief-1.md and draft the requested ~120-word blurb.\n\nIf a skill is available at ./skill/, first follow its Brain Protocol: read ./skill/SKILL.md, then ./skill/references/_index.md, patterns.md, decisions.md, log.md. If patterns.md contains any Liana-voice rules from prior sessions, apply them.\n\nWrite the blurb to ./out-launch-1.md in the CURRENT directory (not inside ./skill/ or ./inputs/). That's it for this session — no checker to run, no patterns to log. This is the baseline first-pass draft before any feedback.",
+          "files": [
+            "skills/use-smart-humanize-text/evals/files/indie-brief-1.md"
+          ],
+          "assertions": [
+            { "text": "out-launch-1.md exists", "check": "path_exists:out-launch-1.md" },
+            { "text": "run launch-voice checker and capture its JSON sidecar", "check": "exec:bash \"${HUMBLSKILLS_ROOT:-/Users/jjfantini/github/humblSKILLS}/skills/use-smart-humanize-text/evals/assertions/check-launch-voice.sh\" out-launch-1.md > out-launch-1-check.json 2>&1 ; test -f out-launch-1-check.json" },
+            { "text": "session 1 allowed ceiling: at most 11 of 13 rule units violated (baseline — no guidance yet)", "check": "exec:test -f out-launch-1-check.json && awk -F'\"count\":' 'NF>1 { split($2,a,/[^0-9]/); if (a[1]+0 <= 11) exit 0; exit 1 }' out-launch-1-check.json" },
+            { "text": "The blurb reads as a plausible ~120-word indie-launch blurb (regardless of voice compliance). Score 1-10 for prose quality; pass if >= 5.", "check": "llm" }
+          ]
+        },
+        {
+          "n": 2,
+          "prompt": "Draft Liana's Tabpile launch blurb using ./inputs/indie-brief-2.md.\n\nIf a skill is available, read its Brain Protocol files first (patterns.md, decisions.md, log.md).\n\nLiana's feedback on session 1's draft (READ CAREFULLY):\n\"Three notes on that Thinkmoss blurb: (1) don't use the word 'powerful' — it's meaningless. (2) don't use 'seamless' or 'seamlessly' — same reason. (3) every blurb should name a specific audience with 'for <group>' (e.g. 'for freelance writers', 'for solo game devs'). Please don't repeat these mistakes.\"\n\nCRITICAL for skill arms: this feedback reveals 3 of Liana's voice rules (2 words to avoid + 1 positive move to include). Log each rule as an imperative lesson to patterns.md before drafting, because sessions 3+ will NOT restate this feedback — your patterns.md is the only channel that carries rules forward.\n\nWrite to ./out-launch-2.md.",
+          "files": [
+            "skills/use-smart-humanize-text/evals/files/indie-brief-2.md"
+          ],
+          "retention_check": "Smart arm's patterns.md should contain at least 3 entries by end of session 2 (2 bans + 1 positive pattern). Session 3 will not restate these rules — they will only live in the brain.",
+          "assertions": [
+            { "text": "out-launch-2.md exists", "check": "path_exists:out-launch-2.md" },
+            { "text": "run launch-voice checker and capture its JSON sidecar", "check": "exec:bash \"${HUMBLSKILLS_ROOT:-/Users/jjfantini/github/humblSKILLS}/skills/use-smart-humanize-text/evals/assertions/check-launch-voice.sh\" out-launch-2.md > out-launch-2-check.json 2>&1 ; test -f out-launch-2-check.json" },
+            { "text": "session 2 allowed ceiling: at most 9 of 13 rule units violated (3 units disclosed)", "check": "exec:test -f out-launch-2-check.json && awk -F'\"count\":' 'NF>1 { split($2,a,/[^0-9]/); if (a[1]+0 <= 9) exit 0; exit 1 }' out-launch-2-check.json" },
+            { "text": "b1 (powerful) must not appear — disclosed in THIS session's prompt feedback", "check": "exec:test -f out-launch-2-check.json && ! grep -q 'b1 cliche' out-launch-2-check.json" },
+            { "text": "b2 (seamless) must not appear — disclosed in THIS session's prompt feedback", "check": "exec:test -f out-launch-2-check.json && ! grep -q 'b2 cliche' out-launch-2-check.json" },
+            { "text": "g1 (named audience) must not appear — disclosed in THIS session's prompt feedback", "check": "exec:test -f out-launch-2-check.json && ! grep -q 'g1 voice' out-launch-2-check.json" },
+            { "text": "The blurb reads as a plausible indie launch blurb. Score 1-10 for prose quality; pass if >= 5.", "check": "llm" }
+          ]
+        },
+        {
+          "n": 3,
+          "prompt": "Draft Liana's Spritemash launch blurb using ./inputs/indie-brief-3.md.\n\nIf a skill is available, read its Brain Protocol files first.\n\nLiana's feedback on session 2's draft (READ CAREFULLY):\n\"Two more notes: (a) don't use the word 'leverage' — it's corporate filler. (b) don't use 'unleash' — same problem. Also, every blurb should include at least one concrete number with a unit (price, setup time, count, whatever's real). Please apply these consistently.\"\n\nNOTE TO SKILL ARMS: read ./skill/references/patterns.md BEFORE drafting. Earlier feedback rounds are not restated in this prompt; your patterns.md is the only channel that carries them. Log the 3 new rules from this prompt to patterns.md as well.\n\nWrite to ./out-launch-3.md.",
+          "files": [
+            "skills/use-smart-humanize-text/evals/files/indie-brief-3.md"
+          ],
+          "retention_check": "Smart arm's patterns.md should contain at least 6 entries by end of session 3. Smart arm should hit zero b1/b2/g1 violations (brain-only) AND zero b3/b4/g2 violations (current prompt). Flat arm can only hit b3/b4/g2; will re-break b1/b2/g1.",
+          "assertions": [
+            { "text": "out-launch-3.md exists", "check": "path_exists:out-launch-3.md" },
+            { "text": "run launch-voice checker and capture its JSON sidecar", "check": "exec:bash \"${HUMBLSKILLS_ROOT:-/Users/jjfantini/github/humblSKILLS}/skills/use-smart-humanize-text/evals/assertions/check-launch-voice.sh\" out-launch-3.md > out-launch-3-check.json 2>&1 ; test -f out-launch-3-check.json" },
+            { "text": "session 3 allowed ceiling: at most 6 of 13 rule units violated", "check": "exec:test -f out-launch-3-check.json && awk -F'\"count\":' 'NF>1 { split($2,a,/[^0-9]/); if (a[1]+0 <= 6) exit 0; exit 1 }' out-launch-3-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b1 (powerful) must not appear — session 2's prompt disclosed this but THIS prompt does not; only patterns.md carries it", "check": "exec:test -f out-launch-3-check.json && ! grep -q 'b1 cliche' out-launch-3-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b2 (seamless) must not appear — brain-only signal", "check": "exec:test -f out-launch-3-check.json && ! grep -q 'b2 cliche' out-launch-3-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g1 (named audience) must not appear — brain-only signal", "check": "exec:test -f out-launch-3-check.json && ! grep -q 'g1 voice' out-launch-3-check.json" },
+            { "text": "b3 (leverage) must not appear — disclosed in THIS prompt", "check": "exec:test -f out-launch-3-check.json && ! grep -q 'b3 cliche' out-launch-3-check.json" },
+            { "text": "b4 (unleash) must not appear — disclosed in THIS prompt", "check": "exec:test -f out-launch-3-check.json && ! grep -q 'b4 cliche' out-launch-3-check.json" },
+            { "text": "g2 (concrete number) must not appear — disclosed in THIS prompt", "check": "exec:test -f out-launch-3-check.json && ! grep -q 'g2 voice' out-launch-3-check.json" },
+            { "text": "The blurb reads as a plausible indie launch blurb. Score 1-10 for prose quality; pass if >= 5.", "check": "llm" }
+          ]
+        },
+        {
+          "n": 4,
+          "prompt": "Draft Liana's Queuedeck launch blurb using ./inputs/indie-brief-4.md.\n\nIf a skill is available, read its Brain Protocol files first.\n\nLiana's feedback on session 3's draft (READ CAREFULLY):\n\"Final batch of rules, five more notes: (a) don't use 'intuitive' — empty word. (b) don't use 'effortless' — empty word. (c) don't use 'revolutionary' or any 'revolutionize' variant — never true. (d) don't use 'game-changer' or 'game-changing'. (e) don't use 'cutting-edge'. And two positive moves I want in every blurb from now on: include a first-person sentence (e.g. 'I built this because...') and name one honest limitation (e.g. 'no mobile yet', 'doesn't sync across devices'). Please apply all seven and don't repeat prior session errors.\"\n\nNOTE TO SKILL ARMS: your brain should already contain every rule from earlier feedback rounds. Read ./skill/references/patterns.md — earlier rules are not restated here; patterns.md is the only channel that carries them. Log these 7 new rules to patterns.md too. This is the final session with any feedback — sessions 5 and 6 will test retention.\n\nWrite to ./out-launch-4.md.",
+          "files": [
+            "skills/use-smart-humanize-text/evals/files/indie-brief-4.md"
+          ],
+          "retention_check": "Smart arm's patterns.md should now contain at least 13 entries (all 13 rule units logged). Flat arm can apply only the 7 rules from THIS prompt; it will re-break sessions 2-3 rules (b1/b2/b3/b4/g1/g2).",
+          "assertions": [
+            { "text": "out-launch-4.md exists", "check": "path_exists:out-launch-4.md" },
+            { "text": "run launch-voice checker and capture its JSON sidecar", "check": "exec:bash \"${HUMBLSKILLS_ROOT:-/Users/jjfantini/github/humblSKILLS}/skills/use-smart-humanize-text/evals/assertions/check-launch-voice.sh\" out-launch-4.md > out-launch-4-check.json 2>&1 ; test -f out-launch-4-check.json" },
+            { "text": "session 4 allowed ceiling: at most 2 of 13 rule units violated", "check": "exec:test -f out-launch-4-check.json && awk -F'\"count\":' 'NF>1 { split($2,a,/[^0-9]/); if (a[1]+0 <= 2) exit 0; exit 1 }' out-launch-4-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b1 (powerful) must not appear — brain-only signal after S2", "check": "exec:test -f out-launch-4-check.json && ! grep -q 'b1 cliche' out-launch-4-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b2 (seamless) must not appear — brain-only signal after S2", "check": "exec:test -f out-launch-4-check.json && ! grep -q 'b2 cliche' out-launch-4-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b3 (leverage) must not appear — brain-only signal after S3", "check": "exec:test -f out-launch-4-check.json && ! grep -q 'b3 cliche' out-launch-4-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b4 (unleash) must not appear — brain-only signal after S3", "check": "exec:test -f out-launch-4-check.json && ! grep -q 'b4 cliche' out-launch-4-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g1 (named audience) must not appear — brain-only signal after S2", "check": "exec:test -f out-launch-4-check.json && ! grep -q 'g1 voice' out-launch-4-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g2 (concrete number) must not appear — brain-only signal after S3", "check": "exec:test -f out-launch-4-check.json && ! grep -q 'g2 voice' out-launch-4-check.json" },
+            { "text": "The blurb reads as a plausible indie launch blurb. Score 1-10 for prose quality; pass if >= 5.", "check": "llm" }
+          ]
+        },
+        {
+          "n": 5,
+          "prompt": "Draft Liana's Warpshelf launch blurb using ./inputs/indie-brief-5.md.\n\nIf a skill is available, read its Brain Protocol files first.\n\nNO feedback is provided for this session. All of Liana's house-voice rules that applied in sessions 2-4 still apply — but you must RECALL them from your brain (smart arm) or from general knowledge (flat and no-skill arms, which have nothing to recall because their brain resets or does not exist).\n\nCRITICAL for skill arms: this is the FULL retention test. Read ./skill/references/patterns.md and apply every logged rule. Do NOT repeat any rule violation from prior sessions.\n\nCRITICAL for flat / no-skill arms: you have no persistent brain. Do your best with what you remember — but the scratch directory is fresh, so you have nothing to remember.\n\nWrite to ./out-launch-5.md.",
+          "files": [
+            "skills/use-smart-humanize-text/evals/files/indie-brief-5.md"
+          ],
+          "retention_check": "Pure retention test: no in-prompt feedback. Smart arm should hit zero or near-zero violations via brain. Flat / no-skill arms should re-break most rules since nothing persists for them.",
+          "assertions": [
+            { "text": "out-launch-5.md exists", "check": "path_exists:out-launch-5.md" },
+            { "text": "run launch-voice checker and capture its JSON sidecar", "check": "exec:bash \"${HUMBLSKILLS_ROOT:-/Users/jjfantini/github/humblSKILLS}/skills/use-smart-humanize-text/evals/assertions/check-launch-voice.sh\" out-launch-5.md > out-launch-5-check.json 2>&1 ; test -f out-launch-5-check.json" },
+            { "text": "session 5 retention ceiling: at most 1 of 13 rule units violated (smart arm should meet this; flat / no-skill should not)", "check": "exec:test -f out-launch-5-check.json && awk -F'\"count\":' 'NF>1 { split($2,a,/[^0-9]/); if (a[1]+0 <= 1) exit 0; exit 1 }' out-launch-5-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b1 (powerful) must not appear", "check": "exec:test -f out-launch-5-check.json && ! grep -q 'b1 cliche' out-launch-5-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b2 (seamless) must not appear", "check": "exec:test -f out-launch-5-check.json && ! grep -q 'b2 cliche' out-launch-5-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b3 (leverage) must not appear", "check": "exec:test -f out-launch-5-check.json && ! grep -q 'b3 cliche' out-launch-5-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b4 (unleash) must not appear", "check": "exec:test -f out-launch-5-check.json && ! grep -q 'b4 cliche' out-launch-5-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b5 (intuitive) must not appear", "check": "exec:test -f out-launch-5-check.json && ! grep -q 'b5 cliche' out-launch-5-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b6 (effortless) must not appear", "check": "exec:test -f out-launch-5-check.json && ! grep -q 'b6 cliche' out-launch-5-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b7 (revolutionary) must not appear", "check": "exec:test -f out-launch-5-check.json && ! grep -q 'b7 cliche' out-launch-5-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b8 (game-changer) must not appear", "check": "exec:test -f out-launch-5-check.json && ! grep -q 'b8 cliche' out-launch-5-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b9 (cutting-edge) must not appear", "check": "exec:test -f out-launch-5-check.json && ! grep -q 'b9 cliche' out-launch-5-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g1 (named audience) must appear", "check": "exec:test -f out-launch-5-check.json && ! grep -q 'g1 voice' out-launch-5-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g2 (concrete number) must appear", "check": "exec:test -f out-launch-5-check.json && ! grep -q 'g2 voice' out-launch-5-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g3 (first-person sentence) must appear", "check": "exec:test -f out-launch-5-check.json && ! grep -q 'g3 voice' out-launch-5-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g4 (named limitation) must appear", "check": "exec:test -f out-launch-5-check.json && ! grep -q 'g4 voice' out-launch-5-check.json" },
+            { "text": "The blurb reads as a plausible indie launch blurb. Score 1-10 for prose quality; pass if >= 5.", "check": "llm" }
+          ]
+        },
+        {
+          "n": 6,
+          "prompt": "Draft Liana's Plipspace 3-post launch thread using ./inputs/indie-brief-6.md.\n\nIf a skill is available, read its Brain Protocol files first.\n\nThis is a GENERALIZATION test. The format (a 3-post thread separated by '---' delimiters) was NOT in sessions 1-5. All of Liana's house-voice rules still apply — they are voice rules, not format rules.\n\nCRITICAL for skill arms: read ./skill/references/patterns.md. Apply every rule. Session 6 passing with zero violations on a previously-unseen format is the strongest evidence that the brain generalizes.\n\nWrite to ./out-launch-6.md.",
+          "files": [
+            "skills/use-smart-humanize-text/evals/files/indie-brief-6.md"
+          ],
+          "retention_check": "Generalization test on a new content format, no in-prompt feedback. Smart arm expected at 0 violations. Flat / no-skill arms expected to re-break most rules.",
+          "assertions": [
+            { "text": "out-launch-6.md exists", "check": "path_exists:out-launch-6.md" },
+            { "text": "run launch-voice checker and capture its JSON sidecar", "check": "exec:bash \"${HUMBLSKILLS_ROOT:-/Users/jjfantini/github/humblSKILLS}/skills/use-smart-humanize-text/evals/assertions/check-launch-voice.sh\" out-launch-6.md > out-launch-6-check.json 2>&1 ; test -f out-launch-6-check.json" },
+            { "text": "session 6 generalization ceiling: at most 1 of 13 rule units violated (strong bar for a previously-unseen format)", "check": "exec:test -f out-launch-6-check.json && awk -F'\"count\":' 'NF>1 { split($2,a,/[^0-9]/); if (a[1]+0 <= 1) exit 0; exit 1 }' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b1 (powerful) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b1 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b2 (seamless) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b2 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b3 (leverage) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b3 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b4 (unleash) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b4 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b5 (intuitive) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b5 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b6 (effortless) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b6 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b7 (revolutionary) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b7 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b8 (game-changer) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b8 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: b9 (cutting-edge) must not appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'b9 cliche' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g1 (named audience) must appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'g1 voice' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g2 (concrete number) must appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'g2 voice' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g3 (first-person sentence) must appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'g3 voice' out-launch-6-check.json" },
+            { "text": "BRAIN-RETENTION TEST: g4 (named limitation) must appear", "check": "exec:test -f out-launch-6-check.json && ! grep -q 'g4 voice' out-launch-6-check.json" },
+            { "text": "OUTCOME: cumulative retention across S5 + S6 — combined violations must be ≤ 1 (pass iff the skill kept its retention promise on the two no-feedback tail sessions)", "check": "exec:S5_SESS=$(echo \"$EVAL_WORK_DIR\" | sed 's/session-06-/session-05-/'); bash \"${HUMBLSKILLS_ROOT:-/Users/jjfantini/github/humblSKILLS}/skills/use-smart-humanize-text/evals/assertions/check-retention-cumulative.sh\" \"$S5_SESS/outputs/out-launch-5-check.json\" out-launch-6-check.json 1" },
+            { "text": "The thread reads as three plausible launch posts separated by '---' lines. Score 1-10; pass if >= 5.", "check": "llm" }
           ]
         }
       ]

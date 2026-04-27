@@ -30,11 +30,20 @@ import (
 // SchemaVersion is the current scenarios.json schema.
 const SchemaVersion = 1
 
-// Configuration IDs (arms).
+// Configuration IDs (arms). A skill's evals run against 1-4 of these.
+//   - ArmSmartSkill:     full skill incl. persistent brain (patterns/decisions/log)
+//   - ArmFlatSkillWiki:  SKILL.md + wiki/ (static knowledge), brain reset per session
+//   - ArmFlatSkill:      SKILL.md only (instructions), brain reset per session
+//   - ArmNoSkill:        no skill at all, baseline
+//
+// Having both flat variants lets an ablation separate "general wiki knowledge"
+// from "persistent brain", which is usually what a skill's *compounding* claim
+// is really about.
 const (
-	ArmSmartSkill = "smart_skill"
-	ArmFlatSkill  = "flat_skill"
-	ArmNoSkill    = "no_skill"
+	ArmSmartSkill     = "smart_skill"
+	ArmFlatSkillWiki  = "flat_skill_wiki"
+	ArmFlatSkill      = "flat_skill"
+	ArmNoSkill        = "no_skill"
 )
 
 // File is the top-level scenarios.json (or lifted evals.json) document.
@@ -163,7 +172,7 @@ func applyDefaults(f *File) {
 		f.SchemaVersion = SchemaVersion
 	}
 	if len(f.Configurations) == 0 {
-		f.Configurations = []string{ArmSmartSkill, ArmFlatSkill, ArmNoSkill}
+		f.Configurations = []string{ArmSmartSkill, ArmFlatSkillWiki, ArmFlatSkill, ArmNoSkill}
 	}
 	if f.RunsPerConfiguration <= 0 {
 		f.RunsPerConfiguration = 1
@@ -202,11 +211,11 @@ func Validate(f *File) error {
 		return errors.New("skill_name is required")
 	}
 	known := map[string]bool{
-		ArmSmartSkill: true, ArmFlatSkill: true, ArmNoSkill: true,
+		ArmSmartSkill: true, ArmFlatSkillWiki: true, ArmFlatSkill: true, ArmNoSkill: true,
 	}
 	for _, c := range f.Configurations {
 		if !known[c] {
-			return fmt.Errorf("unknown configuration %q (want one of smart_skill / flat_skill / no_skill)", c)
+			return fmt.Errorf("unknown configuration %q (want one of smart_skill / flat_skill_wiki / flat_skill / no_skill)", c)
 		}
 	}
 	ids := map[string]bool{}

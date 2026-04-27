@@ -134,6 +134,48 @@ func TestDeriveFlat_ShapesMetaAndStripsWikiRaw(t *testing.T) {
 	}
 }
 
+func TestDeriveFlatWithWiki_KeepsWikiStripsRaw(t *testing.T) {
+	src := t.TempDir()
+	writeBrainTree(t, src, map[string]string{
+		"SKILL.md":                       "# foo\n",
+		"scripts/lint.sh":                "#!/bin/sh",
+		"references/_brain.md":           "brain spec",
+		"references/_template.md":        "template",
+		"references/patterns.md":         "# patterns\n\n---\n\n### entry one\nbody\n",
+		"references/decisions.md":        "# decisions\n\nheader paragraph only\n\n### d1\nbody\n",
+		"references/log.md":              "# log\n\n[RUN 2026-01-01] stuff\n",
+		"references/_index.md":           "index",
+		"references/wiki/concept/one.md": "concept content",
+		"references/raw/note.txt":        "raw content",
+	})
+
+	dst := filepath.Join(t.TempDir(), "flat-with-wiki")
+	got, err := brain.DeriveFlatWithWiki(src, dst)
+	if err != nil {
+		t.Fatalf("DeriveFlatWithWiki: %v", err)
+	}
+	if got != dst {
+		t.Errorf("got %q, want %q", got, dst)
+	}
+	// wiki/ must be PRESENT (unlike DeriveFlat).
+	wikiPath := filepath.Join(dst, "references", "wiki", "concept", "one.md")
+	if data, err := os.ReadFile(wikiPath); err != nil {
+		t.Errorf("wiki concept missing: %v", err)
+	} else if string(data) != "concept content" {
+		t.Errorf("wiki concept content mismatch: %q", data)
+	}
+	// raw/ must still be absent.
+	if _, err := os.Stat(filepath.Join(dst, "references", "raw")); err == nil {
+		t.Error("raw/ should still be stripped in DeriveFlatWithWiki")
+	}
+	// patterns.md must still be shaped (brain reset per session).
+	if data, err := os.ReadFile(filepath.Join(dst, "references", "patterns.md")); err != nil {
+		t.Fatalf("patterns.md: %v", err)
+	} else if !strings.Contains(string(data), "no entries yet") {
+		t.Errorf("patterns.md not shaped: %q", data)
+	}
+}
+
 func TestSHA_DeterministicAndContentSensitive(t *testing.T) {
 	a := t.TempDir()
 	writeBrainTree(t, a, map[string]string{"a.md": "alpha", "dir/b.md": "beta"})
