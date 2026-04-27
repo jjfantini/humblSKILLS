@@ -27,7 +27,7 @@ This is the floor-vs-skill comparison. `smart_skill` carries learned rules forwa
 - **Session 5 (pure retention, no in-prompt feedback):** smart **0.941** vs no_skill **0.765** — **+23% relative**. The brain remembers; the bare model doesn't.
 - **Session 6 (generalization to a new 3-post thread format):** smart **0.944** vs no_skill **0.833** — **+13% relative**. Format the skill never saw, rules never restated; the brain still holds form.
 
-[**→ Open the full interactive report**](../indie-launch-copy-iteration-2026-04-27.html){ target="_blank" }
+[**→ Open the full interactive report**](indie-launch-copy-iteration-2026-04-27.html){ target="_blank" }
 
 ## Live preview
 

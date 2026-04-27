@@ -6,8 +6,8 @@ Single-file HTML dashboards published from `humblskills eval` runs. Each report 
 
 | Date       | Showcase                         | Skill                       | Runner        | Link                                                                                                          |
 |------------|----------------------------------|-----------------------------|---------------|---------------------------------------------------------------------------------------------------------------|
-| 2026-04-20 | adaptive-brand-voice-discovery   | use-smart-humanize-text     | cursor-agent  | [HTML](adaptive-brand-voice-discovery-2026-04-20.html) · [scenario page](use-smart-humanize-text/adaptive-brand-voice-discovery.md) |
-| 2026-04-27 | indie-launch-copy-iteration      | use-smart-humanize-text     | cursor-agent  | [HTML](indie-launch-copy-iteration-2026-04-27.html) · [scenario page](use-smart-humanize-text/indie-launch-copy-iteration.md)       |
+| 2026-04-20 | adaptive-brand-voice-discovery   | use-smart-humanize-text     | cursor-agent  | [HTML](use-smart-humanize-text/adaptive-brand-voice-discovery-2026-04-20.html) · [scenario page](use-smart-humanize-text/adaptive-brand-voice-discovery.md) |
+| 2026-04-27 | indie-launch-copy-iteration      | use-smart-humanize-text     | cursor-agent  | [HTML](use-smart-humanize-text/indie-launch-copy-iteration-2026-04-27.html) · [scenario page](use-smart-humanize-text/indie-launch-copy-iteration.md)       |
 
 ## Reproducing locally
 
