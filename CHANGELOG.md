@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.10.1](https://github.com/jjfantini/humblSKILLS/compare/v2.10.0...v2.10.1) (2026-04-27)
+
+
+### Bug Fixes
+
+* **docs:** co-locate eval HTML with scenario pages so iframes resolve ([#97](https://github.com/jjfantini/humblSKILLS/issues/97)) ([c656d8e](https://github.com/jjfantini/humblSKILLS/commit/c656d8e5d47e6512508147cc98e2b5f9ef488f86))
+
 ## [2.10.0](https://github.com/jjfantini/humblSKILLS/compare/v2.9.1...v2.10.0) (2026-04-27)
 
 
