@@ -27,7 +27,7 @@ Three arms hold prompt and skill-machinery constant and vary only persistent mem
 - **smart vs no_skill:** +0.194 pass rate (**+26.3%**), −67.2% tokens — skill machinery wins on quality *and* cost
 - **Session 5 (pure retention, no in-prompt feedback):** smart **0** violations · flat **10** · no_skill **9** — the decisive comparison
 
-[**→ Open the full interactive report**](../adaptive-brand-voice-discovery-2026-04-20.html){ target="_blank" }
+[**→ Open the full interactive report**](adaptive-brand-voice-discovery-2026-04-20.html){ target="_blank" }
 
 ## Live preview
 
