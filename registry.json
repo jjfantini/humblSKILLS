@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-27T13:10:49Z",
+  "generated_at": "2026-05-15T21:24:36Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "main",
-    "sha": "b8b75b88ff4abb203050170c7b421550a3b95d59"
+    "ref": "feat/use-smart-commit-skill",
+    "sha": "1e7cb3d380ed18eb2c3907ec9fdbaaa49d183055"
   },
   "skills": [
     {
@@ -58,6 +58,29 @@
       ],
       "path": "skills/create-video-transition",
       "dir_sha": "ddcaa44dda982e72a61ccb8b753f8f1d21055dc79e2a5f497f795f9242c256d5"
+    },
+    {
+      "name": "use-smart-commit",
+      "version": "1.0.0",
+      "description": "Inspect the working tree, group pending changes into atomic related buckets, and author one conventional commit per bucket. Every message covers what changed, why, and the impact (what it resolves or unblocks). Use when the user says \"commit\", \"commit my changes\", \"make a commit\", \"stage and commit\", or after finishing a unit of work and wanting to land it. Do NOT use for squashing existing history, rebasing, force-pushing, or writing PR descriptions.\n",
+      "tags": [
+        "git",
+        "commits",
+        "conventional-commits",
+        "workflow",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor"
+      ],
+      "preserve": [
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/use-smart-commit",
+      "dir_sha": "6c49b807c54a8ec929eacda3c4ffbce061378d2248236791afce7701f8bd0546"
     },
     {
       "name": "use-smart-humanize-text",
