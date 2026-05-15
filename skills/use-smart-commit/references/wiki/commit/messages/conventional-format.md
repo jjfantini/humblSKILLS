@@ -21,8 +21,8 @@ body (optional, but expected for non-trivial commits)
 
 ### The subject line
 
-- **Type** is one of the canonical conventional types (see the table in `SKILL.md`). The choice drives release-please's version bump on merge to `main`.
-- **Scope** is optional but encouraged. It names the area of the repo being changed. Real scopes from this repo's history: `skills`, `cli`, `eval`, `docs`, `ci`, `registry`. Compound scopes are fine when they add signal: `refactor(eval/grader): ...`.
+- **Type** is one of the canonical conventional types (see the table in `SKILL.md`). The type carries semver intent: `feat` is minor, `fix`/`perf` are patch, breaking changes are major. Many release tools (release-please, semantic-release, changesets, conventional-changelog) parse the type to drive automated version bumps; the type is still meaningful when no such tool is in use.
+- **Scope** is optional but encouraged. It names the area of the repo being changed. Pick what's already conventional in the current repo — run `git log --oneline -50` to see existing scopes and reuse them. Compound scopes are fine when they add signal: `refactor(eval/grader): ...`.
 - **Subject** is the one-line summary.
   - Imperative mood (`add`, not `added`; `fix`, not `fixed` or `fixes`).
   - Lowercase first character after the colon.
@@ -63,9 +63,9 @@ empty stdin. Now it returns ParseError::Empty so callers can recover
 gracefully. Resolves #214 and unblocks the CLI's --from-stdin flow.
 ```
 
-### Verbatim examples from this repo
+### Reference examples
 
-Use these as canonical references when picking a type + scope:
+Real-world conventional commit messages that illustrate the shape:
 
 ```
 docs(eval): publish indie-launch full 4-arm × 3-run ablation (#99)
@@ -75,7 +75,7 @@ chore(registry): regenerate registry.json
 feat(eval): add flat_skill_wiki arm + cumulative retention outcome
 ```
 
-Note the `(#NN)` PR-number suffix on commits that landed through PRs — that's a release-please / merge convention in this repo, not something you author. When committing locally before the PR exists, omit it.
+The `(#NN)` PR-number suffix on some of these is a GitHub squash-merge convention (GitHub auto-appends the PR number when you squash-and-merge a PR using its title) — it's not something you author when committing locally. Omit it from your subject line; it'll be added by the merge if your repo uses that pattern.
 
 ### Breaking changes
 
@@ -91,7 +91,7 @@ Two ways to mark a breaking change:
    Consumers must migrate to scoped tokens per docs/migrating-tokens.md.
    ```
 
-Either form triggers a major version bump in release-please.
+Either form signals a major version bump under semver, and is what automated release tooling (release-please, semantic-release, changesets, etc.) keys on when present.
 
 ### Committing with a multi-line body
 

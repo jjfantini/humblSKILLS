@@ -62,24 +62,24 @@ _Full spec: `references/_brain.md`._
 
 ## Conventional commit types
 
-Anchored to what release-please consumes in this repo.
+The canonical conventional-commits set. Many automated tools (release-please, semantic-release, changesets, conventional-changelog, etc.) parse these to author changelogs and decide version bumps — but the types are valid even when no such tool is in use.
 
-| Type       | Use when                                                  | Version bump (release-please) |
-|------------|-----------------------------------------------------------|-------------------------------|
-| `feat`     | New user-visible feature                                  | minor                         |
-| `fix`      | Bug fix                                                   | patch                         |
-| `perf`     | Performance improvement (no behaviour change)             | patch                         |
-| `refactor` | Internal restructure (no behaviour change)                | none                          |
-| `docs`     | Documentation only                                        | none                          |
-| `test`     | Tests only                                                | none                          |
-| `build`    | Build system, dependencies, packaging                     | none                          |
-| `ci`       | CI/CD pipeline only                                       | none                          |
-| `chore`    | Maintenance that doesn't fit above (registry regen, etc.) | none                          |
-| `style`    | Formatting / whitespace only                              | none                          |
+| Type       | Use when                                                  | Semver impact under conventional-commits |
+|------------|-----------------------------------------------------------|------------------------------------------|
+| `feat`     | New user-visible feature                                  | minor                                    |
+| `fix`      | Bug fix                                                   | patch                                    |
+| `perf`     | Performance improvement (no behaviour change)             | patch                                    |
+| `refactor` | Internal restructure (no behaviour change)                | none                                     |
+| `docs`     | Documentation only                                        | none                                     |
+| `test`     | Tests only                                                | none                                     |
+| `build`    | Build system, dependencies, packaging                     | none                                     |
+| `ci`       | CI/CD pipeline only                                       | none                                     |
+| `chore`    | Maintenance that doesn't fit above                        | none                                     |
+| `style`    | Formatting / whitespace only                              | none                                     |
 
-Breaking change: append `!` after the type/scope (`feat(api)!: ...`) **or** add a `BREAKING CHANGE:` footer. Bumps major.
+Breaking change: append `!` after the type/scope (`feat(api)!: ...`) **or** add a `BREAKING CHANGE:` footer in the body. Either form signals a major version bump under semver.
 
-Scope is optional but encouraged. Real examples from this repo: `feat(skills): ...`, `fix(docs): ...`, `chore(registry): ...`, `refactor(eval/grader): ...`.
+Scope is optional but encouraged. Pick whatever names the area of the repo being changed — common examples across repos: `(api)`, `(auth)`, `(ui)`, `(docs)`, `(ci)`. Check `git log --oneline -50` in the current repo to see which scopes are already in use and reuse them for consistency.
 
 ## Examples
 
@@ -125,7 +125,7 @@ example. Caught during onboarding review.
 - **Don't add AI attribution lines** like `Co-Authored-By: Claude <noreply@anthropic.com>` or `Generated with Claude Code` unless the user explicitly asks for them.
 - **Don't bypass hooks** with `--no-verify`. If a pre-commit hook fails, fix the underlying issue and re-commit. The hook is there for a reason.
 - **Don't amend a commit that has been pushed** without explicit user confirmation. Create a new commit instead.
-- **Don't pick a generic scope** (`misc`, `stuff`, `update`) when a real one fits. Real scopes from this repo: `skills`, `cli`, `eval`, `docs`, `ci`, `registry`.
+- **Don't pick a generic scope** (`misc`, `stuff`, `update`) when a real one fits. Check `git log --oneline -50` to see which scopes the repo already uses and reuse them.
 
 ## How to Use
 

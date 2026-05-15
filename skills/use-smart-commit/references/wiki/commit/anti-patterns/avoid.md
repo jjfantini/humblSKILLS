@@ -83,4 +83,4 @@ If a pre-commit hook fails, fix the underlying issue and re-commit. `--no-verify
 
 ### 7. Generic or absent scopes
 
-`misc`, `stuff`, `update`, `chore: changes` — these are scopes and subjects that hide intent. Real scopes from this repo: `skills`, `cli`, `eval`, `docs`, `ci`, `registry`. If you can't think of a scope, omit it (`feat: ...` is valid) — but don't invent a meaningless one.
+`misc`, `stuff`, `update`, `chore: changes` — these are scopes and subjects that hide intent. Pick what's already conventional in the current repo by checking `git log --oneline -50` for existing scopes and reusing them. If you can't think of a scope, omit it (`feat: ...` is valid without one) — but don't invent a meaningless one.

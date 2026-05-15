@@ -19,3 +19,5 @@ Entry shape:
   - SKILL.md embeds 2 worked examples + DO-NOT list (including skip-CI token rule)
 
 [LINT 2026-05-15] 3 wiki, 0 raw. Hard: 0, Soft: 3. Regenerated _index.md.
+
+[LINT 2026-05-15] 3 wiki, 0 raw. Hard: 0, Soft: 3. Regenerated _index.md.

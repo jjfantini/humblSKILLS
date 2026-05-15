@@ -71,4 +71,4 @@ Use `git add -p` to stage individual hunks, or check out the file fresh with `gi
 - **Revertable.** `git revert <sha>` undoes exactly one intent.
 - **Bisectable.** `git bisect` lands on the commit that introduced a regression, not on a sweep that mixed five things.
 - **Reviewable.** Reviewers can reason about one change at a time. Mixed commits force them to context-switch mid-diff.
-- **Changelog quality.** release-please reads commit messages to author the changelog. Atomic commits make the changelog readable.
+- **Changelog quality.** Automated changelog tools (release-please, semantic-release, changesets, conventional-changelog) read commit messages to author release notes. Atomic commits make the changelog readable; human-authored changelogs benefit just as much.
