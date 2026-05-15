@@ -278,6 +278,17 @@ Read `references/_template.md`.
 - `scripts/commit.sh` — canonical commit invoker (validates subject, blocks skip-CI tokens, assembles labeled or free-form body, manages footer). Run at workflow step 5. Pass `--help` for the full flag list.
 - `scripts/lint.sh` — brain health check (regenerates `_index.md`, reports orphans, contradictions). Run periodically or after editing wiki concepts.
 
+### Tests (opt-in)
+
+`tests/run.sh` is an isolated test suite for the two scripts above — covers type validation, subject limits, body-form rules, skip-CI block, labeled-body assembly, breaking-change marker, the four-level footer matrix, and a `preflight.sh` sanity pass. Sets up a throwaway git repo with `mktemp -d` so the host tree is never touched.
+
+```bash
+bash tests/run.sh
+bash tests/run.sh --verbose
+```
+
+**Not wired into CI.** Run it explicitly after editing `commit.sh` or `preflight.sh`, after bumping the skill version, or when porting to a new shell environment. See `tests/README.md` for the full case list and how to add new ones.
+
 ### Primary workflows
 
 **Group pending changes into atomic buckets:**
