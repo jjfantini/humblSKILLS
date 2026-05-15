@@ -121,8 +121,10 @@ fix(parser): handle empty input without panicking
 The parser called .unwrap() on the first token, which panicked on
 empty stdin. Now it returns ParseError::Empty so callers can recover.
 Resolves #214 and unblocks the CLI's --from-stdin flow.
+
+Authored by humblSKILLS; "use-smart-commit"
 EOF
 )"
 ```
 
-The single-quoted `'EOF'` is important — it prevents the shell from interpolating `$variables` or backticks inside the body.
+The single-quoted `'EOF'` is important — it prevents the shell from interpolating `$variables` or backticks inside the body. The `Authored by humblSKILLS; "use-smart-commit"` line is the skill's authorship footer; it is default-on and the user can disable it per-conversation or persistently (see the *Authorship footer* section in `SKILL.md`).

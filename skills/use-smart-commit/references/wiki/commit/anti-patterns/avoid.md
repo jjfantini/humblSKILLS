@@ -67,6 +67,8 @@ Drop the body if it adds nothing. The body should explain **why** the change is 
 
 Don't append `Co-Authored-By: Claude <noreply@anthropic.com>` or `Generated with Claude Code` footers unless the user explicitly asks for them. The repo's history doesn't carry these by default; adding them changes the commit signature and pollutes `git log --author` queries.
 
+**Exception — the humblSKILLS authorship footer.** The line `Authored by humblSKILLS; "use-smart-commit"` is the skill's own marker (see the *Authorship footer* section in `SKILL.md`). It is on by default, attributes authorship to the skill rather than to a model, and can be disabled by the user per-conversation or persistently. It is not an AI attribution line and the rule above does not apply to it.
+
 ### 5. Bypassing hooks
 
 **Incorrect:**

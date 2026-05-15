@@ -46,7 +46,7 @@ _Full spec: `references/_brain.md`._
 2. **Bucket by intent.** Group changes by *what they accomplish*, not by directory or file extension. A bug fix and its regression test belong together. A documentation tweak unrelated to the bug is its own commit. A drive-by typo fix in an unrelated file is its own commit.
 3. **Draft each message.** For every bucket, decide `type(scope)`, write a subject line in the imperative mood (≤ 72 chars, no trailing period), then a blank line, then a 1-3 line body explaining **why** the change is being made and the **impact** (what it resolves, unblocks, or prevents). See `references/wiki/commit/messages/conventional-format.md` for the full anatomy.
 4. **Ambiguity check.** If a single file mixes intents, if you can't decide which bucket a hunk belongs to, or if a judgment call is required (is this refactor part of the feature or its own commit?), **stop and ask the user before committing**. When grouping is obvious, proceed autonomously.
-5. **Stage and commit.** For each bucket: `git add <specific files>` (never `git add -A` or `git add .` blindly), then commit with a HEREDOC so the body's newlines survive verbatim. Example:
+5. **Stage and commit.** For each bucket: `git add <specific files>` (never `git add -A` or `git add .` blindly), then commit with a HEREDOC so the body's newlines survive verbatim. Append the authorship footer (see below) on a blank line after the body. Example:
    ```bash
    git commit -m "$(cat <<'EOF'
    fix(parser): handle empty input without panicking
@@ -54,11 +54,39 @@ _Full spec: `references/_brain.md`._
    Previously the parser called .unwrap() on the first token,
    which panicked on empty stdin. Now it returns ParseError::Empty.
    Resolves #214 and unblocks the CLI's `--from-stdin` flow.
+
+   Authored by humblSKILLS; "use-smart-commit"
    EOF
    )"
    ```
 6. **Repeat** until `git status` is clean.
 7. **Confirm.** Show the user `git log --oneline -n <count>` so they can see what landed.
+
+## Authorship footer
+
+Every commit authored by this skill ends with:
+
+```
+Authored by humblSKILLS; "use-smart-commit"
+```
+
+on its own line, separated from the body above by one blank line. This is **on by default** — it marks the skill's authorship in the commit's history so the user can later filter or audit which commits the skill wrote.
+
+### How to turn it off
+
+The user can disable the footer in two scopes:
+
+- **For this conversation only.** If the user says any of "no footer", "skip the footer", "drop the humblSKILLS footer", "no authorship line", or similar, omit the footer for every remaining commit this session. Do not ask again in this session.
+- **Persistently across sessions.** If the user says any of "always skip the footer", "never add the footer", "permanently disable the footer", or similar, omit the footer **and** save a feedback memory entry recording the preference (per the auto-memory protocol — write to a new file under the user's memory dir, then add a one-line pointer to `MEMORY.md`). Future sessions read that memory at conversation start and respect it.
+
+Before authoring any commit, check this in order:
+1. Memory file pointing at "disable use-smart-commit footer" → omit
+2. User said "no footer" earlier in this conversation → omit
+3. Otherwise → include the footer
+
+### What the footer is NOT
+
+This is **not** an AI attribution line. Do not also append `Co-Authored-By: Claude <noreply@anthropic.com>` or `Generated with Claude Code` — those remain opt-in and require an explicit user request (see the DO-NOT section).
 
 ## Conventional commit types and semver
 
@@ -111,6 +139,8 @@ fix(parser): handle empty input without panicking
 The parser called .unwrap() on the first token, which panicked on
 empty stdin. Now it returns ParseError::Empty so callers can recover.
 Resolves #214 and unblocks the CLI's --from-stdin flow.
+
+Authored by humblSKILLS; "use-smart-commit"
 ```
 
 ### Example 2: feature plus unrelated doc tweak
@@ -124,6 +154,8 @@ feat(auth): add Google OAuth provider
 Adds the missing OAuth flow for Google so users can sign in with
 their Workspace accounts. Resolves the manual-account-creation step
 that has been blocking enterprise onboarding.
+
+Authored by humblSKILLS; "use-smart-commit"
 ```
 
 Commit 2 (stage `README.md`):
@@ -132,7 +164,11 @@ docs: fix typo in installation step
 
 The README pointed at the wrong package name in the brew install
 example. Caught during onboarding review.
+
+Authored by humblSKILLS; "use-smart-commit"
 ```
+
+(Footer omitted in your examples? See the **Authorship footer** section above for how to disable it.)
 
 ## DO NOT
 
@@ -140,7 +176,7 @@ example. Caught during onboarding review.
 - **Don't run `git add -A` or `git add .`** without first reading the diff. You will sweep in unrelated changes and lose atomicity.
 - **Don't write a body that just restates the subject.** The body explains *why* and *what it resolves*. If you can't add new information, leave the body off.
 - **Don't write the skip-CI token in any commit message** — not in the subject, not in the body, not as an explanation. Specifically, the literal strings `[skip ci]`, `[ci skip]`, `[no ci]`, `[skip actions]`, and `[actions skip]` are all parsed by GitHub Actions across the entire commit message and will suppress every workflow for that push. If you must discuss the mechanism in prose, refer to it as `skip-ci` (with a hyphen, no brackets) or wrap as `skip ci` in backticks without brackets.
-- **Don't add AI attribution lines** like `Co-Authored-By: Claude <noreply@anthropic.com>` or `Generated with Claude Code` unless the user explicitly asks for them.
+- **Don't add AI attribution lines** like `Co-Authored-By: Claude <noreply@anthropic.com>` or `Generated with Claude Code` unless the user explicitly asks for them. (Note: the `Authored by humblSKILLS; "use-smart-commit"` line is the skill's own authorship footer — see the **Authorship footer** section — and is separate from AI attribution.)
 - **Don't bypass hooks** with `--no-verify`. If a pre-commit hook fails, fix the underlying issue and re-commit. The hook is there for a reason.
 - **Don't amend a commit that has been pushed** without explicit user confirmation. Create a new commit instead.
 - **Don't pick a generic scope** (`misc`, `stuff`, `update`) when a real one fits. Check `git log --oneline -50` to see which scopes the repo already uses and reuse them.
