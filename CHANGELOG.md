@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.11.0](https://github.com/jjfantini/humblSKILLS/compare/v2.10.1...v2.11.0) (2026-05-15)
+
+
+### Features
+
+* **skills:** add use-smart-commit skill ([b7793dd](https://github.com/jjfantini/humblSKILLS/commit/b7793ddaa7b7f9ab0791dec8e2f493faaabf08e8))
+
 ## [2.10.1](https://github.com/jjfantini/humblSKILLS/compare/v2.10.0...v2.10.1) (2026-04-27)
 
 
