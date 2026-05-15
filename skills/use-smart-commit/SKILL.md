@@ -60,26 +60,44 @@ _Full spec: `references/_brain.md`._
 6. **Repeat** until `git status` is clean.
 7. **Confirm.** Show the user `git log --oneline -n <count>` so they can see what landed.
 
-## Conventional commit types
+## Conventional commit types and semver
 
-The canonical conventional-commits set. Many automated tools (release-please, semantic-release, changesets, conventional-changelog, etc.) parse these to author changelogs and decide version bumps — but the types are valid even when no such tool is in use.
+The canonical conventional-commits set, with each type's [semver](https://semver.org) bump. Many automated tools (release-please, semantic-release, changesets, conventional-changelog, etc.) parse the type to decide version bumps — but the mapping is correct even when no such tool is in use.
 
-| Type       | Use when                                                  | Semver impact under conventional-commits |
-|------------|-----------------------------------------------------------|------------------------------------------|
-| `feat`     | New user-visible feature                                  | minor                                    |
-| `fix`      | Bug fix                                                   | patch                                    |
-| `perf`     | Performance improvement (no behaviour change)             | patch                                    |
-| `refactor` | Internal restructure (no behaviour change)                | none                                     |
-| `docs`     | Documentation only                                        | none                                     |
-| `test`     | Tests only                                                | none                                     |
-| `build`    | Build system, dependencies, packaging                     | none                                     |
-| `ci`       | CI/CD pipeline only                                       | none                                     |
-| `chore`    | Maintenance that doesn't fit above                        | none                                     |
-| `style`    | Formatting / whitespace only                              | none                                     |
+> **Semver primer.** Given a version `MAJOR.MINOR.PATCH`, increment:
+> - **MAJOR** when you make incompatible API changes
+> - **MINOR** when you add functionality in a backward-compatible manner
+> - **PATCH** when you make backward-compatible bug fixes
+>
+> Pre-release and build metadata extend the format: `1.4.0-rc.1`, `1.4.0+sha.abc123`.
 
-Breaking change: append `!` after the type/scope (`feat(api)!: ...`) **or** add a `BREAKING CHANGE:` footer in the body. Either form signals a major version bump under semver.
+| Type       | Use when                                              | Semver bump |
+|------------|-------------------------------------------------------|-------------|
+| `feat`     | New user-visible feature (backward-compatible)        | **minor**   |
+| `fix`      | Bug fix (backward-compatible)                         | **patch**   |
+| `perf`     | Performance improvement (no behaviour change)         | **patch**   |
+| `refactor` | Internal restructure (no behaviour change)            | none        |
+| `docs`     | Documentation only                                    | none        |
+| `test`     | Tests only                                            | none        |
+| `build`    | Build system, dependencies, packaging                 | none        |
+| `ci`       | CI/CD pipeline only                                   | none        |
+| `chore`    | Maintenance that doesn't fit above                    | none        |
+| `style`    | Formatting / whitespace only                          | none        |
 
-Scope is optional but encouraged. Pick whatever names the area of the repo being changed — common examples across repos: `(api)`, `(auth)`, `(ui)`, `(docs)`, `(ci)`. Check `git log --oneline -50` in the current repo to see which scopes are already in use and reuse them for consistency.
+### Breaking changes (MAJOR)
+
+**Any change that breaks backward compatibility forces a MAJOR bump, regardless of the type prefix.** Removing a public function, renaming a CLI flag, changing a wire format, dropping support for a Node version — these are breaking, even if the surrounding commit feels like a `fix` or a `refactor`.
+
+Mark a breaking change with either form:
+
+1. Append `!` after the type/scope: `feat(api)!: drop deprecated /v1 endpoint`
+2. Add a `BREAKING CHANGE:` footer in the body (described in the body section of the wiki).
+
+Either form signals MAJOR to release tooling and to humans reading the log.
+
+### Scopes
+
+Scope is optional but encouraged. Pick whatever names the area being changed — common examples across repos: `(api)`, `(auth)`, `(ui)`, `(docs)`, `(ci)`. Check `git log --oneline -50` in the current repo to see which scopes are already in use and reuse them for consistency.
 
 ## Examples
 
