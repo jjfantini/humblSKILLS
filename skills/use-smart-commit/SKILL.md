@@ -44,16 +44,24 @@ _Full spec: `references/_brain.md`._
 
 1. **Inspect.** Run `git status` and `git diff` (and `git diff --staged` if anything is already staged). Read every hunk before deciding anything.
 2. **Bucket by intent.** Group changes by *what they accomplish*, not by directory or file extension. A bug fix and its regression test belong together. A documentation tweak unrelated to the bug is its own commit. A drive-by typo fix in an unrelated file is its own commit.
-3. **Draft each message.** For every bucket, decide `type(scope)`, write a subject line in the imperative mood (≤ 72 chars, no trailing period), then a blank line, then a 1-3 line body explaining **why** the change is being made and the **impact** (what it resolves, unblocks, or prevents). See `references/wiki/commit/messages/conventional-format.md` for the full anatomy.
+3. **Draft each message.** For every bucket, decide `type(scope)`, write a subject line in the imperative mood (≤ 72 chars, no trailing period), then a blank line, then a structured body with three labeled sections (`Changed:`, `Why:`, `Impact:`) — see the **Body format** section below. For trivial commits (single-character typo fix, formatting-only, dependency bump with no behaviour change, auto-generated file regeneration), the labeled structure is optional and a free-form one-paragraph body is fine. See `references/wiki/commit/messages/conventional-format.md` for the full anatomy.
 4. **Ambiguity check.** If a single file mixes intents, if you can't decide which bucket a hunk belongs to, or if a judgment call is required (is this refactor part of the feature or its own commit?), **stop and ask the user before committing**. When grouping is obvious, proceed autonomously.
 5. **Stage and commit.** For each bucket: `git add <specific files>` (never `git add -A` or `git add .` blindly), then commit with a HEREDOC so the body's newlines survive verbatim. Append the authorship footer (see below) on a blank line after the body. Example:
    ```bash
    git commit -m "$(cat <<'EOF'
    fix(parser): handle empty input without panicking
 
-   Previously the parser called .unwrap() on the first token,
-   which panicked on empty stdin. Now it returns ParseError::Empty.
-   Resolves #214 and unblocks the CLI's `--from-stdin` flow.
+   Changed:
+   ParseError::Empty now returned from parse_first_token() instead
+   of an unwrap() panic.
+
+   Why:
+   Empty stdin was reaching the CLI's --from-stdin flow and crashing
+   the process with a non-actionable error.
+
+   Impact:
+   Resolves #214. Unblocks --from-stdin for piped workflows and
+   removes the last unwrap() on the parser hot path.
 
    Authored by humblSKILLS; "use-smart-commit"
    EOF
@@ -61,6 +69,41 @@ _Full spec: `references/_brain.md`._
    ```
 6. **Repeat** until `git status` is clean.
 7. **Confirm.** Show the user `git log --oneline -n <count>` so they can see what landed.
+
+## Body format
+
+Every non-trivial commit body uses three labeled sections, each on its own line, content on the line below, separated by blank lines:
+
+```
+Changed:
+<one or two sentences naming what concretely changed in the code>
+
+Why:
+<one or two sentences on the motivation — the problem, constraint, or user need>
+
+Impact:
+<one or two sentences on what this resolves, unblocks, or prevents>
+```
+
+Rules:
+
+- **Labels go on their own line**; content starts on the next line. Do not write `Changed: ParseError::Empty now ...` on one line.
+- Wrap content at ~72 characters.
+- Use **plain labels, not markdown headers** (`Changed:` not `## Changed:`). Git's default `commentChar` is `#`, which silently strips `#`-prefixed lines on editor-based amends. Plain labels survive every git operation and stay greppable: `git log --grep "^Why:"`.
+- One blank line between sections.
+- The authorship footer follows the last section after one blank line.
+
+### When the structure is optional
+
+Free-form one-paragraph bodies are acceptable for **trivial commits only**:
+
+- Single-character / single-word typo fix
+- Formatting-only changes (`style:` commits, lockfile re-sorts)
+- Dependency version bump with no behaviour change
+- Auto-generated file regeneration (registry, lockfiles, generated types)
+- Commits where the subject line is genuinely self-explanatory and Changed/Why/Impact would just paraphrase it
+
+If you're not sure whether a commit qualifies as trivial, use the structure.
 
 ## Authorship footer
 
@@ -129,36 +172,52 @@ Scope is optional but encouraged. Pick whatever names the area being changed —
 
 ## Examples
 
-### Example 1: bug fix bundled with its test
+### Example 1: bug fix bundled with its test (non-trivial → structured body)
 
 `git status` shows two changed files: `src/parser.rs` (the fix) and `tests/parser_test.rs` (a regression test for the bug). These share one intent — they ship as **one** commit.
 
 ```
 fix(parser): handle empty input without panicking
 
-The parser called .unwrap() on the first token, which panicked on
-empty stdin. Now it returns ParseError::Empty so callers can recover.
-Resolves #214 and unblocks the CLI's --from-stdin flow.
+Changed:
+ParseError::Empty now returned from parse_first_token() instead
+of an unwrap() panic, with a regression test covering empty stdin.
+
+Why:
+Empty stdin was reaching the CLI's --from-stdin flow and crashing
+the process with a non-actionable error.
+
+Impact:
+Resolves #214. Unblocks --from-stdin for piped workflows and
+removes the last unwrap() on the parser hot path.
 
 Authored by humblSKILLS; "use-smart-commit"
 ```
 
-### Example 2: feature plus unrelated doc tweak
+### Example 2: feature plus unrelated doc tweak (two commits — one structured, one trivial)
 
 `git status` shows three changed files: `src/auth/oauth.go` and `src/auth/oauth_test.go` (a new feature) and `README.md` (fixing a typo unrelated to auth). These are **two** intents, so **two** commits.
 
-Commit 1 (stage `src/auth/oauth.go` and `src/auth/oauth_test.go`):
+Commit 1 (stage `src/auth/oauth.go` and `src/auth/oauth_test.go`) — non-trivial, full structure:
 ```
 feat(auth): add Google OAuth provider
 
-Adds the missing OAuth flow for Google so users can sign in with
-their Workspace accounts. Resolves the manual-account-creation step
-that has been blocking enterprise onboarding.
+Changed:
+New GoogleOAuthProvider implementing the AuthProvider interface,
+wired into the auth router and covered by oauth_test.go.
+
+Why:
+Workspace customers were stuck in manual account creation because
+no SSO option existed. Sales has been blocked on this for two weeks.
+
+Impact:
+Unblocks enterprise onboarding. Closes the OAuth gap relative to
+competing tools and removes the manual-account-creation handoff.
 
 Authored by humblSKILLS; "use-smart-commit"
 ```
 
-Commit 2 (stage `README.md`):
+Commit 2 (stage `README.md`) — trivial typo fix, free-form body is fine:
 ```
 docs: fix typo in installation step
 

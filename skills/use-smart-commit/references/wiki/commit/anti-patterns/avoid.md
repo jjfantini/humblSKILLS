@@ -51,9 +51,9 @@ in a commit subject or body. See .github/docs/ci-controls.md.
 
 The hyphenated form will never match GitHub's parser.
 
-### 3. The body that restates the subject
+### 3. The body that restates the subject (or has empty labeled sections)
 
-**Incorrect:**
+**Incorrect — free-form restatement:**
 
 ```
 fix(parser): handle empty input
@@ -61,7 +61,22 @@ fix(parser): handle empty input
 This commit handles empty input in the parser.
 ```
 
-Drop the body if it adds nothing. The body should explain **why** the change is being made and the **impact** (what it resolves or unblocks). If you can't add new information, leave it off.
+**Incorrect — labeled sections that paraphrase the subject:**
+
+```
+fix(parser): handle empty input
+
+Changed:
+Empty input is now handled.
+
+Why:
+To handle empty input.
+
+Impact:
+Empty input is handled.
+```
+
+Both anti-patterns leak the same problem: the body adds no information. Either expand the labeled sections with real content (concrete code change, real motivation, observable impact) or — if the commit is trivial enough — drop the body entirely. See `commit/messages/conventional-format.md` for the canonical body format and the trivial-commit exception.
 
 ### 4. Unrequested AI attribution
 

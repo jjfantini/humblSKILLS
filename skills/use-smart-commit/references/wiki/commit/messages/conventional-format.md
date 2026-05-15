@@ -37,15 +37,41 @@ body (optional, but expected for non-trivial commits)
 
 ### The body
 
-The body is where the commit earns its keep. The subject says **what**; the body says **why** and **impact**.
+The body is where the commit earns its keep. The subject says **what**; the body answers three questions: **what changed**, **why**, and **what the impact is**.
+
+For non-trivial commits, the body uses three labeled sections, each label on its own line, content on the line below:
+
+```
+Changed:
+<one or two sentences naming what concretely changed in the code>
+
+Why:
+<one or two sentences on the motivation — problem, constraint, user need>
+
+Impact:
+<one or two sentences on what this resolves, unblocks, or prevents>
+```
 
 Body rules:
 
 - One blank line between subject and body.
-- Wrap lines at ~72 characters.
-- Cover two things: (1) **why** the change is being made — the motivation, the user-visible problem, the constraint that forced this — and (2) **impact** — what it resolves, unblocks, or prevents.
-- Reference issues, PRs, or upstream tickets when relevant (`Resolves #214`, `Fixes ENG-1029`).
-- If you can't add new information beyond the subject, omit the body.
+- One blank line between each labeled section.
+- **Labels on their own line**, content on the line below. Don't write `Changed: ParseError::Empty ...` on one line.
+- Use **plain labels** (`Changed:`), not markdown headers (`## Changed:`). Git's default `commentChar` is `#`, which silently strips `#`-prefixed lines on editor-based amends (`git commit --amend` without `-m`). Plain labels survive every git operation. They are also greppable: `git log --grep "^Why:"`.
+- Wrap content at ~72 characters.
+- Reference issues, PRs, or upstream tickets in the Impact section when relevant (`Resolves #214`, `Fixes ENG-1029`).
+
+### When the labeled structure is optional
+
+Free-form one-paragraph bodies are fine for **trivial commits only**:
+
+- Single-character / single-word typo fix
+- Formatting-only changes, lockfile re-sorts
+- Dependency version bump with no behaviour change
+- Auto-generated file regeneration (registry, lockfiles, generated types)
+- Commits where Changed/Why/Impact would just paraphrase the subject
+
+If you're not sure, use the structure.
 
 ### Worked example
 
@@ -57,16 +83,33 @@ fix(parser): handle empty input
 This commit handles empty input in the parser.
 ```
 
-The body adds no information the subject doesn't already convey. Drop the body.
+The body adds no information the subject doesn't already convey. Either drop the body, or expand it into the three labeled sections with real content.
 
-**Correct (body explains *why* and *impact*):**
+**Correct (non-trivial, structured body):**
 
 ```
 fix(parser): handle empty input without panicking
 
-The parser called .unwrap() on the first token, which panicked on
-empty stdin. Now it returns ParseError::Empty so callers can recover
-gracefully. Resolves #214 and unblocks the CLI's --from-stdin flow.
+Changed:
+ParseError::Empty now returned from parse_first_token() instead
+of an unwrap() panic, with a regression test covering empty stdin.
+
+Why:
+Empty stdin was reaching the CLI's --from-stdin flow and crashing
+the process with a non-actionable error.
+
+Impact:
+Resolves #214. Unblocks --from-stdin for piped workflows and
+removes the last unwrap() on the parser hot path.
+```
+
+**Correct (trivial, free-form body):**
+
+```
+docs: fix typo in installation step
+
+The README pointed at the wrong package name in the brew install
+example. Caught during onboarding review.
 ```
 
 ### Reference examples
@@ -112,15 +155,23 @@ This skill does not author release commits — but if your repo cuts a pre-relea
 
 ### Committing with a multi-line body
 
-Always use a HEREDOC so the body's newlines survive shell quoting verbatim:
+Always use a HEREDOC so the body's newlines and labeled sections survive shell quoting verbatim:
 
 ```bash
 git commit -m "$(cat <<'EOF'
 fix(parser): handle empty input without panicking
 
-The parser called .unwrap() on the first token, which panicked on
-empty stdin. Now it returns ParseError::Empty so callers can recover.
-Resolves #214 and unblocks the CLI's --from-stdin flow.
+Changed:
+ParseError::Empty now returned from parse_first_token() instead
+of an unwrap() panic, with a regression test covering empty stdin.
+
+Why:
+Empty stdin was reaching the CLI's --from-stdin flow and crashing
+the process with a non-actionable error.
+
+Impact:
+Resolves #214. Unblocks --from-stdin for piped workflows and
+removes the last unwrap() on the parser hot path.
 
 Authored by humblSKILLS; "use-smart-commit"
 EOF
