@@ -39,6 +39,8 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 ## Scripts
 
+- [scripts/commit.sh](../scripts/commit.sh)
 - [scripts/lint.sh](../scripts/lint.sh)
+- [scripts/preflight.sh](../scripts/preflight.sh)
 
 <!-- GENERATED:END -->

@@ -42,31 +42,47 @@ _Full spec: `references/_brain.md`._
 
 ## Workflow
 
-1. **Inspect.** Run `git status` and `git diff` (and `git diff --staged` if anything is already staged). Read every hunk before deciding anything.
+This skill ships two deterministic scripts to make the mechanical parts repeatable; the agent owns the judgment-heavy parts.
+
+| Step | What | Driver |
+|------|------|--------|
+| 1 | Inspect working tree and discover repo scopes | `scripts/preflight.sh` |
+| 2-4 | Bucket by intent, draft message, ambiguity check | Agent judgment |
+| 5 | Validate + stage + commit with footer | `scripts/commit.sh` |
+| 6-7 | Repeat and confirm | Agent + `git log` |
+
+### Step-by-step
+
+1. **Inspect.** Run `bash scripts/preflight.sh` to get one structured snapshot: status, diff stat (unstaged + staged), top 10 scopes from the last 100 commits (reuse them; don't invent new ones), and the resolved footer state. Read every hunk in `git diff` before deciding anything.
 2. **Bucket by intent.** Group changes by *what they accomplish*, not by directory or file extension. A bug fix and its regression test belong together. A documentation tweak unrelated to the bug is its own commit. A drive-by typo fix in an unrelated file is its own commit.
-3. **Draft each message.** For every bucket, decide `type(scope)`, write a subject line in the imperative mood (≤ 72 chars, no trailing period), then a blank line, then a structured body with three labeled sections (`Changed:`, `Why:`, `Impact:`) — see the **Body format** section below. For trivial commits (single-character typo fix, formatting-only, dependency bump with no behaviour change, auto-generated file regeneration), the labeled structure is optional and a free-form one-paragraph body is fine. See `references/wiki/commit/messages/conventional-format.md` for the full anatomy.
+3. **Draft each message.** For every bucket, decide `type(scope)`, write a subject line in the imperative mood (≤ 72 chars, no trailing period), then the body. Non-trivial commits use three labeled sections (`Changed:`, `Why:`, `Impact:`) — see the **Body format** section. Trivial commits (single-character typo fix, formatting-only, dependency bump with no behaviour change, auto-generated file regeneration) may use a free-form one-paragraph body. See `references/wiki/commit/messages/conventional-format.md` for the full anatomy.
 4. **Ambiguity check.** If a single file mixes intents, if you can't decide which bucket a hunk belongs to, or if a judgment call is required (is this refactor part of the feature or its own commit?), **stop and ask the user before committing**. When grouping is obvious, proceed autonomously.
-5. **Stage and commit.** For each bucket: `git add <specific files>` (never `git add -A` or `git add .` blindly), then commit with a HEREDOC so the body's newlines survive verbatim. Append the authorship footer (see below) on a blank line after the body. Example:
+5. **Stage and commit.** For each bucket: `git add <specific files>` (never `git add -A` or `git add .` blindly), then invoke `scripts/commit.sh`. The script validates the subject, blocks skip-CI tokens, assembles the body, and appends the authorship footer (subject to the precedence stack in the **Authorship footer** section). Two canonical forms:
+
+   **Non-trivial commit (labeled body):**
    ```bash
-   git commit -m "$(cat <<'EOF'
-   fix(parser): handle empty input without panicking
-
-   Changed:
-   ParseError::Empty now returned from parse_first_token() instead
-   of an unwrap() panic.
-
-   Why:
-   Empty stdin was reaching the CLI's --from-stdin flow and crashing
-   the process with a non-actionable error.
-
-   Impact:
-   Resolves #214. Unblocks --from-stdin for piped workflows and
-   removes the last unwrap() on the parser hot path.
-
-   Authored by humblSKILLS; "use-smart-commit"
-   EOF
-   )"
+   bash scripts/commit.sh \
+     --type fix --scope parser \
+     --subject "handle empty input without panicking" \
+     --changed "ParseError::Empty now returned from parse_first_token()
+   instead of an unwrap() panic, with a regression test for empty stdin." \
+     --why "Empty stdin was reaching the CLI's --from-stdin flow and
+   crashing the process with a non-actionable error." \
+     --impact "Resolves #214. Unblocks --from-stdin for piped workflows
+   and removes the last unwrap() on the parser hot path."
    ```
+
+   **Trivial commit (free-form body):**
+   ```bash
+   bash scripts/commit.sh \
+     --type docs \
+     --subject "fix typo in installation step" \
+     --body "The README pointed at the wrong package name in the brew
+   install example. Caught during onboarding review."
+   ```
+
+   Add `--breaking` for breaking changes (appends `!` to the type), `--no-footer` to suppress the authorship footer for this commit, or `--dry-run` to print the assembled message without committing.
+
 6. **Repeat** until `git status` is clean.
 7. **Confirm.** Show the user `git log --oneline -n <count>` so they can see what landed.
 
@@ -117,15 +133,20 @@ on its own line, separated from the body above by one blank line. This is **on b
 
 ### How to turn it off
 
-The user can disable the footer in two scopes:
+The user can disable the footer at four levels of granularity. `scripts/commit.sh` enforces levels 1-3 mechanically; the agent enforces levels 4 and 5 by passing `--no-footer` to the script when they apply.
 
-- **For this conversation only.** If the user says any of "no footer", "skip the footer", "drop the humblSKILLS footer", "no authorship line", or similar, omit the footer for every remaining commit this session. Do not ask again in this session.
-- **Persistently across sessions.** If the user says any of "always skip the footer", "never add the footer", "permanently disable the footer", or similar, omit the footer **and** save a feedback memory entry recording the preference (per the auto-memory protocol — write to a new file under the user's memory dir, then add a one-line pointer to `MEMORY.md`). Future sessions read that memory at conversation start and respect it.
+Precedence (high → low):
 
-Before authoring any commit, check this in order:
-1. Memory file pointing at "disable use-smart-commit footer" → omit
-2. User said "no footer" earlier in this conversation → omit
-3. Otherwise → include the footer
+1. **`--no-footer` CLI flag** — invocation-level, single commit. Pass this when the user has said "no footer" earlier in this conversation, or when memory has a persistent opt-out.
+2. **`HUMBLSKILLS_COMMIT_NO_FOOTER=1` environment variable** — shell-session-level. The user exports this once in their shell rc to disable for every commit run from that shell.
+3. **`.humblskills/no-footer` marker file at the repo root** — repo-level. Create this file (`mkdir -p .humblskills && touch .humblskills/no-footer`) to disable the footer for every commit in this repo.
+4. **Per-conversation opt-out (agent-enforced).** If the user says "no footer", "skip the footer", "drop the humblSKILLS footer", "no authorship line", or similar, pass `--no-footer` for every remaining commit this session. Do not ask again.
+5. **Persistent opt-out across sessions (agent-enforced).** If the user says "always skip the footer", "never add the footer", "permanently disable the footer", or similar, pass `--no-footer` **and** save a feedback memory entry recording the preference. Future sessions read that memory at conversation start and continue passing `--no-footer`.
+
+Before authoring any commit, the agent should:
+1. Check memory for a persistent opt-out → if present, pass `--no-footer`
+2. Check in-conversation opt-out → if present, pass `--no-footer`
+3. Otherwise → let `scripts/commit.sh` decide based on env/marker-file/default
 
 ### What the footer is NOT
 
@@ -250,6 +271,12 @@ Read `references/_brain.md`.
 
 **Wiki concept file shape:**
 Read `references/_template.md`.
+
+### Scripts
+
+- `scripts/preflight.sh` — pre-commit inspection (status, diff stat, top scopes, footer state). Run at workflow step 1.
+- `scripts/commit.sh` — canonical commit invoker (validates subject, blocks skip-CI tokens, assembles labeled or free-form body, manages footer). Run at workflow step 5. Pass `--help` for the full flag list.
+- `scripts/lint.sh` — brain health check (regenerates `_index.md`, reports orphans, contradictions). Run periodically or after editing wiki concepts.
 
 ### Primary workflows
 
