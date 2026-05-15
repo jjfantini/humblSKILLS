@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-15T20:41:12Z",
+  "generated_at": "2026-05-15T20:44:06Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "feat/use-smart-commit-skill",
-    "sha": "2f687a16fe0f8a2361ca94d98663b153fe08ed83"
+    "sha": "560755059e205974a7b7b06f3155a97d104de0a8"
   },
   "skills": [
     {
@@ -80,7 +80,7 @@
         "references/patterns.md"
       ],
       "path": "skills/use-smart-commit",
-      "dir_sha": "05c2fbcc30fd068229925ebc6327470468a18f33890ce20ff231b50f51b56d35"
+      "dir_sha": "602f48b368f11d6ceacbcb99a381e7713911e9ddf1d649128366991603cc1727"
     },
     {
       "name": "use-smart-humanize-text",
