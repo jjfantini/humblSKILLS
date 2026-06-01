@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.12.0](https://github.com/jjfantini/humblSKILLS/compare/v2.11.0...v2.12.0) (2026-06-01)
+
+
+### Features
+
+* **skills:** add analyze-ml-system-design skill ([bea1a6a](https://github.com/jjfantini/humblSKILLS/commit/bea1a6abf8438009345370b315b3928ec0c3af93))
+* **skills:** add analyze-ml-system-design skill ([60a38a9](https://github.com/jjfantini/humblSKILLS/commit/60a38a9eb83f7527df407a9b2847103555c63b9a))
+* **skills:** add analyze-system-design and analyze-ml-system-design skills ([9a167dd](https://github.com/jjfantini/humblSKILLS/commit/9a167dd9294926c128178877e5f016391f6a327f))
+* **skills:** add analyze-system-design skill ([d931149](https://github.com/jjfantini/humblSKILLS/commit/d9311497dbd96432f7a5e1c4e30eb7d95fedf218))
+* **skills:** add analyze-system-design skill ([b162d73](https://github.com/jjfantini/humblSKILLS/commit/b162d73e62b79531b05844b2a8c7fa26225f11d5))
+
 ## [2.11.0](https://github.com/jjfantini/humblSKILLS/compare/v2.10.1...v2.11.0) (2026-05-15)
 
 
