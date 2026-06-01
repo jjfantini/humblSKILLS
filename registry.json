@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-01T22:18:33Z",
+  "generated_at": "2026-06-01T22:20:34Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/analyze-system-design-skill",
-    "sha": "b162d73e62b79531b05844b2a8c7fa26225f11d5"
+    "ref": "develop",
+    "sha": "d9311497dbd96432f7a5e1c4e30eb7d95fedf218"
   },
   "skills": [
     {
