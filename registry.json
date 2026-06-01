@@ -1,12 +1,33 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-15T21:24:36Z",
+  "generated_at": "2026-05-15T21:35:11Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/use-smart-commit-skill",
-    "sha": "1e7cb3d380ed18eb2c3907ec9fdbaaa49d183055"
+    "ref": "feat/analyze-ml-system-design-skill",
+    "sha": "6819be2339c78c0794e4f46889279ae16e84213e"
   },
   "skills": [
+    {
+      "name": "analyze-ml-system-design",
+      "version": "2.0.0",
+      "description": "Drive an ML system design from an ambiguous prompt to a production-minded solution with a 6-step framework (problem framing, high-level design, data and features, modeling, inference and evaluation, deep dives). Use for an ML system design interview or any \"design X\" ML prompt - recommendation systems, fraud or bot detection, content moderation, ranking, search, personalization - or whenever the core problem is choosing data, features, a model, and an evaluation strategy. For infra or non-ML system design (URL shortener, chat, rate limiter, file sync), use analyze-system-design instead.",
+      "tags": [
+        "ml-system-design",
+        "interviews",
+        "machine-learning"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor"
+      ],
+      "preserve": [
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/analyze-ml-system-design",
+      "dir_sha": "58be24e2d637b09d32782ad785bd6466153d0be3d80a8309f43b6b50e44f8efb"
+    },
     {
       "name": "create-scroll-animation",
       "version": "0.1.0",
