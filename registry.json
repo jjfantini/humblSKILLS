@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-05-15T21:35:11Z",
+  "generated_at": "2026-06-01T22:15:09Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "feat/analyze-ml-system-design-skill",
-    "sha": "6819be2339c78c0794e4f46889279ae16e84213e"
+    "sha": "60a38a9eb83f7527df407a9b2847103555c63b9a"
   },
   "skills": [
     {
