@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-01T22:17:25Z",
+  "generated_at": "2026-06-01T22:18:33Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "develop",
-    "sha": "bea1a6abf8438009345370b315b3928ec0c3af93"
+    "ref": "feat/analyze-system-design-skill",
+    "sha": "b162d73e62b79531b05844b2a8c7fa26225f11d5"
   },
   "skills": [
     {
@@ -27,6 +27,27 @@
       ],
       "path": "skills/analyze-ml-system-design",
       "dir_sha": "58be24e2d637b09d32782ad785bd6466153d0be3d80a8309f43b6b50e44f8efb"
+    },
+    {
+      "name": "analyze-system-design",
+      "version": "2.0.0",
+      "description": "Drive a system design interview from a blank prompt to a simple, complete, defensible design using a 6-step framework (requirements, core entities, API, optional data flow, high-level design, deep dives). Use it for system design interviews, \"design X system\" prompts, high-level design and architecture sketches, deep dives, scaling and data-modeling questions, and choosing technologies (Redis, Kafka, Cassandra, DynamoDB, Postgres). For ML-centric problems (recommendations, fraud or bot detection, ranking, content moderation) use analyze-ml-system-design instead.",
+      "tags": [
+        "system-design",
+        "interviews",
+        "architecture"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor"
+      ],
+      "preserve": [
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/analyze-system-design",
+      "dir_sha": "c15e5aad6142aa2501fc9ae0dbc0c375e9bb665c08edbf847a9fce52409869e6"
     },
     {
       "name": "create-scroll-animation",
