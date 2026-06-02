@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-01T22:21:37Z",
+  "generated_at": "2026-06-02T23:10:31Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "main",
-    "sha": "9a167dd9294926c128178877e5f016391f6a327f"
+    "ref": "feat/smart-claude-init",
+    "sha": "cd349d614223235180b9a99113bd72882e2aea44"
   },
   "skills": [
     {
@@ -122,7 +122,7 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-claude-init",
-      "dir_sha": "1c1e3e410ce8253f0e38107392fb5e219e95f98889d5b6ce3cb1868e23890c32"
+      "dir_sha": "34faf4aa9a71c2a7edb0c8b42dd863a7a7c7b6038500c6471dd1494e51be913c"
     },
     {
       "name": "use-smart-commit",
