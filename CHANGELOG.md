@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.13.0](https://github.com/jjfantini/humblSKILLS/compare/v2.12.0...v2.13.0) (2026-06-03)
+
+
+### Features
+
+* **skills:** add smart-claude-init interview-driven CLAUDE.md generator ([#108](https://github.com/jjfantini/humblSKILLS/issues/108)) ([5b6bb36](https://github.com/jjfantini/humblSKILLS/commit/5b6bb36782902e3e950636bcc9bce2266b9bcda2))
+
 ## [2.12.0](https://github.com/jjfantini/humblSKILLS/compare/v2.11.0...v2.12.0) (2026-06-01)
 
 
