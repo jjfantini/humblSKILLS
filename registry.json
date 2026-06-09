@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-02T23:59:53Z",
+  "generated_at": "2026-06-09T12:22:42Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "main",
-    "sha": "5b6bb36782902e3e950636bcc9bce2266b9bcda2"
+    "ref": "codex/add-tweetclaw-humblskill",
+    "sha": "1ef9dc964bedf43fe81b2d74538873bbdf2a00d0"
   },
   "skills": [
     {
@@ -181,6 +181,31 @@
       ],
       "path": "skills/use-smart-skill",
       "dir_sha": "7247d01c81262cd407092ab54ece41b9f935761a0c354899b81ffdd0e6140ef0"
+    },
+    {
+      "name": "use-tweetclaw",
+      "version": "1.1.0",
+      "description": "Use TweetClaw when the user needs approved X/Twitter work through OpenClaw: scrape tweets, search tweets or replies, look up users, export followers, upload or download media, handle direct messages, monitor tweets, configure webhooks, run giveaway draws, or post reviewed tweets and replies. Do NOT use for generic social strategy, unsupported anonymous scraping, credential handling outside secure config, or unattended publishing without explicit operator approval.\n",
+      "tags": [
+        "tweetclaw",
+        "openclaw",
+        "twitter",
+        "x",
+        "social-media",
+        "automation",
+        "smart-skill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor"
+      ],
+      "preserve": [
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/use-tweetclaw",
+      "dir_sha": "f0e8e0c6bcbeb7fe08ecb4dfc24ca77e43dd805898382199f71d37439f24cb3f"
     }
   ]
 }
