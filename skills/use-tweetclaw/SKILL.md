@@ -12,9 +12,13 @@ license: MIT
 compatibility: Requires a configured OpenClaw workspace with the TweetClaw plugin installed and any needed X/Twitter account permissions already approved.
 metadata:
   author: Xquik
-  version: "1.0.0"
-  tags: [tweetclaw, openclaw, twitter, x, social-media, automation]
+  version: "1.1.0"
+  tags: [tweetclaw, openclaw, twitter, x, social-media, automation, smart-skill]
   platforms: [claude-code, cursor]
+  preserve:
+    - references/decisions.md
+    - references/log.md
+    - references/patterns.md
 ---
 
 # Use TweetClaw
@@ -22,6 +26,23 @@ metadata:
 Use TweetClaw as the execution layer for approved X/Twitter workflows in
 OpenClaw. Keep the agent responsible for planning, review, and approval; keep
 TweetClaw responsible for the X/Twitter action or data fetch.
+
+## Brain Protocol
+
+Before using this skill, read:
+
+1. `references/_index.md`
+2. `references/patterns.md`
+3. `references/decisions.md`
+4. The last 5 entries in `references/log.md`
+5. Relevant concepts under `references/wiki/tweetclaw/`
+
+After the task, append a short entry to `references/log.md`. If the task
+produces measured outcomes, append them to `references/patterns.md`. If a
+non-obvious approval or routing choice was made, append it to
+`references/decisions.md`. Run `scripts/lint.sh` after wiki changes.
+
+Full brain rules: `references/_brain.md`.
 
 ## When to Use
 
@@ -44,10 +65,10 @@ TweetClaw responsible for the X/Twitter action or data fetch.
 - Do not publish, reply, DM, upload media, start monitors, or configure webhooks
   without explicit operator approval for the exact action.
 
-## Setup Check
+## How to Use
 
-Before using TweetClaw, verify that the workspace has the plugin installed and
-configured through secure OpenClaw config.
+For approved-action routing, read
+`references/wiki/tweetclaw/workflows/approved-actions.md`.
 
 Helpful public references:
 
@@ -63,19 +84,7 @@ openclaw plugins update tweetclaw
 openclaw plugins inspect tweetclaw --runtime --json
 ```
 
-## Workflow
-
-1. Restate the requested X/Twitter job and identify whether it is read-only or
-   write-like.
-2. For read-only work, collect the minimum query, user, tweet URL, or time range
-   needed to run the lookup.
-3. For write-like work, draft the exact final action, show it to the operator,
-   and wait for explicit approval before calling TweetClaw.
-4. Run the TweetClaw tool that matches the job.
-5. Summarize only the relevant result, including source tweet URLs or IDs when
-   useful for verification.
-
-## Prompt Patterns
+## Examples
 
 ```text
 Use TweetClaw to search recent tweets about this launch. Return the strongest
@@ -85,14 +94,4 @@ Use TweetClaw to search recent tweets about this launch. Return the strongest
 ```text
 Use TweetClaw to inspect replies to this tweet and draft one reply. Do not post
 until I approve the exact final text.
-```
-
-```text
-Use TweetClaw to export followers for this account, then summarize notable
-developer-tool, media, and agency accounts.
-```
-
-```text
-Use TweetClaw to prepare this tweet with the attached media. Show me the final
-text and media list before posting.
 ```
