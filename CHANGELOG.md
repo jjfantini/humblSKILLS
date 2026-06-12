@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.0](https://github.com/jjfantini/humblSKILLS/compare/v2.14.0...v2.15.0) (2026-06-12)
+
+
+### Features
+
+* **skills:** add smart frontend design skill ([57a4858](https://github.com/jjfantini/humblSKILLS/commit/57a48586c74644b19a0f10554df8f7c6085af157))
+
 ## [2.14.0](https://github.com/jjfantini/humblSKILLS/compare/v2.13.0...v2.14.0) (2026-06-12)
 
 
