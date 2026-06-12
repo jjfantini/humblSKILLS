@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.14.0](https://github.com/jjfantini/humblSKILLS/compare/v2.13.0...v2.14.0) (2026-06-12)
+
+
+### Features
+
+* **skills:** add use-worktree-flow development workflow skill ([15abf2c](https://github.com/jjfantini/humblSKILLS/commit/15abf2c8f7772555590664b4866c485004307aa9))
+* **skills:** add use-worktree-flow development workflow skill ([84cdee6](https://github.com/jjfantini/humblSKILLS/commit/84cdee63ea6f7551588ce76ba085c9617306a77a))
+* **skills:** add use-worktree-flow development workflow skill ([c9088fc](https://github.com/jjfantini/humblSKILLS/commit/c9088fcaabcadf0081ddfbbd8550ad7c11c53abc))
+
 ## [2.13.0](https://github.com/jjfantini/humblSKILLS/compare/v2.12.0...v2.13.0) (2026-06-03)
 
 
