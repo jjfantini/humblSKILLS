@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-12T18:50:18Z",
+  "generated_at": "2026-06-12T18:50:48Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "main",
-    "sha": "15abf2c8f7772555590664b4866c485004307aa9"
+    "ref": "feat/smart-frontend-design",
+    "sha": "3f6b72717c7d7ad8131d2cf423031ddd47cdcdd3"
   },
   "skills": [
     {
@@ -123,6 +123,31 @@
       ],
       "path": "skills/smart-claude-init",
       "dir_sha": "34faf4aa9a71c2a7edb0c8b42dd863a7a7c7b6038500c6471dd1494e51be913c"
+    },
+    {
+      "name": "smart-frontend-design",
+      "version": "1.0.0",
+      "description": "Create distinctive, production-grade frontend interfaces with a synthesized design system and one style-defining intake question. Use when the user asks to build or redesign web components, pages, apps, dashboards, landing pages, UI flows, React/Vue/HTML/CSS interfaces, or \"make this look better\". Avoids generic AI aesthetics by discovering the existing frontend style before coding. Do NOT use for backend-only work, copy-only edits, or pure design critique where no frontend implementation is requested.\n",
+      "tags": [
+        "frontend",
+        "design",
+        "ui",
+        "ux",
+        "react",
+        "css",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor"
+      ],
+      "preserve": [
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/smart-frontend-design",
+      "dir_sha": "ad9a927a80140d58ea98b59e5b5ebe520b8fcc150b4263f9aab89de66a919b6d"
     },
     {
       "name": "use-smart-commit",
