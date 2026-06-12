@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-03T00:00:25Z",
+  "generated_at": "2026-06-12T18:45:46Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "feat/use-worktree-flow-skill",
-    "sha": "9c2ca7a8e2b34ba1f9830dc24990ed2b2cee2b2a"
+    "sha": "c9088fcaabcadf0081ddfbbd8550ad7c11c53abc"
   },
   "skills": [
     {
