@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-12T20:53:46Z",
+  "generated_at": "2026-06-12T20:55:01Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/smart-frontend-design",
-    "sha": "57a48586c74644b19a0f10554df8f7c6085af157"
+    "ref": "develop",
+    "sha": "0f924363bdb0f84fea9023e49429f94528043e87"
   },
   "skills": [
     {
