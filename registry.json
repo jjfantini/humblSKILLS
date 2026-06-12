@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-03T00:00:25Z",
+  "generated_at": "2026-06-12T18:46:10Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "develop",
-    "sha": "9c2ca7a8e2b34ba1f9830dc24990ed2b2cee2b2a"
+    "ref": "feat/use-worktree-flow-skill",
+    "sha": "c27ea4e2b641644020f987762e492c63e89865b6"
   },
   "skills": [
     {
@@ -181,6 +181,30 @@
       ],
       "path": "skills/use-smart-skill",
       "dir_sha": "7247d01c81262cd407092ab54ece41b9f935761a0c354899b81ffdd0e6140ef0"
+    },
+    {
+      "name": "use-worktree-flow",
+      "version": "1.0.0",
+      "description": "Run a worktree-first development workflow from intent gathering through feature PR, develop merge, main merge, release PR, brew verification, and cleanup. Use when the user says \"worktree flow\", \"start a feature\", \"ship this feature\", \"PR into develop\", \"full dev workflow\", or wants a feature isolated from parallel agents. Do NOT use for atomic commit authoring (use use-smart-commit) or merge-conflict repair.\n",
+      "tags": [
+        "git",
+        "worktree",
+        "pull-requests",
+        "release",
+        "workflow",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor"
+      ],
+      "preserve": [
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/use-worktree-flow",
+      "dir_sha": "83ae98852f839ff423edacfd33f48596866ad9b8afb6d161678f4f45fa1f472c"
     }
   ]
 }
