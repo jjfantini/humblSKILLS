@@ -35,6 +35,7 @@ func RunInstallPlatformModal(
 	}
 
 	scopes := []scopeOpt{
+		{label: "Global fanout", value: "global"},
 		{label: "adapter default", value: ""},
 		{label: "user", value: "user"},
 		{label: "project", value: "project"},
@@ -208,15 +209,21 @@ func (m installModalModel) commit() (tea.Model, tea.Cmd) {
 	case "cancel":
 		m.result = InstallModalResult{}
 	default:
+		scope := m.scopes[m.scopeIdx].value
 		plats := make([]string, 0, len(m.selected))
 		for _, a := range m.adapters {
 			if m.selected[a.Name] {
 				plats = append(plats, a.Name)
 			}
 		}
+		global := scope == "global"
+		if global {
+			scope = "user"
+		}
 		m.result = InstallModalResult{
 			Platforms: plats,
-			Scope:     m.scopes[m.scopeIdx].value,
+			Scope:     scope,
+			Global:    global,
 			Confirmed: true,
 		}
 	}
@@ -359,8 +366,16 @@ func (m installModalModel) infoContent(width int) (heading, body string) {
 
 	hasClaude := m.selected["claude-code"]
 	hasCursor := m.selected["cursor"]
+	isGlobal := m.scopes[m.scopeIdx].value == "global"
 
 	switch {
+	case isGlobal:
+		heading = th.DetailTitle.Render("Global fanout")
+		body = wrap.Render(
+			"Installs one canonical copy in ~/.humblskills/skills and symlinks it " +
+				"to every selected detected platform target. Use this when all agents " +
+				"should share the same skill files.",
+		)
 	case hasClaude && hasCursor:
 		heading = th.Warn.Render("! Duplicate install")
 		body = wrap.Render(

@@ -68,6 +68,49 @@ func TestUninstall_RemovesFilesAndManifestEntry(t *testing.T) {
 	}
 }
 
+func TestUninstall_GlobalFanoutRemovesLinksAndCanonicalStore(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+	enableCodex(t, s)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{
+			Name: "foo", Version: "1.0.0",
+			Files: testutil.SkillTree{"SKILL.md": sampleSkillMD},
+		},
+	})
+	installRes := runCLIWithStdoutCapture(t,
+		"install", "foo",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--global",
+		"--yes", "--json",
+	)
+	if installRes.RunErr != nil {
+		t.Fatalf("install: %v\n%s", installRes.RunErr, installRes.Err)
+	}
+
+	canonical := filepath.Join(s.Home, ".humblskills", "skills", "foo")
+	claudeLink := filepath.Join(s.Home, ".claude", "skills", "foo")
+	codexLink := filepath.Join(s.Home, ".agents", "skills", "foo")
+
+	res := runCLIWithStdoutCapture(t,
+		"uninstall", "foo",
+		"--manifest", s.ManifestPath,
+		"--cache-dir", s.CacheDir,
+		"--yes", "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("uninstall: %v\n%s", res.RunErr, res.Err)
+	}
+	for _, path := range []string{canonical, claudeLink, codexLink} {
+		if _, err := os.Lstat(path); !os.IsNotExist(err) {
+			t.Fatalf("%s should be removed, err=%v", path, err)
+		}
+	}
+}
+
 func TestUninstall_UnknownSkillWarns(t *testing.T) {
 	s := testutil.NewSandbox(t)
 

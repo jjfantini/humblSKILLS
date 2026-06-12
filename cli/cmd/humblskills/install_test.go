@@ -32,6 +32,20 @@ func enableClaudeCode(t *testing.T, s *testutil.Sandbox) {
 	}
 }
 
+func enableCursor(t *testing.T, s *testutil.Sandbox) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(s.Home, ".cursor"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func enableCodex(t *testing.T, s *testutil.Sandbox) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(s.Home, ".codex"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestInstall_HappyPath_SingleSkill(t *testing.T) {
 	s := testutil.NewSandbox(t)
 	enableClaudeCode(t, s)
@@ -74,6 +88,79 @@ func TestInstall_HappyPath_SingleSkill(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(got.Path, "SKILL.md")); err != nil {
 		t.Errorf("installed SKILL.md missing: %v", err)
+	}
+}
+
+func TestInstall_GlobalFanoutInstallsCanonicalStoreAndSymlinksDetectedPlatforms(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+	enableCursor(t, s)
+	enableCodex(t, s)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{
+			Name:        "foo",
+			Version:     "1.0.0",
+			Description: "test skill",
+			Files: testutil.SkillTree{
+				"SKILL.md": sampleSkillMD,
+			},
+		},
+	})
+
+	res := runCLIWithStdoutCapture(t,
+		"install", "foo",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--global",
+		"--yes", "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s\nout: %s", res.RunErr, res.Err, res.Out)
+	}
+
+	canonical := filepath.Join(s.Home, ".humblskills", "skills", "foo")
+	if _, err := os.Stat(filepath.Join(canonical, "SKILL.md")); err != nil {
+		t.Fatalf("canonical SKILL.md missing: %v", err)
+	}
+
+	wantLinks := map[string]string{
+		"claude-code": filepath.Join(s.Home, ".claude", "skills", "foo"),
+		"cursor":      filepath.Join(s.Home, ".cursor", "skills", "foo"),
+		"codex":       filepath.Join(s.Home, ".agents", "skills", "foo"),
+	}
+	for platform, link := range wantLinks {
+		info, err := os.Lstat(link)
+		if err != nil {
+			t.Fatalf("%s link missing at %s: %v", platform, link, err)
+		}
+		if info.Mode()&os.ModeSymlink == 0 {
+			t.Fatalf("%s target is not a symlink: %s", platform, link)
+		}
+		got, err := os.Readlink(link)
+		if err != nil {
+			t.Fatalf("readlink %s: %v", link, err)
+		}
+		if got != canonical {
+			t.Errorf("%s link target = %s, want %s", platform, got, canonical)
+		}
+	}
+
+	m, err := manifest.Load(s.ManifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Installations) != 3 {
+		t.Fatalf("manifest installs = %d, want 3: %+v", len(m.Installations), m.Installations)
+	}
+	for _, inst := range m.Installations {
+		if inst.StorePath != canonical {
+			t.Errorf("%s store_path = %q, want %q", inst.Platform, inst.StorePath, canonical)
+		}
+		if inst.InstallMode != "global" {
+			t.Errorf("%s install_mode = %q, want global", inst.Platform, inst.InstallMode)
+		}
 	}
 }
 
@@ -272,9 +359,7 @@ func TestInstall_DefaultsPreferClaudeCodeWhenBothDetected(t *testing.T) {
 	// can read ~/.claude/skills natively.
 	s := testutil.NewSandbox(t)
 	enableClaudeCode(t, s)
-	if err := os.MkdirAll(filepath.Join(s.Home, ".cursor"), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	enableCursor(t, s)
 
 	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
 		{
@@ -318,9 +403,7 @@ func TestInstall_ExplicitPlatformBothStillWorks(t *testing.T) {
 	// Users who really want both IDEs can still ask for them via --platform.
 	s := testutil.NewSandbox(t)
 	enableClaudeCode(t, s)
-	if err := os.MkdirAll(filepath.Join(s.Home, ".cursor"), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	enableCursor(t, s)
 
 	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
 		{

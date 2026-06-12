@@ -15,7 +15,7 @@ func TestLoad_NonEmpty(t *testing.T) {
 	for _, a := range adapters {
 		names[a.Name] = struct{}{}
 	}
-	for _, expect := range []string{"claude-code", "cursor"} {
+	for _, expect := range []string{"claude-code", "codex", "cursor"} {
 		if _, ok := names[expect]; !ok {
 			t.Errorf("expected embedded adapter %q, got %v", expect, names)
 		}

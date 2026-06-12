@@ -19,3 +19,41 @@ Other top-level frontmatter follows the normal agentskills.io expectations.
 ## Where skills live in the repo
 
 Published skills live under `skills/<skill-id>/` in the [humblSKILLS repository](https://github.com/jjfantini/humblSKILLS). The CLI reads the bundled registry and installs the matching directory to your configured location for Cursor, Claude Code, Codex, etc.
+
+## Local install layout
+
+`humblskills install` writes one canonical skill directory, then exposes that
+directory to agent platforms with symlinks.
+
+| Mode | Canonical directory |
+|------|---------------------|
+| `--global` | `~/.humblskills/skills/<skill-id>` |
+| User scope | `$XDG_DATA_HOME/humblskills/skills/<skill-id>` |
+| Project scope | `<repo>/.humblskills/skills/<skill-id>` |
+
+Platform targets are symlinks:
+
+| Platform | User target |
+|----------|-------------|
+| Claude Code | `~/.claude/skills/<skill-id>` |
+| Cursor | `~/.cursor/skills/<skill-id>` |
+| Codex | `$HOME/.agents/skills/<skill-id>` |
+
+Codex officially supports symlinked skill folders in `.agents/skills`, so
+humblSKILLS uses direct skill folders for local discovery. Codex plugins remain
+out of scope for local installs; use plugins only when distributing reusable
+skills with app or MCP integrations.
+
+## Migrating existing Claude Code installs
+
+Run:
+
+```sh
+humblskills migrate claude-code --global --yes
+```
+
+The migration scans `~/.claude/skills`, reads each `SKILL.md`, and matches the
+skill `name` against the humblSKILLS registry. Registry-known skills are copied
+into `~/.humblskills/skills`, their preserved local files are retained, and the
+Claude Code directory is replaced with a symlink. Unregistered personal skills
+are reported and skipped.

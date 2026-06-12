@@ -1,0 +1,11 @@
+name: codex
+detect:
+  any_of:
+    - path_exists: ~/.codex
+    - path_exists: ~/.agents
+    - path_exists: .agents
+install_targets:
+  user: ~/.agents/skills
+  project: .agents/skills
+default_scope: user
+transform: passthrough

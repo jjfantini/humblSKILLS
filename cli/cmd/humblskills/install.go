@@ -19,6 +19,7 @@ type installFlags struct {
 	platformsSet bool
 	scope        string
 	force        bool
+	global       bool
 }
 
 func newInstallCmd(app *App) *cobra.Command {
@@ -41,6 +42,7 @@ func newInstallCmd(app *App) *cobra.Command {
 	cmd.Flags().StringSliceVar(&f.platforms, "platform", nil, "restrict install to these adapters (default: all detected)")
 	cmd.Flags().StringVar(&f.scope, "scope", "", "install scope (user|project; default: adapter's default)")
 	cmd.Flags().BoolVar(&f.force, "force", false, "reinstall even if already up-to-date")
+	cmd.Flags().BoolVar(&f.global, "global", false, "install once into ~/.humblskills and symlink to all detected platforms")
 	return cmd
 }
 
@@ -69,7 +71,7 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 	scope := f.scope
 	useTUIForModal := !f.platformsSet && tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
 	if useTUIForModal {
-		plats, scp, ok, err := promptInstallTargets(app, adapterList, skill)
+		plats, scp, global, ok, err := promptInstallTargets(app, adapterList, skill)
 		if err != nil {
 			return err
 		}
@@ -83,9 +85,17 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 		if scp != "" {
 			scope = scp
 		}
+		f.global = global
 	}
 
-	selected, err := selectPlatforms(adapterList, platforms)
+	if f.global && f.platformsSet {
+		return fmt.Errorf("--global cannot be combined with --platform")
+	}
+	if f.global && scope == "project" {
+		return fmt.Errorf("--global installs to user-scope platform targets; use project scope without --global")
+	}
+
+	selected, err := selectPlatforms(adapterList, platforms, f.global)
 	if err != nil {
 		return err
 	}
@@ -119,6 +129,7 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 			Platforms: selected,
 			Scope:     scope,
 			Force:     f.force,
+			Global:    f.global,
 			OnEvent:   sink,
 		})
 		res = r
@@ -148,7 +159,7 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 // adapters; otherwise it falls back to the same default cascade the TUI
 // uses (issue #84: prefer claude-code over cursor when both are detected,
 // since Cursor can read ~/.claude/skills natively).
-func selectPlatforms(adapterList []adapters.Adapter, requested []string) ([]string, error) {
+func selectPlatforms(adapterList []adapters.Adapter, requested []string, global bool) ([]string, error) {
 	known := adapters.NameSet(adapterList)
 	if len(requested) > 0 {
 		out := make([]string, 0, len(requested))
@@ -164,6 +175,16 @@ func selectPlatforms(adapterList []adapters.Adapter, requested []string) ([]stri
 	detected := map[string]bool{}
 	for _, d := range adapters.Detect(adapterList) {
 		detected[d.Name] = d.Detected
+	}
+	if global {
+		out := make([]string, 0, len(adapterList))
+		for _, a := range adapterList {
+			if detected[a.Name] {
+				out = append(out, a.Name)
+			}
+		}
+		sort.Strings(out)
+		return out, nil
 	}
 	out := adapters.PreferredDefaults(adapterList, detected, nil)
 	sort.Strings(out)
@@ -221,7 +242,7 @@ func printInstall(app *App, r install.Result) {
 // platforms + scope. If the user picks "edit profile" inside the modal, the
 // profile editor opens and the modal re-prompts with the updated defaults.
 // Returns ok=false if the user cancelled.
-func promptInstallTargets(app *App, adapterList []adapters.Adapter, skill string) ([]string, string, bool, error) {
+func promptInstallTargets(app *App, adapterList []adapters.Adapter, skill string) ([]string, string, bool, bool, error) {
 	detected := map[string]bool{}
 	for _, r := range adapters.Detect(adapterList) {
 		detected[r.Name] = r.Detected
@@ -229,22 +250,22 @@ func promptInstallTargets(app *App, adapterList []adapters.Adapter, skill string
 	for {
 		p, err := profile.Load(app.Config.ProfilePath)
 		if err != nil {
-			return nil, "", false, err
+			return nil, "", false, false, err
 		}
 		res, err := tui.RunInstallPlatformModal(app.UI.Theme(), skill, adapterList, detected, p)
 		if err != nil {
-			return nil, "", false, err
+			return nil, "", false, false, err
 		}
 		if res.EditProfile {
 			if err := runProfileEditor(app); err != nil {
-				return nil, "", false, err
+				return nil, "", false, false, err
 			}
 			continue
 		}
 		if !res.Confirmed {
-			return nil, "", false, nil
+			return nil, "", false, false, nil
 		}
-		return res.Platforms, res.Scope, true, nil
+		return res.Platforms, res.Scope, res.Global, true, nil
 	}
 }
 

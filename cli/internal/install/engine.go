@@ -88,6 +88,9 @@ type ExecuteOpts struct {
 	// Force causes existing targets to be replaced even when the manifest
 	// shows they're up-to-date.
 	Force bool
+	// Global installs into ~/.humblskills/skills and links every selected
+	// platform's user-scope target to that canonical store.
+	Global bool
 	// OnEvent, when set, receives progress notifications as the run proceeds.
 	// Callers that don't need progress (tests, --json, scripts) can leave it
 	// nil. See events.go for Phase semantics.
@@ -132,7 +135,7 @@ func (e *Engine) Execute(reg *registry.Registry, plan []Step, opts ExecuteOpts) 
 		userSink.emit(ev)
 	}
 
-	total := countTargets(plan, opts.Platforms)
+	total := countTargets(plan, opts.Platforms, opts.Global)
 	opts.OnEvent.emit(Event{Phase: PhaseRunStart, Total: total})
 
 	for _, step := range plan {
@@ -164,11 +167,11 @@ func (e *Engine) Execute(reg *registry.Registry, plan []Step, opts ExecuteOpts) 
 // countTargets walks plan and totals the (skill, platform, scope) triples the
 // run will visit, honouring each skill's platforms[] allow-list. Cheap, keeps
 // progress denominators honest without guesswork.
-func countTargets(plan []Step, platforms []string) int {
+func countTargets(plan []Step, platforms []string, global bool) int {
 	total := 0
 	for _, step := range plan {
 		allow := map[string]struct{}{}
-		if len(step.Skill.Platforms) == 0 {
+		if global || len(step.Skill.Platforms) == 0 {
 			for _, p := range platforms {
 				allow[p] = struct{}{}
 			}
@@ -186,6 +189,19 @@ func countTargets(plan []Step, platforms []string) int {
 	return total
 }
 
+type installPending struct {
+	adapter adapters.Adapter
+	target  adapters.Target
+	final   string
+}
+
+type installPlanTarget struct {
+	pending      installPending
+	out          Outcome
+	orphan       string
+	existingPath string
+}
+
 func (e *Engine) installOne(
 	reg *registry.Registry,
 	step Step,
@@ -195,11 +211,8 @@ func (e *Engine) installOne(
 ) ([]TargetResult, error) {
 	skill := step.Skill
 
-	// Decide which targets this skill needs. A skill's platforms[] list acts
-	// as an opt-in whitelist; only adapters in both requested-platforms and
-	// skill.Platforms get an install.
 	allow := map[string]struct{}{}
-	if len(skill.Platforms) == 0 {
+	if opts.Global || len(skill.Platforms) == 0 {
 		for _, p := range opts.Platforms {
 			allow[p] = struct{}{}
 		}
@@ -209,69 +222,71 @@ func (e *Engine) installOne(
 		}
 	}
 
-	type pending struct {
-		adapter adapters.Adapter
-		target  adapters.Target
-	}
-	var pendings []pending
+	var pendings []installPending
 	for _, p := range opts.Platforms {
 		if _, ok := allow[p]; !ok {
 			continue
 		}
 		adapter := adapterIndex[p]
 		scope := opts.Scope
-		if scope == "" {
+		if opts.Global {
+			scope = "user"
+		} else if scope == "" {
 			scope = adapter.DefaultScope
 		}
 		t, err := adapter.Target(scope)
 		if err != nil {
 			return nil, err
 		}
-		pendings = append(pendings, pending{adapter: adapter, target: t})
+		pendings = append(pendings, installPending{
+			adapter: adapter,
+			target:  t,
+			final:   filepath.Join(t.Path, skill.Name),
+		})
 	}
 	if len(pendings) == 0 {
 		return nil, nil
 	}
 
-	// Pre-compute which targets actually need the extract + copy. If none do,
-	// we skip the tarball fetch entirely so repeated no-op installs are fast.
-	type planTarget struct {
-		pending      pending
-		out          Outcome
-		final        string
-		orphan       string // previous install path to clean up (project-scope move)
-		existingPath string // manifest-recorded previous path, used as preserve source
+	storePath, err := CanonicalSkillPath(skill.Name, pendings[0].target.Scope, opts.Global)
+	if err != nil {
+		return nil, err
 	}
-	var toWrite []planTarget
+	mode := installMode(opts.Global)
+
+	var toWrite []installPlanTarget
 	var skipped []TargetResult
+	preserveSource := ""
 	for _, pg := range pendings {
-		dest := filepath.Join(pg.target.Path, skill.Name)
 		existing := m.FindOne(skill.Name, pg.adapter.Name, pg.target.Scope)
-		// Project-scope installs are pinned to the CWD that installed them.
-		// When the manifest entry's path differs from the current resolved
-		// target, treat it as a move: clean up the old location before we
-		// write the new one.
 		orphan := ""
-		if existing != nil && existing.Path != dest {
+		if existing != nil && existing.Path != pg.final {
 			orphan = existing.Path
 		}
 
-		// Identity is version + per-skill DirSHA (RegistryRef) + on-disk
-		// location. Source.SHA (repo-wide) is intentionally excluded:
-		// it advances on every humblSKILLS commit, even ones unrelated
-		// to this skill, and using it here would make every install
-		// look drifted after each CLI release.
 		upToDate := existing != nil &&
 			existing.Version == skill.Version &&
 			existing.RegistryRef == skill.DirSHA &&
-			existing.Path == dest
-		if _, err := os.Stat(dest); err != nil {
+			existing.Path == pg.final &&
+			existing.StorePath == storePath &&
+			existing.InstallMode == mode
+		if !targetLinksToStore(pg.final, storePath) {
+			upToDate = false
+		}
+		if _, err := os.Stat(filepath.Join(storePath, "SKILL.md")); err != nil {
 			upToDate = false
 		}
 
 		existingPath := ""
 		if existing != nil {
 			existingPath = existing.Path
+			if existing.StorePath != "" {
+				preserveSource = existing.StorePath
+			} else if preserveSource == "" {
+				preserveSource = existing.Path
+			}
+		} else if preserveSource == "" && realDirExists(pg.final) {
+			preserveSource = pg.final
 		}
 		switch {
 		case upToDate && !opts.Force:
@@ -281,18 +296,18 @@ func (e *Engine) installOne(
 			})
 			skipped = append(skipped, TargetResult{
 				Skill: skill.Name, Platform: pg.adapter.Name, Scope: pg.target.Scope,
-				Path: dest, Outcome: OutcomeSkipped,
+				Path: pg.final, Outcome: OutcomeSkipped,
 			})
 			opts.OnEvent.emit(Event{
 				Phase: PhaseTargetDone, Skill: skill.Name, IsDep: step.IsDep,
 				Platform: pg.adapter.Name, Scope: pg.target.Scope, Outcome: OutcomeSkipped,
 			})
 		case upToDate && opts.Force:
-			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeForced, final: dest, orphan: orphan, existingPath: existingPath})
+			toWrite = append(toWrite, installPlanTarget{pending: pg, out: OutcomeForced, orphan: orphan, existingPath: existingPath})
 		case existing != nil:
-			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeReplaced, final: dest, orphan: orphan, existingPath: existingPath})
+			toWrite = append(toWrite, installPlanTarget{pending: pg, out: OutcomeReplaced, orphan: orphan, existingPath: existingPath})
 		default:
-			toWrite = append(toWrite, planTarget{pending: pg, out: OutcomeInstalled, final: dest, orphan: orphan, existingPath: existingPath})
+			toWrite = append(toWrite, installPlanTarget{pending: pg, out: OutcomeInstalled, orphan: orphan, existingPath: existingPath})
 		}
 	}
 
@@ -321,90 +336,62 @@ func (e *Engine) installOne(
 		return nil, fmt.Errorf("dir_sha mismatch for %s: want %s got %s", skill.Name, skill.DirSHA, gotSHA)
 	}
 
+	writeSrc := staging
+	if preserveSource != "" && !opts.Force {
+		preserveList, userOwnsPreserve, err := e.preserveListForStore(skill, preserveSource, toWrite, opts)
+		if err != nil {
+			return nil, err
+		}
+		if len(preserveList) > 0 || userOwnsPreserve {
+			perStore := filepath.Join(e.StagingDir, skill.Name+"-"+shortSHA(reg.Source.SHA)+"-store")
+			if err := os.RemoveAll(perStore); err != nil {
+				return nil, fmt.Errorf("clean store staging: %w", err)
+			}
+			defer os.RemoveAll(perStore)
+			if err := copyTree(staging, perStore); err != nil {
+				return nil, fmt.Errorf("copy store staging: %w", err)
+			}
+			if len(preserveList) > 0 {
+				if err := applyPreserve(preserveSource, perStore, preserveList); err != nil {
+					return nil, err
+				}
+			}
+			if userOwnsPreserve {
+				skillMDPath := filepath.Join(perStore, "SKILL.md")
+				if err := mergePreserveIntoSkillMD(skillMDPath, preserveList); err != nil {
+					return nil, fmt.Errorf("merge preserve into SKILL.md: %w", err)
+				}
+			}
+			writeSrc = perStore
+		}
+	}
+
+	if err := replaceDir(writeSrc, storePath); err != nil {
+		return nil, fmt.Errorf("place canonical store %s: %w", storePath, err)
+	}
+
 	results := append([]TargetResult(nil), skipped...)
 	for _, pt := range toWrite {
 		opts.OnEvent.emit(Event{
 			Phase: PhaseTargetStart, Skill: skill.Name, IsDep: step.IsDep,
 			Platform: pt.pending.adapter.Name, Scope: pt.pending.target.Scope,
 		})
-		// Decide which preserve list to honour for this target:
-		//
-		//   - --force: none. Caller explicitly asked for a clean upstream
-		//     overwrite, matching 'uninstall + install'.
-		//   - fresh install (no existingPath): none. Staging already ships
-		//     the registry's view; there's nothing on disk to merge back.
-		//   - normal replace: read the USER's list from the installed
-		//     SKILL.md. User owns the list post-install; removing an entry
-		//     locally means they want that path overwritten next update.
-		//   - fallback: if the local SKILL.md is missing, unparseable, or
-		//     holds an invalid preserve list, use the registry's list and
-		//     warn. Safer than silently wiping user data over broken YAML.
-		var preserveList []string
-		userOwnsPreserve := false
-		if pt.existingPath != "" && !opts.Force {
-			if local, ok, reason := loadLocalPreserve(pt.existingPath); ok {
-				preserveList = local
-				userOwnsPreserve = true
-			} else {
-				preserveList = skill.Preserve
-				opts.OnEvent.emit(Event{
-					Phase: PhaseWarn, Skill: skill.Name,
-					Platform: pt.pending.adapter.Name, Scope: pt.pending.target.Scope,
-					Msg: fmt.Sprintf("local preserve unreadable (%s); falling back to registry list", reason),
-				})
-			}
-		}
-
-		// We need a per-target staging copy when either:
-		//   - preserveList has entries to merge user content from existingPath
-		//   - user owns the preserve list (even if empty) - we need to
-		//     rewrite staging's SKILL.md with the user's preserve key so
-		//     their edit persists past this update. Everything else in the
-		//     SKILL.md (description, version, body) still flows from the
-		//     registry.
-		// Otherwise, staging is used as-is so sibling targets share it.
-		writeSrc := staging
-		needsPerTarget := pt.existingPath != "" && (len(preserveList) > 0 || userOwnsPreserve)
-		if needsPerTarget {
-			perTarget := filepath.Join(
-				e.StagingDir,
-				skill.Name+"-"+shortSHA(reg.Source.SHA)+"-"+pt.pending.adapter.Name+"-"+pt.pending.target.Scope,
-			)
-			if err := os.RemoveAll(perTarget); err != nil {
-				return nil, fmt.Errorf("clean per-target staging: %w", err)
-			}
-			defer os.RemoveAll(perTarget)
-			if err := copyTree(staging, perTarget); err != nil {
-				return nil, fmt.Errorf("copy per-target staging: %w", err)
-			}
-			if len(preserveList) > 0 {
-				if err := applyPreserve(pt.existingPath, perTarget, preserveList); err != nil {
-					return nil, err
-				}
-			}
-			if userOwnsPreserve {
-				skillMDPath := filepath.Join(perTarget, "SKILL.md")
-				if err := mergePreserveIntoSkillMD(skillMDPath, preserveList); err != nil {
-					return nil, fmt.Errorf("merge preserve into SKILL.md: %w", err)
-				}
-			}
-			writeSrc = perTarget
-		}
-
-		if pt.orphan != "" && pt.orphan != pt.final {
+		if pt.orphan != "" && pt.orphan != pt.pending.final {
 			if err := os.RemoveAll(pt.orphan); err != nil {
 				return nil, fmt.Errorf("clean old install %s: %w", pt.orphan, err)
 			}
 		}
-		if err := replaceDir(writeSrc, pt.final); err != nil {
-			return nil, fmt.Errorf("place %s: %w", pt.final, err)
+		if err := linkStore(storePath, pt.pending.final); err != nil {
+			return nil, fmt.Errorf("link %s -> %s: %w", pt.pending.final, storePath, err)
 		}
 		m.Upsert(manifest.Installation{
 			Skill:       skill.Name,
 			Version:     skill.Version,
 			Platform:    pt.pending.adapter.Name,
 			Scope:       pt.pending.target.Scope,
-			Path:        pt.final,
+			Path:        pt.pending.final,
+			StorePath:   storePath,
+			InstallMode: mode,
 			InstalledAt: e.Now().UTC(),
 			SourceSHA:   reg.Source.SHA,
 			RegistryRef: skill.DirSHA,
@@ -413,7 +400,7 @@ func (e *Engine) installOne(
 			Skill:    skill.Name,
 			Platform: pt.pending.adapter.Name,
 			Scope:    pt.pending.target.Scope,
-			Path:     pt.final,
+			Path:     pt.pending.final,
 			Outcome:  pt.out,
 		})
 		opts.OnEvent.emit(Event{
@@ -423,6 +410,58 @@ func (e *Engine) installOne(
 		})
 	}
 	return results, nil
+}
+
+func (e *Engine) preserveListForStore(
+	skill registry.Skill,
+	preserveSource string,
+	targets []installPlanTarget,
+	opts ExecuteOpts,
+) ([]string, bool, error) {
+	if local, ok, reason := loadLocalPreserve(preserveSource); ok {
+		return local, true, nil
+	} else {
+		for _, pt := range targets {
+			opts.OnEvent.emit(Event{
+				Phase: PhaseWarn, Skill: skill.Name,
+				Platform: pt.pending.adapter.Name, Scope: pt.pending.target.Scope,
+				Msg: fmt.Sprintf("local preserve unreadable (%s); falling back to registry list", reason),
+			})
+		}
+	}
+	return skill.Preserve, false, nil
+}
+
+func targetLinksToStore(targetPath, storePath string) bool {
+	link, err := os.Readlink(targetPath)
+	if err != nil {
+		return false
+	}
+	if !filepath.IsAbs(link) {
+		link = filepath.Join(filepath.Dir(targetPath), link)
+	}
+	return filepath.Clean(link) == filepath.Clean(storePath)
+}
+
+func realDirExists(path string) bool {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return false
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return false
+	}
+	return info.IsDir()
+}
+
+func linkStore(storePath, targetPath string) error {
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+		return err
+	}
+	if err := os.RemoveAll(targetPath); err != nil {
+		return err
+	}
+	return os.Symlink(storePath, targetPath)
 }
 
 // Uninstall removes every on-disk target for skill and deletes its manifest
@@ -438,20 +477,40 @@ func (e *Engine) Uninstall(skill string) ([]TargetResult, error) {
 		return nil, nil
 	}
 	var results []TargetResult
-	for _, e := range entries {
-		if err := os.RemoveAll(e.Path); err != nil {
-			return results, fmt.Errorf("remove %s: %w", e.Path, err)
+	storeRefs := map[string]struct{}{}
+	for _, inst := range entries {
+		if inst.StorePath != "" {
+			storeRefs[inst.StorePath] = struct{}{}
+		}
+		if err := os.RemoveAll(inst.Path); err != nil {
+			return results, fmt.Errorf("remove %s: %w", inst.Path, err)
 		}
 		results = append(results, TargetResult{
-			Skill: e.Skill, Platform: e.Platform, Scope: e.Scope,
-			Path: e.Path, Outcome: "removed",
+			Skill: inst.Skill, Platform: inst.Platform, Scope: inst.Scope,
+			Path: inst.Path, Outcome: "removed",
 		})
 	}
 	m.Remove(skill)
+	for storePath := range storeRefs {
+		if !manifestReferencesStore(m, storePath) {
+			if err := os.RemoveAll(storePath); err != nil {
+				return results, fmt.Errorf("remove canonical store %s: %w", storePath, err)
+			}
+		}
+	}
 	if err := manifest.Save(e.ManifestPath, m); err != nil {
 		return results, fmt.Errorf("save manifest: %w", err)
 	}
 	return results, nil
+}
+
+func manifestReferencesStore(m *manifest.Manifest, storePath string) bool {
+	for _, inst := range m.Installations {
+		if inst.StorePath == storePath {
+			return true
+		}
+	}
+	return false
 }
 
 // replaceDir copies src to dst, replacing dst if it already exists. The copy

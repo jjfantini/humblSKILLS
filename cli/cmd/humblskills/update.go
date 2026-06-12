@@ -103,29 +103,43 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 				return err
 			}
 
-			byScope := map[string][]string{}
+			type targetGroup struct {
+				scope  string
+				global bool
+			}
+			byGroup := map[targetGroup][]string{}
 			for _, t := range plan.Targets {
 				if _, ok := adapterKnown[t.Platform]; !ok {
 					app.UI.Warn("skipping unknown platform %q in manifest for %s", t.Platform, plan.Skill)
 					continue
 				}
-				byScope[t.Scope] = append(byScope[t.Scope], t.Platform)
+				group := targetGroup{
+					scope:  t.Scope,
+					global: t.InstallMode == install.InstallModeGlobal,
+				}
+				byGroup[group] = append(byGroup[group], t.Platform)
 			}
 
-			scopes := make([]string, 0, len(byScope))
-			for s := range byScope {
-				scopes = append(scopes, s)
+			groups := make([]targetGroup, 0, len(byGroup))
+			for g := range byGroup {
+				groups = append(groups, g)
 			}
-			sort.Strings(scopes)
+			sort.Slice(groups, func(i, j int) bool {
+				if groups[i].scope == groups[j].scope {
+					return !groups[i].global && groups[j].global
+				}
+				return groups[i].scope < groups[j].scope
+			})
 
-			for _, scope := range scopes {
-				plats := byScope[scope]
+			for _, group := range groups {
+				plats := byGroup[group]
 				sort.Strings(plats)
 				res, err := engine.Execute(reg, stepPlan, install.ExecuteOpts{
 					Adapters:  adapters,
 					Platforms: plats,
-					Scope:     scope,
+					Scope:     group.scope,
 					Force:     f.force,
+					Global:    group.global,
 					OnEvent:   sink,
 				})
 				if err != nil {

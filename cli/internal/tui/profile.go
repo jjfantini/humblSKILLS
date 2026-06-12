@@ -534,6 +534,7 @@ func plural2(n int) string {
 type InstallModalResult struct {
 	Platforms   []string
 	Scope       string
+	Global      bool
 	Confirmed   bool
 	EditProfile bool
 }

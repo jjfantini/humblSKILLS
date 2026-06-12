@@ -30,6 +30,8 @@ type Installation struct {
 	Platform    string    `json:"platform"`
 	Scope       string    `json:"scope"`
 	Path        string    `json:"path"`
+	StorePath   string    `json:"store_path,omitempty"`
+	InstallMode string    `json:"install_mode,omitempty"`
 	InstalledAt time.Time `json:"installed_at"`
 	SourceSHA   string    `json:"source_sha"`
 	RegistryRef string    `json:"registry_ref"`

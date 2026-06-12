@@ -1,6 +1,6 @@
 # Preserving user content
 
-Smart skills often accumulate user-owned content: raw sources, append-only memory (`log.md`, `decisions.md`, `patterns.md`), wiki pages, and so on. By default, `humblskills update` and `humblskills install` **overwrite** the skill directory with what the registry ships.
+Smart skills often accumulate user-owned content: raw sources, append-only memory (`log.md`, `decisions.md`, `patterns.md`), wiki pages, and so on. By default, `humblskills update` and `humblskills install` **overwrite** the canonical skill directory with what the registry ships.
 
 Skills that must keep user content across updates declare a **`preserve`** list under **`metadata:`** in `SKILL.md` frontmatter (see [Registry & skill format](registry_and_format.md)).
 
@@ -13,7 +13,7 @@ Entries are **paths relative to the skill directory**. A trailing **`/`** means 
 | **File** | `references/log.md` | User wins: your bytes survive the update. |
 | **Directory** | `references/wiki/` | Deep merge: staging wins per file; files only on your side are kept. |
 
-Fresh installs always seed everything from the registry. `preserve` applies when **replacing** an existing install. `humblskills uninstall` removes everything, including preserved paths.
+Fresh installs always seed everything from the registry. `preserve` applies when **replacing** an existing install. `humblskills uninstall` removes platform symlinks and removes the canonical store when no remaining platform target references it.
 
 ### Example `SKILL.md` frontmatter
 
@@ -36,7 +36,7 @@ Authors who ship a **preserve directory** should document that files the author 
 
 ## You own the preserve list after install
 
-The registry’s preserve list under **`metadata.preserve`** is the **seed** on first install. After that, **`humblskills update` reads that list from the installed `SKILL.md` on disk** (per platform and scope), not from upstream.
+The registry’s preserve list under **`metadata.preserve`** is the **seed** on first install. After that, **`humblskills update` reads that list from the installed `SKILL.md` on disk**. Platform targets are symlinks, so this resolves to the shared canonical skill directory.
 
 - Add an entry locally → that path survives the next update, even if upstream did not list it.
 - Remove an entry locally → that path is overwritten from upstream on the next update.
@@ -53,6 +53,13 @@ To stop upstream from changing description, version, or body, add **`SKILL.md`**
 If the installed `SKILL.md` is missing, unparseable, or has an invalid preserve list (for example path traversal with `..`), the engine falls back to the registry list and prints a warning.
 
 YAML round-trip on update may normalize whitespace and drop comments inside the frontmatter block; keys and values stay intact.
+
+## Migration
+
+`humblskills migrate claude-code --global` adopts registry-known skills already
+installed under `~/.claude/skills`. During adoption, the existing Claude Code
+directory is used as the preserve source before it is replaced with a symlink to
+`~/.humblskills/skills/<skill>`. Unknown personal skills are skipped.
 
 ## Clean reinstall
 

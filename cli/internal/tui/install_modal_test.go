@@ -27,11 +27,12 @@ func newTestModal(selected, detected map[string]bool) installModalModel {
 		detected: detected,
 		selected: selected,
 		scopes: []scopeOpt{
+			{label: "Global fanout", value: "global"},
 			{label: "adapter default", value: ""},
 			{label: "user", value: "user"},
 			{label: "project", value: "project"},
 		},
-		scopeIdx: 0,
+		scopeIdx: 1,
 		actions: []actionOpt{
 			{label: "install", value: "install"},
 			{label: "cancel", value: "cancel"},
@@ -85,14 +86,31 @@ func TestInstallModal_EnterAdvancesFromPlatforms_NoToggle(t *testing.T) {
 func TestInstallModal_EnterAdvancesFromScope(t *testing.T) {
 	m := newTestModal(nil, nil)
 	m.group = groupScope
-	m.cursor = 1
+	m.cursor = 2
 	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = out.(installModalModel)
 	if m.group != groupAction {
 		t.Errorf("enter should advance to action; got %v", m.group)
 	}
-	if m.scopeIdx != 1 {
-		t.Errorf("scopeIdx = %d, want 1", m.scopeIdx)
+	if m.scopeIdx != 2 {
+		t.Errorf("scopeIdx = %d, want 2", m.scopeIdx)
+	}
+}
+
+func TestInstallModal_GlobalFanoutCommitsGlobalResult(t *testing.T) {
+	m := newTestModal(
+		map[string]bool{"claude-code": true},
+		map[string]bool{"claude-code": true, "cursor": true},
+	)
+	m.group = groupAction
+	m.scopeIdx = 0
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = out.(installModalModel)
+	if !m.result.Confirmed {
+		t.Fatal("result should be confirmed")
+	}
+	if !m.result.Global {
+		t.Fatalf("global fanout scope should set Global=true: %+v", m.result)
 	}
 }
 
@@ -197,6 +215,21 @@ func TestInstallModal_InfoPane_NoneSelected_EmptyState(t *testing.T) {
 	}
 	if !strings.Contains(body, "Select") {
 		t.Errorf("empty state body should prompt selection; got %q", body)
+	}
+}
+
+func TestInstallModal_InfoPane_GlobalFanout(t *testing.T) {
+	m := newTestModal(
+		map[string]bool{"claude-code": true, "cursor": true},
+		map[string]bool{"claude-code": true, "cursor": true},
+	)
+	m.scopeIdx = 0
+	heading, body := m.infoContent(60)
+	if !strings.Contains(heading, "Global fanout") {
+		t.Errorf("heading should describe global fanout; got %q", heading)
+	}
+	if !strings.Contains(body, ".humblskills") {
+		t.Errorf("body should mention canonical .humblskills store; got %q", body)
 	}
 }
 

@@ -21,11 +21,21 @@ Non-interactive environments (pipes, CI, agents) do not get the TUI: the binary 
 humblskills doctor                    # verify the environment
 humblskills search                    # browse the registry
 humblskills install use-smart-skill
+humblskills install use-smart-skill --global --yes
+humblskills migrate claude-code --global --yes
 humblskills list
 humblskills update                    # pick which drifted skills to upgrade
 humblskills update --all --yes        # non-interactive bulk upgrade
 humblskills uninstall use-smart-skill
 ```
+
+Use `install --global` when you want one canonical copy in
+`~/.humblskills/skills/<skill>` with symlinks into every detected agent
+platform. Codex reads the symlink from `$HOME/.agents/skills/<skill>`.
+
+Use `migrate claude-code --global` to adopt existing registry-known skills from
+`~/.claude/skills` into the canonical store, then fan them out with symlinks.
+Unregistered personal Claude Code skills are reported and skipped.
 
 ## Machine-friendly output
 

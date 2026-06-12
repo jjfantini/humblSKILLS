@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -119,6 +121,70 @@ func TestUpdate_AppliesDrift(t *testing.T) {
 	}
 	if m.Installations[0].Version != "1.0.1" {
 		t.Errorf("version not bumped: %+v", m.Installations[0])
+	}
+}
+
+func TestUpdate_GlobalFanoutKeepsCanonicalStoreAndSymlinks(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+	enableCodex(t, s)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{
+			Name: "foo", Version: "1.0.0",
+			Files: testutil.SkillTree{"SKILL.md": sampleSkillMD},
+		},
+	})
+	installRes := runCLIWithStdoutCapture(t,
+		"install", "foo",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--global",
+		"--yes", "--json",
+	)
+	if installRes.RunErr != nil {
+		t.Fatalf("install: %v\n%s", installRes.RunErr, installRes.Err)
+	}
+
+	newBody := strings.Replace(sampleSkillMD, "version: 1.0.0", "version: 1.0.1", 1)
+	newBody = strings.Replace(newBody, "Body.", "Updated body.", 1)
+	regURL = bumpRegistryVersion(t, s, newBody)
+
+	res := runCLIWithStdoutCapture(t,
+		"update",
+		"--manifest", s.ManifestPath,
+		"--cache-dir", s.CacheDir,
+		"--registry", regURL,
+		"--yes", "--all", "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("update: %v\n%s", res.RunErr, res.Err)
+	}
+
+	canonical := filepath.Join(s.Home, ".humblskills", "skills", "foo")
+	body, err := os.ReadFile(filepath.Join(canonical, "SKILL.md"))
+	if err != nil {
+		t.Fatalf("read canonical SKILL.md: %v", err)
+	}
+	if !strings.Contains(string(body), "Updated body.") {
+		t.Fatalf("canonical store was not updated:\n%s", string(body))
+	}
+	if !targetIsSymlinkTo(t, filepath.Join(s.Home, ".claude", "skills", "foo"), canonical) {
+		t.Fatal("claude link should still point to canonical store")
+	}
+	if !targetIsSymlinkTo(t, filepath.Join(s.Home, ".agents", "skills", "foo"), canonical) {
+		t.Fatal("codex link should still point to canonical store")
+	}
+
+	m, _ := manifest.Load(s.ManifestPath)
+	for _, inst := range m.Installations {
+		if inst.InstallMode != "global" {
+			t.Errorf("%s install mode = %q, want global", inst.Platform, inst.InstallMode)
+		}
+		if inst.StorePath != canonical {
+			t.Errorf("%s store path = %q, want %q", inst.Platform, inst.StorePath, canonical)
+		}
 	}
 }
 

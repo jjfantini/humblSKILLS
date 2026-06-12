@@ -76,6 +76,23 @@ func expectedDirSHA(t *testing.T, files map[string]string) string {
 	return sha
 }
 
+func withCwd(t *testing.T, dir string) {
+	t.Helper()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	prev, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(prev)
+	})
+}
+
 func TestEngine_InstallReplaceSkipForce(t *testing.T) {
 	root := t.TempDir()
 	cacheDir := filepath.Join(root, "cache")
@@ -249,6 +266,7 @@ func TestEngine_SkipOnStaleSourceSHA(t *testing.T) {
 
 func TestEngine_ProjectScopeMovesOldInstall(t *testing.T) {
 	root := t.TempDir()
+	withCwd(t, filepath.Join(root, "new-project"))
 	cacheDir := filepath.Join(root, "cache")
 	oldRoot := filepath.Join(root, "old-project", ".claude", "skills")
 	newRoot := filepath.Join(root, "new-project", ".claude", "skills")
@@ -340,9 +358,9 @@ func TestInstall_PreserveFreshInstall_SeedsFromStaging(t *testing.T) {
 	manifestPath := filepath.Join(root, "manifest.json")
 
 	skillFiles := map[string]string{
-		"skills/foo/SKILL.md":       "# foo\n",
-		"skills/foo/wiki/seed.md":   "seed-v1\n",
-		"skills/foo/log.md":         "initial\n",
+		"skills/foo/SKILL.md":     "# foo\n",
+		"skills/foo/wiki/seed.md": "seed-v1\n",
+		"skills/foo/log.md":       "initial\n",
 	}
 	onlyFoo := map[string]string{
 		"SKILL.md":     "# foo\n",
@@ -1202,6 +1220,7 @@ func TestUpdate_LocalPreserveInvalid_FallsBackToRegistry(t *testing.T) {
 
 func TestInstall_PreserveScopeMove(t *testing.T) {
 	root := t.TempDir()
+	withCwd(t, filepath.Join(root, "new"))
 	cacheDir := filepath.Join(root, "cache")
 	oldRoot := filepath.Join(root, "old", ".claude", "skills")
 	newRoot := filepath.Join(root, "new", ".claude", "skills")

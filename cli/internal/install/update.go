@@ -22,9 +22,10 @@ type UpdatePlan struct {
 // ManifestEntry mirrors the subset of manifest.Installation a caller needs to
 // decide what to update.
 type ManifestEntry struct {
-	Platform string `json:"platform"`
-	Scope    string `json:"scope"`
-	Path     string `json:"path"`
+	Platform    string `json:"platform"`
+	Scope       string `json:"scope"`
+	Path        string `json:"path"`
+	InstallMode string `json:"install_mode,omitempty"`
 }
 
 // PlanUpdates compares every manifest entry against the registry and returns
@@ -94,7 +95,7 @@ func PlanUpdates(reg *registry.Registry, m *manifest.Manifest, only []string) []
 		}
 		for _, i := range insts {
 			plan.Targets = append(plan.Targets, ManifestEntry{
-				Platform: i.Platform, Scope: i.Scope, Path: i.Path,
+				Platform: i.Platform, Scope: i.Scope, Path: i.Path, InstallMode: i.InstallMode,
 			})
 		}
 		out = append(out, plan)
