@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-12T23:19:24Z",
+  "generated_at": "2026-06-12T23:20:21Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "main",
-    "sha": "d679b0c6599b67ea555269a0d4b27c5be794b876"
+    "ref": "codex/add-xquik-humblskill",
+    "sha": "50590bd7798dd1129a4f8ff3320b03893adf7674"
   },
   "skills": [
     {
@@ -230,6 +230,28 @@
       ],
       "path": "skills/use-worktree-flow",
       "dir_sha": "83ae98852f839ff423edacfd33f48596866ad9b8afb6d161678f4f45fa1f472c"
+    },
+    {
+      "name": "xquik-social-data",
+      "version": "1.0.0",
+      "description": "Use Xquik when a task needs X/Twitter data access or automation through a public REST API, MCP server, or SDK: tweet search, user lookup, user tweets, follower exports, trend checks, monitors, HMAC webhooks, and write workflows. Trigger when the user asks to collect X data, connect an agent to X data, replace brittle scraping, or build workflows around Xquik. Do NOT use for unrelated social networks or for tasks that only need static documentation.\n",
+      "tags": [
+        "xquik",
+        "twitter",
+        "x",
+        "social-data",
+        "rest-api",
+        "mcp",
+        "sdk",
+        "webhooks",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor"
+      ],
+      "path": "skills/xquik-social-data",
+      "dir_sha": "5328b92415838cd539a359f3113048cbc32c0719fb67c0537e89ccdd6f21eb0a"
     }
   ]
 }
