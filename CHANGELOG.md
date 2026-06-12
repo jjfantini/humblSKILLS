@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.16.0](https://github.com/jjfantini/humblSKILLS/compare/v2.15.0...v2.16.0) (2026-06-12)
+
+
+### Features
+
+* **cli:** add unified skill fanout installs ([d679b0c](https://github.com/jjfantini/humblSKILLS/commit/d679b0c6599b67ea555269a0d4b27c5be794b876))
+
 ## [2.15.0](https://github.com/jjfantini/humblSKILLS/compare/v2.14.0...v2.15.0) (2026-06-12)
 
 
