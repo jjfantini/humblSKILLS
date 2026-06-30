@@ -77,7 +77,7 @@ func runStart(app *App) error {
 // breadcrumb. Falls back to Title-case of the command itself.
 func crumbLabel(cmd string) string {
 	switch cmd {
-	case "install", "list", "update", "search", "uninstall", "profile", "eval", "doctor", "registry", "version":
+	case "install", "list", "update", "upgrade", "search", "uninstall", "profile", "eval", "doctor", "registry", "version":
 		return strings.ToUpper(cmd[:1]) + cmd[1:]
 	}
 	return cmd
@@ -91,6 +91,8 @@ func dispatchDashboardCommand(app *App, cmd string) error {
 		return runList(app, true)
 	case "update":
 		return runUpdate(app, nil, updateFlags{})
+	case "upgrade":
+		return runUpgrade(app, upgradeFlags{})
 	case "search":
 		reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
 		if err != nil {
@@ -184,6 +186,7 @@ func printStartFallback(app *App) error {
 		{"install", "add a skill to every detected platform"},
 		{"list", "show installed skills"},
 		{"update", "pull newer registry versions"},
+		{"upgrade", "upgrade the humblskills CLI itself"},
 		{"search", "browse the registry"},
 		{"uninstall", "remove a skill"},
 		{"profile", "edit install defaults"},

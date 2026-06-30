@@ -88,7 +88,7 @@ func DefaultDashboardTiles() []DashboardTile {
 	return []DashboardTile{
 		{Command: "install", Label: "install", Hotkey: "i", Desc: "add a skill to every detected platform", Sub: "registry → platforms", Aliases: []string{"add", "get"}},
 		{Command: "list", Label: "list", Hotkey: "l", Desc: "what's installed, where, and what drifted", Sub: "manifest · platforms", Aliases: []string{"ls", "installed"}},
-		{Command: "update", Label: "update", Hotkey: "u", Desc: "pull newer registry versions onto installs", Sub: "diff · apply", Aliases: []string{"upgrade"}},
+		{Command: "update", Label: "update", Hotkey: "u", Desc: "pull newer registry versions onto installs", Sub: "diff · apply", Aliases: []string{"upgrade-skills"}},
 		{Command: "search", Label: "search", Hotkey: "/", Desc: "browse every skill in the registry", Sub: "fuzzy over name, tag, desc", Aliases: []string{"find", "browse"}},
 		{Command: "uninstall", Label: "uninstall", Hotkey: "x", Desc: "remove a skill from every target", Sub: "manifest-aware", Aliases: []string{"remove", "rm", "delete"}},
 		{Command: "profile", Label: "profile", Hotkey: "p", Desc: "edit install defaults (platforms, scope)", Sub: "user-wide preferences", Aliases: []string{"config", "prefs"}},
@@ -96,6 +96,7 @@ func DefaultDashboardTiles() []DashboardTile {
 		{Command: "doctor", Label: "doctor", Hotkey: "d", Desc: "inspect platforms and environment health", Sub: "platforms · writability", Aliases: []string{"check", "status"}},
 		{Command: "registry", Label: "registry", Hotkey: "R", Desc: "refresh the local registry cache", Sub: "http · etag", Aliases: []string{"refresh", "sync"}},
 		{Command: "version", Label: "version", Hotkey: "V", Desc: "show build info", Sub: "version · commit", Aliases: []string{"about", "ver"}},
+		{Command: "upgrade", Label: "upgrade", Hotkey: "U", Desc: "upgrade the humblskills CLI itself", Sub: "github releases · checksum verified", Aliases: []string{"self-update"}},
 	}
 }
 
