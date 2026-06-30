@@ -3,6 +3,7 @@ package selfupdate
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -40,7 +41,20 @@ func TestReplaceBinary(t *testing.T) {
 // TestReplaceBinary_WhileOpen simulates swapping the binary while another
 // file handle still has it open — the scenario that matters most, since
 // targetPath is normally the currently *running* executable.
+//
+// POSIX-only: a plain os.Open handle doesn't request FILE_SHARE_DELETE on
+// Windows, so renaming it there fails with ERROR_SHARING_VIOLATION — that's
+// a real Windows restriction on ordinary open file handles, not a bug in
+// ReplaceBinary. The actual self-upgrade scenario (renaming a *running*
+// .exe) relies on the OS loader's own, more permissive image-sharing
+// semantics, which this synthetic os.Open-based test can't represent
+// without truly exec'ing a process — not something worth doing here when
+// every other ReplaceBinary case (the ones that don't depend on Windows'
+// running-executable special case) is already covered cross-platform.
 func TestReplaceBinary_WhileOpen(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows doesn't allow renaming a plain (non-FILE_SHARE_DELETE) open file handle; see comment above")
+	}
 	dir := t.TempDir()
 	target := filepath.Join(dir, "humblskills")
 	newBin := filepath.Join(dir, "humblskills.new")
