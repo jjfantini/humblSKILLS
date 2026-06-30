@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-30T23:01:12Z",
+  "generated_at": "2026-06-30T23:34:35Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "cursor/cli-upgrade-command-9be6",
-    "sha": "7125d25245432b724dd3ead458d56c09d44aa1c2"
+    "ref": "develop",
+    "sha": "5ec020b5adb4ed2f20dcd967e057d6f4a37c43b1"
   },
   "skills": [
     {
