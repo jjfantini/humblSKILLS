@@ -1,13 +1,17 @@
 name: Registry
 
-# Self-healing registry.json. Runs on every push (any branch) whose paths
-# could affect the generated registry. If drift is detected, regenerates
-# and commits back to the pushed branch with [skip ci] so the bot's own
-# commit does not loop. This replaces the former pre-merge "registry-check"
-# gate — drift is now auto-fixed rather than blocking merges.
+# Self-healing registry.json. Runs on branch pushes whose paths could affect
+# the generated registry. If drift is detected, regenerates and commits back to
+# the pushed branch with [skip ci] so the bot's own commit does not loop. This
+# replaces the former pre-merge "registry-check" gate — drift is now auto-fixed
+# rather than blocking merges.
 
 on:
   push:
+    # Branch pushes only. Tag pushes (e.g. the vX.Y.Z / cli/vX.Y.Z release tags)
+    # check out a detached ref with nowhere to push, so they must NOT run here.
+    branches:
+      - "**"
     paths:
       - "skills/**"
       - "cli/cmd/build-registry/**"
@@ -41,19 +45,39 @@ jobs:
           go-version: "1.23"
           cache-dependency-path: cli/go.sum
 
-      - name: Rebuild registry.json
-        run: make registry
-
-      - name: Commit if changed
+      - name: Rebuild and push registry.json (race-safe)
+        env:
+          REF: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          if git diff --quiet -- registry.json; then
-            echo "registry.json already in sync; nothing to commit."
-            exit 0
-          fi
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add registry.json
-          git commit -m "chore(registry): regenerate registry.json [skip ci]"
-          git push
+
+          # Regenerate, commit, and push. If another push (e.g. a sibling merge
+          # during a release) advances the branch first, our push is a
+          # non-fast-forward and is rejected. Re-sync to the remote tip and
+          # retry — the regeneration is deterministic, so it converges quickly.
+          for attempt in 1 2 3 4 5; do
+            make registry
+
+            if git diff --quiet -- registry.json; then
+              echo "registry.json already in sync; nothing to commit."
+              exit 0
+            fi
+
+            git add registry.json
+            git commit -m "chore(registry): regenerate registry.json [skip ci]"
+
+            if git push origin "HEAD:${REF}"; then
+              echo "pushed regenerated registry.json (attempt ${attempt})"
+              exit 0
+            fi
+
+            echo "push rejected (attempt ${attempt}); re-syncing to origin/${REF} and retrying"
+            git reset --hard "HEAD~1"
+            git fetch origin "${REF}"
+            git reset --hard FETCH_HEAD
+          done
+
+          echo "::error::failed to push registry.json after 5 attempts"
+          exit 1
