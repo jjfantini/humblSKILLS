@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-12T23:19:24Z",
+  "generated_at": "2026-06-30T20:11:55Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "develop",
-    "sha": "d679b0c6599b67ea555269a0d4b27c5be794b876"
+    "ref": "cursor/use-upload-thing-1d3d",
+    "sha": "9debe8f0c73424a7728051f6c27b3f09ba358d59"
   },
   "skills": [
     {
@@ -206,6 +206,30 @@
       ],
       "path": "skills/use-smart-skill",
       "dir_sha": "7247d01c81262cd407092ab54ece41b9f935761a0c354899b81ffdd0e6140ef0"
+    },
+    {
+      "name": "use-upload-thing",
+      "version": "1.0.0",
+      "description": "Drive the UploadThing REST API end-to-end from the shell: authenticate with an API key, upload files (v7 prepareUpload + ingest PUT), download by key or URL, and list, delete, rename, set ACLs, or read usage. Use when the user wants to upload/download/manage files on UploadThing, mentions UploadThing, ufs.sh, prepareUpload, an sk_live key, or \"put this file on UploadThing\". Also guides first-time API-key setup. Do NOT use for building an app's File Router / React upload components (that is the TS SDK), or for non-UploadThing storage (S3, GCS).\n",
+      "tags": [
+        "uploadthing",
+        "file-upload",
+        "storage",
+        "rest-api",
+        "ufs",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor"
+      ],
+      "preserve": [
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/use-upload-thing",
+      "dir_sha": "5bf64bcd1c2e313cc14261cb1eb18816493008fc9e715cdc4d6047166d077246"
     },
     {
       "name": "use-worktree-flow",
