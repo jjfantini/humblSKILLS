@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-01T03:20:46Z",
+  "generated_at": "2026-07-01T03:36:43Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "develop",
-    "sha": "3d0af4b161975be7b41ee8ee9891f125befa67c2"
+    "ref": "cursor/refactor-remove-dead-dashboard-greeting-edb2",
+    "sha": "5ba6045a9c5cf76f74908bd5c879b35674cdb7e3"
   },
   "skills": [
     {
