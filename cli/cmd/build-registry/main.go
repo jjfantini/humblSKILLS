@@ -25,6 +25,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/resolver"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 )
 
 const defaultRepo = "github.com/jjfantini/humblSKILLS"
@@ -106,6 +107,7 @@ func run(skillsDir, outFile, repo, ref, sha string, check bool) error {
 			Name:        p.fm.Name,
 			Version:     p.fm.Version(),
 			Description: p.fm.Description,
+			Category:    p.fm.Category(),
 			Tags:        p.fm.Tags(),
 			Platforms:   p.fm.Platforms(),
 			Requires:    p.fm.Requires(),
@@ -117,10 +119,10 @@ func run(skillsDir, outFile, repo, ref, sha string, check bool) error {
 	sort.Slice(skills, func(i, j int) bool { return skills[i].Name < skills[j].Name })
 
 	if ref == "" {
-		ref = firstNonEmpty(os.Getenv("GITHUB_REF_NAME"), gitBranch(), "main")
+		ref = textutil.FirstNonEmpty(os.Getenv("GITHUB_REF_NAME"), gitBranch(), "main")
 	}
 	if sha == "" {
-		sha = firstNonEmpty(os.Getenv("GITHUB_SHA"), gitHeadSHA())
+		sha = textutil.FirstNonEmpty(os.Getenv("GITHUB_SHA"), gitHeadSHA())
 	}
 	generatedAt := commitTime()
 	if generatedAt == "" {
@@ -260,15 +262,6 @@ func writeAtomic(path string, data []byte) error {
 		return err
 	}
 	return nil
-}
-
-func firstNonEmpty(vals ...string) string {
-	for _, v := range vals {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
 }
 
 func gitHeadSHA() string {

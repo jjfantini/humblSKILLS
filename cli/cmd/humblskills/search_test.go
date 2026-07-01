@@ -71,6 +71,84 @@ func TestSearch_TagMatch_JSON(t *testing.T) {
 	}
 }
 
+func TestSearch_CategoryFilter_JSON(t *testing.T) {
+	s := testutil.NewSandbox(t)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{Name: "alpha", Version: "1.0.0", Category: "development",
+			Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+		{Name: "beta", Version: "1.0.0", Category: "writing",
+			Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+	})
+	res := runCLIWithStdoutCapture(t,
+		"search",
+		"--category", "development",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\n%s", res.RunErr, res.Err)
+	}
+	idx := strings.Index(res.Out, "{")
+	var out struct {
+		Results []struct{ Name string } `json:"results"`
+	}
+	if err := json.Unmarshal([]byte(res.Out[idx:]), &out); err != nil {
+		t.Fatalf("parse: %v\n%s", err, res.Out)
+	}
+	if len(out.Results) != 1 || out.Results[0].Name != "alpha" {
+		t.Errorf("results = %+v", out.Results)
+	}
+}
+
+func TestSearch_CategoryFilter_CombinesWithQuery(t *testing.T) {
+	s := testutil.NewSandbox(t)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{Name: "commit-helper", Version: "1.0.0", Category: "development",
+			Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+		{Name: "commit-poems", Version: "1.0.0", Category: "writing",
+			Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+	})
+	res := runCLIWithStdoutCapture(t,
+		"search", "commit",
+		"--category", "writing",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\n%s", res.RunErr, res.Err)
+	}
+	idx := strings.Index(res.Out, "{")
+	var out struct {
+		Results []struct{ Name string } `json:"results"`
+	}
+	_ = json.Unmarshal([]byte(res.Out[idx:]), &out)
+	if len(out.Results) != 1 || out.Results[0].Name != "commit-poems" {
+		t.Errorf("results = %+v", out.Results)
+	}
+}
+
+func TestSearch_UnknownCategory_Errors(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{Name: "alpha", Version: "1.0.0", Category: "development",
+			Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+	})
+	res := runCLIWithStdoutCapture(t,
+		"search",
+		"--category", "astrology",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--json",
+	)
+	if res.RunErr == nil {
+		t.Fatal("expected error for unknown --category")
+	}
+}
+
 func TestSearch_NoResults_JSON(t *testing.T) {
 	s := testutil.NewSandbox(t)
 

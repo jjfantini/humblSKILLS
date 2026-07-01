@@ -4,7 +4,8 @@ description: Drive a system design interview from a blank prompt to a simple, co
 license: MIT
 metadata:
   author: Jennings Fantini
-  version: "2.0.2"
+  version: "2.0.3"
+  category: development
   tags: [system-design, interviews, architecture]
   platforms: [claude-code, cursor, codex]
   preserve:

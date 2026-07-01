@@ -9,6 +9,7 @@ import (
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
@@ -50,7 +51,7 @@ func (s skillItem) primary() *manifest.Installation {
 
 func (s skillItem) Key() string { return s.s.Name }
 func (s skillItem) FilterValue() string {
-	return strings.ToLower(s.s.Name + " " + strings.Join(s.s.Tags, " ") + " " + s.s.Description)
+	return strings.ToLower(s.s.Name + " " + s.s.Category + " " + strings.Join(s.s.Tags, " ") + " " + s.s.Description)
 }
 
 // NaturalWidth reports the row's display width: dot + space + name + 2-gap
@@ -100,6 +101,9 @@ func (s skillItem) Detail(th *ui.Theme, width int) string {
 		sb.WriteString(desc + "\n\n")
 	}
 
+	if s.s.Category != "" {
+		sb.WriteString(kvRow(th, "category", th.Category.Render(s.s.Category)))
+	}
 	if len(s.s.Tags) > 0 {
 		chips := make([]string, 0, len(s.s.Tags))
 		for _, t := range s.s.Tags {
@@ -243,7 +247,7 @@ func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBr
 		}
 	}
 	localMeta := func(items []tui.Item, _ int) string {
-		parts := []string{fmt.Sprintf("%d skill%s", len(items), plural(len(items)))}
+		parts := []string{fmt.Sprintf("%d skill%s", len(items), textutil.Plural(len(items)))}
 		if installedCount > 0 {
 			parts = append(parts, fmt.Sprintf("%d installed", installedCount))
 		}
