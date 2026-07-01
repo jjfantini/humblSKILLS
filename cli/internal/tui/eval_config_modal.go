@@ -115,10 +115,10 @@ func (m evalConfigModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.done = true
 			return m, tea.Quit
 		case key.Matches(msg, keys.Up):
-			m.cursor = clampInt(m.cursor-1, 0, m.groupLen()-1)
+			m.cursor = clamp(m.cursor-1, 0, m.groupLen()-1)
 			return m, nil
 		case key.Matches(msg, keys.Down):
-			m.cursor = clampInt(m.cursor+1, 0, m.groupLen()-1)
+			m.cursor = clamp(m.cursor+1, 0, m.groupLen()-1)
 			return m, nil
 		case key.Matches(msg, keys.Enter):
 			return m.onEnter()
