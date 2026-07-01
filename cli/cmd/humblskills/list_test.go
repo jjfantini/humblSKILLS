@@ -91,6 +91,45 @@ func TestList_PopulatedManifest_JSON(t *testing.T) {
 	}
 }
 
+func TestList_TextOutput_ShowsSourceColumn(t *testing.T) {
+	s := testutil.NewSandbox(t)
+
+	m := &manifest.Manifest{SchemaVersion: manifest.SchemaVersion}
+	m.Upsert(manifest.Installation{
+		Skill: "foo", Version: "1.0.0", Platform: "claude-code",
+		Scope: "user", Path: "/tmp/.claude/skills/foo",
+		StorePath:   "/tmp/.humblskills/skills/foo",
+		InstalledAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+	})
+	m.Upsert(manifest.Installation{
+		Skill: "foo", Version: "1.0.0", Platform: "cursor",
+		Scope: "user", Path: "/tmp/.cursor/skills/foo",
+		StorePath:   "/tmp/.humblskills/skills/foo",
+		InstalledAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+	})
+	if err := manifest.Save(s.ManifestPath, m); err != nil {
+		t.Fatal(err)
+	}
+
+	res := runCLIWithStdoutCapture(t,
+		"list",
+		"--manifest", s.ManifestPath,
+		"--yes",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\n%s", res.RunErr, res.Err)
+	}
+	if !strings.Contains(res.Out, "Source") {
+		t.Errorf("table should have a Source column header:\n%s", res.Out)
+	}
+	if !strings.Contains(res.Out, "/tmp/.humblskills/skills/foo") {
+		t.Errorf("table should show the canonical store path:\n%s", res.Out)
+	}
+	if !strings.Contains(res.Out, "claude-code") || !strings.Contains(res.Out, "cursor") {
+		t.Errorf("table should show every symlinked platform:\n%s", res.Out)
+	}
+}
+
 func TestList_EmptyManifest_TextOutputHint(t *testing.T) {
 	s := testutil.NewSandbox(t)
 
