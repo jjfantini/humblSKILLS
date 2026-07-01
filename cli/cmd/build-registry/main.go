@@ -107,6 +107,7 @@ func run(skillsDir, outFile, repo, ref, sha string, check bool) error {
 			Name:        p.fm.Name,
 			Version:     p.fm.Version(),
 			Description: p.fm.Description,
+			Category:    p.fm.Category(),
 			Tags:        p.fm.Tags(),
 			Platforms:   p.fm.Platforms(),
 			Requires:    p.fm.Requires(),
