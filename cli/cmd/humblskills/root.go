@@ -111,6 +111,7 @@ func newRootCmd() *cobra.Command {
 		newUpgradeCmd(app),
 		newListCmd(app),
 		newSearchCmd(app),
+		newInitCmd(app),
 		newExportCmd(app),
 		newSyncCmd(app),
 		newProfileCmd(app),

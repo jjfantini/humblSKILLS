@@ -99,12 +99,19 @@ teammate runs `humblskills sync` to install the same set — a single,
 version-controlled source of truth for "which skills does this project want".
 
 ```sh
+humblskills init                         # scaffold an empty ./humblskills.json to fill in
+humblskills init --from-installed        # scaffold it from the skills you already have
 humblskills export -o humblskills.json   # write the skillset
 humblskills sync                         # install missing skills from ./humblskills.json
 humblskills sync path/to/set.json --force  # reinstall everything from a specific file
 humblskills sync https://example.com/humblskills.json  # sync from a hosted skillset
 humblskills sync --prune                 # also uninstall skills not in the file
 ```
+
+`init` bootstraps a new skillset file (default `./humblskills.json`); it writes
+an empty set to fill in, or seeds it from your installed skills with
+`--from-installed`, and refuses to clobber an existing file unless you pass
+`--force`.
 
 `sync` accepts a local path, a `file://` URL, or an `http(s)://` URL, so a team
 can host one canonical skillset and everyone runs
