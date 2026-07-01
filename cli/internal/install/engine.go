@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
@@ -588,89 +587,4 @@ func shortSHA(sha string) string {
 		return sha[:12]
 	}
 	return sha
-}
-
-// applyPreserve merges user-owned content from userRoot into stagingRoot
-// according to the preserve list.
-//
-//   - File entry (no trailing "/"): user wins; user's bytes overwrite whatever
-//     staging shipped.
-//   - Directory entry (trailing "/"): deep merge; staging wins on per-file
-//     conflicts. Files only in user land alongside staging's version.
-//
-// Type mismatches (file entry vs user dir, or dir entry vs user file) and
-// symlinks in the user source are rejected rather than silently resolved.
-func applyPreserve(userRoot, stagingRoot string, entries []string) error {
-	for _, raw := range entries {
-		rel := strings.TrimSpace(raw)
-		rel = strings.TrimPrefix(rel, "./")
-		isDir := strings.HasSuffix(rel, "/")
-		relClean := filepath.FromSlash(strings.TrimSuffix(rel, "/"))
-		if relClean == "" || relClean == "." {
-			continue
-		}
-		srcAbs := filepath.Join(userRoot, relClean)
-		dstAbs := filepath.Join(stagingRoot, relClean)
-
-		fi, err := os.Lstat(srcAbs)
-		if err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return fmt.Errorf("preserve stat %s: %w", srcAbs, err)
-		}
-		if fi.Mode()&os.ModeSymlink != 0 {
-			return fmt.Errorf("preserve: refusing to follow symlink %s", srcAbs)
-		}
-
-		if isDir {
-			if !fi.IsDir() {
-				return fmt.Errorf("preserve: entry %q declares a directory but %s is a file", raw, srcAbs)
-			}
-			if err := preserveMergeDir(srcAbs, dstAbs); err != nil {
-				return err
-			}
-			continue
-		}
-		if fi.IsDir() {
-			return fmt.Errorf("preserve: entry %q declares a file but %s is a directory", raw, srcAbs)
-		}
-		if err := copyFile(srcAbs, dstAbs, fi.Mode()&0o777); err != nil {
-			return fmt.Errorf("preserve copy %s: %w", srcAbs, err)
-		}
-	}
-	return nil
-}
-
-// preserveMergeDir walks userDir and copies every regular file into dstDir
-// only when dstDir does not already have that relative path — staging wins on
-// conflicts. Symlinks anywhere in userDir abort the merge.
-func preserveMergeDir(userDir, dstDir string) error {
-	return filepath.Walk(userDir, func(p string, fi os.FileInfo, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		rel, err := filepath.Rel(userDir, p)
-		if err != nil {
-			return err
-		}
-		if rel == "." {
-			return os.MkdirAll(dstDir, fi.Mode()&0o777|0o700)
-		}
-		dst := filepath.Join(dstDir, rel)
-		if fi.Mode()&os.ModeSymlink != 0 {
-			return fmt.Errorf("preserve: refusing to follow symlink %s", p)
-		}
-		if fi.IsDir() {
-			if _, err := os.Stat(dst); err == nil {
-				return nil
-			}
-			return os.MkdirAll(dst, fi.Mode()&0o777|0o700)
-		}
-		if _, err := os.Stat(dst); err == nil {
-			// Staging already ships this file; staging wins.
-			return nil
-		}
-		return copyFile(p, dst, fi.Mode()&0o777)
-	})
 }
