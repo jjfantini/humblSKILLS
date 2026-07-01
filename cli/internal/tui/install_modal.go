@@ -3,6 +3,7 @@ package tui
 import (
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -138,33 +139,34 @@ func (m installModalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 		return m, nil
 	case tea.KeyMsg:
-		k := msg.String()
-		switch k {
-		case "ctrl+c", "q":
+		keys := DefaultKeys()
+		switch {
+		case key.Matches(msg, keys.Quit), key.Matches(msg, keys.Back):
 			m.done = true
 			return m, tea.Quit
-		case "esc":
-			m.done = true
-			return m, tea.Quit
+		case key.Matches(msg, keys.Up):
+			m.cursor = clamp(m.cursor-1, 0, m.groupLen()-1)
+			m.syncGroupIndex()
+			return m, nil
+		case key.Matches(msg, keys.Down):
+			m.cursor = clamp(m.cursor+1, 0, m.groupLen()-1)
+			m.syncGroupIndex()
+			return m, nil
+		case key.Matches(msg, keys.Enter):
+			return m.onEnter()
+		}
+		// Group cycling and multi-select toggle aren't part of the shared
+		// keymap, so they stay literal.
+		switch msg.String() {
 		case "tab":
 			return m.nextGroup(1), nil
 		case "shift+tab":
 			return m.nextGroup(-1), nil
-		case "up", "k":
-			m.cursor = clamp(m.cursor-1, 0, m.groupLen()-1)
-			m.syncGroupIndex()
-			return m, nil
-		case "down", "j":
-			m.cursor = clamp(m.cursor+1, 0, m.groupLen()-1)
-			m.syncGroupIndex()
-			return m, nil
 		case " ":
 			if m.group == groupPlatforms {
 				m = m.togglePlatform()
 			}
 			return m, nil
-		case "enter":
-			return m.onEnter()
 		}
 	}
 	return m, nil

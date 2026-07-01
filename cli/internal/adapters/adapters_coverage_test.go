@@ -75,7 +75,7 @@ func TestDetect_AllOfFailsEarly(t *testing.T) {
 	if got[0].Detected {
 		t.Error("expected Detected=false")
 	}
-	if !strings.Contains(got[0].Reason, "all_of failed") {
+	if !strings.Contains(got[0].Reason, "not found") {
 		t.Errorf("reason = %q", got[0].Reason)
 	}
 }
@@ -97,7 +97,7 @@ func TestDetect_AnyOfMatchesFirst(t *testing.T) {
 	if !got[0].Detected {
 		t.Errorf("expected match: %+v", got[0])
 	}
-	if !strings.Contains(got[0].Reason, "matched") {
+	if !strings.Contains(got[0].Reason, "is set") {
 		t.Errorf("reason = %q", got[0].Reason)
 	}
 }

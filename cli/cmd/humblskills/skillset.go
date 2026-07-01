@@ -11,6 +11,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/skillset"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
@@ -59,7 +60,7 @@ func runExport(app *App, output string) error {
 	if err := skillset.Save(output, set); err != nil {
 		return err
 	}
-	app.UI.Success("exported %d skill%s to %s", len(set.Skills), plural(len(set.Skills)), output)
+	app.UI.Success("exported %d skill%s to %s", len(set.Skills), textutil.Plural(len(set.Skills)), output)
 	app.UI.Detail("commit it and run 'humblskills sync' on another machine to install the same set")
 	return nil
 }
@@ -182,7 +183,7 @@ func runSync(app *App, path string, f installFlags, prune bool) error {
 	}
 	if len(missing) > 0 {
 		app.UI.Warn("%d skill%s in %s not found in the registry: %v",
-			len(missing), plural(len(missing)), path, missing)
+			len(missing), textutil.Plural(len(missing)), path, missing)
 	}
 	return nil
 }

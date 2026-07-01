@@ -27,7 +27,7 @@ type Palette struct {
 	Magenta lipgloss.Color // brand, selected-row accent
 	Red     lipgloss.Color // no dot, missing badge, error
 	Yellow  lipgloss.Color // ro badge, warning
-	Orange  lipgloss.Color // reserved
+	Orange  lipgloss.Color // category badge
 	Teal    lipgloss.Color // reserved
 
 	// --- Semantic aliases (kept so old call sites still compile).
@@ -36,6 +36,7 @@ type Palette struct {
 	Name     lipgloss.Color // names, headings — FG
 	Tag      lipgloss.Color // #tags — Blue
 	Platform lipgloss.Color // platform chips — Cyan
+	Category lipgloss.Color // category badge - Orange
 	Hit      lipgloss.Color // filter match highlight — Yellow
 	Muted    lipgloss.Color // crumbs — Comment
 	Rule     lipgloss.Color // dividers — Border
@@ -71,6 +72,7 @@ func DefaultPalette() Palette {
 	p.Name = p.FG
 	p.Tag = p.Blue
 	p.Platform = p.Cyan
+	p.Category = p.Orange
 	p.Hit = p.Yellow
 	p.Muted = p.Comment
 	p.Rule = p.Border
@@ -137,6 +139,7 @@ type Theme struct {
 	Desc     lipgloss.Style
 	Tag      lipgloss.Style
 	Platform lipgloss.Style
+	Category lipgloss.Style
 	Hit      lipgloss.Style
 	Label    lipgloss.Style
 	Count    lipgloss.Style
@@ -238,6 +241,7 @@ func buildTheme(p Palette, r *lipgloss.Renderer) *Theme {
 	t.Desc = r.NewStyle().Foreground(p.FGDim)
 	t.Tag = r.NewStyle().Foreground(p.Blue)
 	t.Platform = r.NewStyle().Foreground(p.Cyan)
+	t.Category = r.NewStyle().Foreground(p.Orange).Bold(true)
 	t.Hit = r.NewStyle().Foreground(p.Yellow).Bold(true)
 	t.Label = r.NewStyle().Foreground(p.Comment)
 	t.Count = r.NewStyle().Foreground(p.Comment).Italic(true)
