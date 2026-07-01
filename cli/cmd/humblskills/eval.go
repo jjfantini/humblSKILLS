@@ -31,7 +31,6 @@ func newEvalCmd(app *App) *cobra.Command {
 	cmd.AddCommand(
 		newEvalRunCmd(app),
 		newEvalInitCmd(app),
-		newEvalGradeCmd(app),
 		newEvalAggregateCmd(app),
 		newEvalReportCmd(app),
 		newEvalCompareCmd(app),
@@ -111,18 +110,7 @@ func newEvalInitCmd(app *App) *cobra.Command {
 	}
 }
 
-// --- eval grade / aggregate / report ---------------------------------------
-
-func newEvalGradeCmd(app *App) *cobra.Command {
-	return &cobra.Command{
-		Use:   "grade <iteration-dir>",
-		Short: "Re-grade every session in an existing iteration directory",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("grade: not implemented in v1 — re-run `eval run` to regrade")
-		},
-	}
-}
+// --- eval aggregate / report ------------------------------------------------
 
 func newEvalAggregateCmd(app *App) *cobra.Command {
 	return &cobra.Command{
