@@ -75,7 +75,7 @@ func runInit(app *App, path string, fromInstalled, force bool) error {
 	if err := skillset.Save(path, set); err != nil {
 		return err
 	}
-	app.UI.Success("created %s with %d skill%s", path, len(set.Skills), plural(len(set.Skills)))
+	app.UI.Success("created %s with %d skill%s", path, len(set.Skills), textutil.Plural(len(set.Skills)))
 	if len(set.Skills) == 0 {
 		app.UI.Detail("find skills with 'humblskills search <q>', add their names under \"skills\", then run 'humblskills sync'")
 	} else {
