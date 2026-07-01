@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.19.3](https://github.com/jjfantini/humblSKILLS/compare/v2.19.2...v2.19.3) (2026-07-01)
+
+
+### Bug Fixes
+
+* **skills:** support codex on every skill's platform target ([13c4b17](https://github.com/jjfantini/humblSKILLS/commit/13c4b179734f96eb7fb621542a2e154832cb1ed7))
+* **skills:** support codex on every skill's platform target ([e348214](https://github.com/jjfantini/humblSKILLS/commit/e3482149aeaaf761a092b0b9195a0ad34d0887f6))
+
 ## [2.19.2](https://github.com/jjfantini/humblSKILLS/compare/v2.19.1...v2.19.2) (2026-07-01)
 
 
