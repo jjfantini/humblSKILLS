@@ -9,13 +9,25 @@ package skillset
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
+	"time"
 )
 
 // SchemaVersion is the current skillset schema. Bumped on breaking changes.
 const SchemaVersion = 1
+
+// maxRemoteBytes caps how much we'll read from a remote skillset. A skillset is
+// a tiny list of names; anything larger is almost certainly the wrong URL.
+const maxRemoteBytes = 1 << 20 // 1 MiB
+
+// httpClient fetches remote skillsets with a short timeout so `sync <url>`
+// can't hang indefinitely on a dead host.
+var httpClient = &http.Client{Timeout: 15 * time.Second}
 
 // DefaultFilename is the conventional skillset filename, resolved relative to
 // the current directory so it can live at a repo root.
@@ -88,15 +100,69 @@ func (s *Set) Validate() error {
 	return nil
 }
 
-// Load reads and validates a skillset file.
+// LoadFrom loads a skillset from any supported source: a local filesystem
+// path, a file:// URL, or an http(s):// URL. This is the entry point `sync`
+// uses so a team can host one canonical skillset and everyone runs
+// `humblskills sync https://example.com/humblskills.json`.
+func LoadFrom(source string) (*Set, error) {
+	switch {
+	case isRemote(source):
+		return loadRemote(source)
+	case strings.HasPrefix(source, "file://"):
+		return Load(fileURLPath(source))
+	default:
+		return Load(source)
+	}
+}
+
+// Load reads and validates a skillset file from a local path.
 func Load(path string) (*Set, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read skillset: %w", err)
 	}
+	return parse(data, path)
+}
+
+// isRemote reports whether source is an http(s) URL.
+func isRemote(source string) bool {
+	return strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://")
+}
+
+// loadRemote fetches a skillset over HTTP(S) and validates it. It never touches
+// any cache - a skillset is small and the caller asked for a fresh copy.
+func loadRemote(rawURL string) (*Set, error) {
+	resp, err := httpClient.Get(rawURL)
+	if err != nil {
+		return nil, fmt.Errorf("fetch skillset %s: %w", rawURL, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("fetch skillset %s: HTTP %d", rawURL, resp.StatusCode)
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxRemoteBytes))
+	if err != nil {
+		return nil, fmt.Errorf("read skillset %s: %w", rawURL, err)
+	}
+	return parse(data, rawURL)
+}
+
+// fileURLPath turns a file:// URL into a filesystem path, tolerating URLs that
+// url.Parse chokes on by falling back to a plain prefix trim.
+func fileURLPath(u string) string {
+	parsed, err := url.Parse(u)
+	if err != nil || parsed.Path == "" {
+		return strings.TrimPrefix(u, "file://")
+	}
+	return parsed.Path
+}
+
+// parse unmarshals, defaults, and validates raw skillset bytes. srcName is used
+// only in error messages.
+func parse(data []byte, srcName string) (*Set, error) {
 	var s Set
 	if err := json.Unmarshal(data, &s); err != nil {
-		return nil, fmt.Errorf("parse skillset %s: %w", path, err)
+		return nil, fmt.Errorf("parse skillset %s: %w", srcName, err)
 	}
 	// A hand-written file may omit schema_version; treat 0 as current so a
 	// minimal {"skills":[...]} works out of the box.
