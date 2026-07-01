@@ -87,7 +87,27 @@ humblskills list
 humblskills update                    # pick which drifted skills to upgrade
 humblskills update --all --yes        # non-interactive bulk upgrade
 humblskills uninstall use-smart-skill
+humblskills export                    # snapshot installed skills to humblskills.json
+humblskills sync                      # install everything in humblskills.json
 ```
+
+### Sharing skill sets across a team
+
+`humblskills export` snapshots the skills you have installed into a
+`humblskills.json` file (override with `-o`). Commit it to a repo, and every
+teammate runs `humblskills sync` to install the same set — a single,
+version-controlled source of truth for "which skills does this project want".
+
+```sh
+humblskills export -o humblskills.json   # write the skillset
+humblskills sync                         # install missing skills from ./humblskills.json
+humblskills sync path/to/set.json --force  # reinstall everything from a specific file
+```
+
+`sync` pulls the current registry version of each skill (like `install`),
+skips skills already up-to-date, and warns (without failing) about any skill in
+the file that the registry doesn't know about. Platforms/scope follow the same
+rules as `install`.
 
 Every command accepts `--json` for machine-readable output and `--yes` to
 skip confirmation prompts.

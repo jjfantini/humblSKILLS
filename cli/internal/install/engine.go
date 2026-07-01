@@ -9,6 +9,7 @@ import (
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/fetch"
+	"github.com/jjfantini/humblSKILLS/cli/internal/fsutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 )
@@ -353,9 +354,9 @@ func (e *Engine) installOne(
 				return nil, fmt.Errorf("clean store staging: %w", err)
 			}
 			defer os.RemoveAll(perStore)
-			if err := copyTree(staging, perStore); err != nil {
-				return nil, fmt.Errorf("copy store staging: %w", err)
-			}
+		if err := fsutil.CopyTree(staging, perStore, fsutil.Options{RejectSymlinks: true}); err != nil {
+			return nil, fmt.Errorf("copy store staging: %w", err)
+		}
 			if len(preserveList) > 0 {
 				if err := applyPreserve(preserveSource, perStore, preserveList); err != nil {
 					return nil, err
@@ -529,34 +530,7 @@ func replaceDir(src, dst string) error {
 	if err := os.RemoveAll(dst); err != nil {
 		return err
 	}
-	return copyTree(src, dst)
-}
-
-func copyTree(src, dst string) error {
-	info, err := os.Stat(src)
-	if err != nil {
-		return err
-	}
-	if !info.IsDir() {
-		return fmt.Errorf("copy: %s is not a directory", src)
-	}
-	return filepath.Walk(src, func(p string, fi os.FileInfo, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		rel, err := filepath.Rel(src, p)
-		if err != nil {
-			return err
-		}
-		target := filepath.Join(dst, rel)
-		if fi.IsDir() {
-			return os.MkdirAll(target, fi.Mode()&0o777|0o700)
-		}
-		if fi.Mode()&os.ModeSymlink != 0 {
-			return fmt.Errorf("symlink in staging tree: %s", p)
-		}
-		return copyFile(p, target, fi.Mode()&0o777)
-	})
+	return fsutil.CopyTree(src, dst, fsutil.Options{RejectSymlinks: true})
 }
 
 func copyFile(src, dst string, mode os.FileMode) error {

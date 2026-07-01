@@ -16,6 +16,8 @@ func validSkillMD(name, version string) string {
 		"name: " + name + "\n" +
 		"description: " + name + " description line long enough\n" +
 		"version: " + version + "\n" +
+		"metadata:\n" +
+		"  category: development\n" +
 		"---\n\n# " + name + "\n\nBody.\n"
 }
 
@@ -63,6 +65,45 @@ func TestRun_BuildsRegistryForValidSkills(t *testing.T) {
 		if s.DirSHA == "" {
 			t.Errorf("%s: empty DirSHA", s.Name)
 		}
+		if s.Category != "development" {
+			t.Errorf("%s: category = %q, want development", s.Name, s.Category)
+		}
+	}
+}
+
+func TestRun_MissingCategory_Rejected(t *testing.T) {
+	root := t.TempDir()
+	skillsDir := filepath.Join(root, "skills")
+	d := filepath.Join(skillsDir, "nocategory")
+	if err := os.MkdirAll(d, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := "---\nname: nocategory\ndescription: missing category on purpose\nversion: 1.0.0\n---\nBody.\n"
+	if err := os.WriteFile(filepath.Join(d, "SKILL.md"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := run(skillsDir, filepath.Join(root, "registry.json"), "r", "main", "sha", false)
+	if err == nil || !strings.Contains(err.Error(), "category is required") {
+		t.Fatalf("expected missing-category validation error, got %v", err)
+	}
+}
+
+func TestRun_UnknownCategory_Rejected(t *testing.T) {
+	root := t.TempDir()
+	skillsDir := filepath.Join(root, "skills")
+	d := filepath.Join(skillsDir, "badcategory")
+	if err := os.MkdirAll(d, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := "---\nname: badcategory\ndescription: unknown category on purpose\nversion: 1.0.0\nmetadata:\n  category: astrology\n---\nBody.\n"
+	if err := os.WriteFile(filepath.Join(d, "SKILL.md"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := run(skillsDir, filepath.Join(root, "registry.json"), "r", "main", "sha", false)
+	if err == nil || !strings.Contains(err.Error(), `unknown category "astrology"`) {
+		t.Fatalf("expected unknown-category validation error, got %v", err)
 	}
 }
 
@@ -170,6 +211,7 @@ func TestRun_CycleIsRejected(t *testing.T) {
 			"description: cycle test skill body long enough\n" +
 			"version: 1.0.0\n" +
 			"metadata:\n" +
+			"  category: development\n" +
 			"  requires:\n" +
 			"    - " + dep + "@1.0.0\n" +
 			"---\n# " + name + "\nBody.\n"
@@ -224,15 +266,6 @@ func TestMarshalStable_NoHTMLEscape(t *testing.T) {
 	}
 	if strings.Contains(string(data), `\u003c`) || strings.Contains(string(data), `\u003e`) {
 		t.Errorf("HTML escape leaked: %s", data)
-	}
-}
-
-func TestFirstNonEmpty(t *testing.T) {
-	if got := firstNonEmpty("", "b"); got != "b" {
-		t.Errorf("got %q", got)
-	}
-	if got := firstNonEmpty(); got != "" {
-		t.Errorf("got %q", got)
 	}
 }
 

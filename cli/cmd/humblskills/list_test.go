@@ -130,6 +130,88 @@ func TestList_TextOutput_ShowsSourceColumn(t *testing.T) {
 	}
 }
 
+func TestList_ShowsAvailableUpdate_JSON(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	_ = installFoo(t, s) // foo 1.0.0 installed + manifest written
+
+	// Advance the registry so foo drifts 1.0.0 -> 1.0.1.
+	newBody := strings.Replace(sampleSkillMD, "version: 1.0.0", "version: 1.0.1", 1)
+	regURL := bumpRegistryVersion(t, s, newBody)
+
+	res := runCLIWithStdoutCapture(t,
+		"list",
+		"--manifest", s.ManifestPath,
+		"--cache-dir", s.CacheDir,
+		"--registry", regURL,
+		"--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("list: %v\n%s", res.RunErr, res.Err)
+	}
+	idx := strings.Index(res.Out, "{")
+	var got struct {
+		Installations []struct {
+			Skill           string `json:"skill"`
+			Version         string `json:"version"`
+			AvailableUpdate string `json:"available_update"`
+		} `json:"installations"`
+	}
+	if err := json.Unmarshal([]byte(res.Out[idx:]), &got); err != nil {
+		t.Fatalf("parse: %v\n%s", err, res.Out)
+	}
+	if len(got.Installations) != 1 {
+		t.Fatalf("installations = %d, want 1", len(got.Installations))
+	}
+	if got.Installations[0].AvailableUpdate != "1.0.1" {
+		t.Errorf("available_update = %q, want 1.0.1", got.Installations[0].AvailableUpdate)
+	}
+}
+
+func TestList_ShowsAvailableUpdate_Text(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	_ = installFoo(t, s)
+
+	newBody := strings.Replace(sampleSkillMD, "version: 1.0.0", "version: 1.0.1", 1)
+	regURL := bumpRegistryVersion(t, s, newBody)
+
+	res := runCLIWithStdoutCapture(t,
+		"list",
+		"--manifest", s.ManifestPath,
+		"--cache-dir", s.CacheDir,
+		"--registry", regURL,
+		"--yes",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("list: %v\n%s", res.RunErr, res.Err)
+	}
+	out := res.Out + res.Err
+	if !strings.Contains(out, "v1.0.1") {
+		t.Errorf("table should show the newer version v1.0.1:\n%s", out)
+	}
+	if !strings.Contains(out, "can be updated") {
+		t.Errorf("expected an 'N install(s) can be updated' note:\n%s", out)
+	}
+}
+
+func TestList_UpToDate_NoUpdateNote(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	regURL := installFoo(t, s) // same registry -> no drift
+
+	res := runCLIWithStdoutCapture(t,
+		"list",
+		"--manifest", s.ManifestPath,
+		"--cache-dir", s.CacheDir,
+		"--registry", regURL,
+		"--yes",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("list: %v\n%s", res.RunErr, res.Err)
+	}
+	if strings.Contains(res.Out+res.Err, "can be updated") {
+		t.Errorf("up-to-date install must not show an update note:\n%s", res.Out)
+	}
+}
+
 func TestList_EmptyManifest_TextOutputHint(t *testing.T) {
 	s := testutil.NewSandbox(t)
 

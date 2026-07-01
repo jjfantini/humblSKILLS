@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner"
+	"github.com/jjfantini/humblSKILLS/cli/internal/fsutil"
 )
 
 // Driver abstracts over the specific CLI's command shape.
@@ -126,7 +127,7 @@ func (r *Runner) Execute(ctx context.Context, req runner.Request) (*runner.Resul
 	// Stage skill (claudecode et al read skill from a known subdir).
 	if req.SkillDir != "" {
 		dst := filepath.Join(scratch, "skill")
-		if err := copyTree(req.SkillDir, dst); err != nil {
+		if err := fsutil.CopyTree(req.SkillDir, dst, fsutil.Options{}); err != nil {
 			return nil, fmt.Errorf("stage skill: %w", err)
 		}
 	}
@@ -281,20 +282,6 @@ func collectScratchOutputs(scratch, dst string) ([]string, error) {
 	return out, err
 }
 
-func copyTree(src, dst string) error {
-	return filepath.Walk(src, func(p string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, _ := filepath.Rel(src, p)
-		target := filepath.Join(dst, rel)
-		if info.IsDir() {
-			return os.MkdirAll(target, info.Mode())
-		}
-		return copyFile(p, target)
-	})
-}
-
 // syncTree mirrors src into dst by replacing dst entirely. Used to sync
 // the agent-mutated `scratch/skill/references/` back to the harness's
 // persistent working copy so brain updates (patterns.md, log.md,
@@ -306,7 +293,7 @@ func syncTree(src, dst string) error {
 	if err := os.MkdirAll(dst, 0o755); err != nil {
 		return err
 	}
-	return copyTree(src, dst)
+	return fsutil.CopyTree(src, dst, fsutil.Options{})
 }
 
 func copyFile(src, dst string) error {
