@@ -59,6 +59,59 @@ func TestLoad_FromNetworkAndCache(t *testing.T) {
 	}
 }
 
+func TestLoadCached_NeverFetches(t *testing.T) {
+	body := testRegistryBody(t)
+
+	var hits int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&hits, 1)
+		w.Write(body)
+	}))
+	defer srv.Close()
+
+	cache := t.TempDir()
+	f := NewFetcher(srv.URL, cache)
+
+	// Cold cache: no local copy, and crucially no network hit.
+	if _, ok := f.LoadCached(); ok {
+		t.Errorf("cold cache should report ok=false")
+	}
+	if atomic.LoadInt32(&hits) != 0 {
+		t.Errorf("LoadCached must not hit the network, got %d hits", hits)
+	}
+
+	// Warm the cache via a normal Load, then LoadCached should serve it.
+	if _, _, err := f.Load(); err != nil {
+		t.Fatal(err)
+	}
+	r, ok := f.LoadCached()
+	if !ok || r == nil {
+		t.Fatalf("warm cache should report ok=true with a registry")
+	}
+	if len(r.Skills) != 1 || r.Skills[0].Name != "a" {
+		t.Errorf("unexpected cached registry: %+v", r)
+	}
+	if atomic.LoadInt32(&hits) != 1 {
+		t.Errorf("expected exactly 1 network hit total, got %d", hits)
+	}
+}
+
+func TestLoadCached_LocalFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "registry.json")
+	if err := os.WriteFile(path, testRegistryBody(t), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f := NewFetcher("file://"+path, t.TempDir())
+	r, ok := f.LoadCached()
+	if !ok || r == nil {
+		t.Fatalf("file:// registry should load, ok=%v", ok)
+	}
+	if len(r.Skills) != 1 {
+		t.Errorf("skills = %d, want 1", len(r.Skills))
+	}
+}
+
 func TestLoad_CacheMiss_WhenTTLExpired(t *testing.T) {
 	body := testRegistryBody(t)
 

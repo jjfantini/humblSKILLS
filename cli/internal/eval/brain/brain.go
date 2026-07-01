@@ -19,6 +19,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/jjfantini/humblSKILLS/cli/internal/fsutil"
 )
 
 // Files under references/ that are truncated to "shape only" when deriving a
@@ -41,7 +43,7 @@ func Snapshot(skillDir, dst string) error {
 	// subtree (wiki/, raw/). Scripts and SKILL.md are NOT part of the
 	// brain; the harness keeps the skill dir itself read-only so those
 	// never drift.
-	return copyTree(src, dst)
+	return fsutil.CopyTree(src, dst, fsutil.Options{})
 }
 
 // Restore copies a previously-taken snapshot back into the live skill
@@ -55,7 +57,7 @@ func Restore(src, skillDir string) error {
 	if err := os.MkdirAll(dst, 0o755); err != nil {
 		return err
 	}
-	return copyTree(src, dst)
+	return fsutil.CopyTree(src, dst, fsutil.Options{})
 }
 
 // DeriveFlat produces the flat_skill variant of src at dst. Keeps SKILL.md
@@ -81,7 +83,7 @@ func DeriveFlat(srcSkill, dst string) (string, error) {
 	// calls them.
 	srcScripts := filepath.Join(srcSkill, "scripts")
 	if _, err := os.Stat(srcScripts); err == nil {
-		if err := copyTree(srcScripts, filepath.Join(dst, "scripts")); err != nil {
+		if err := fsutil.CopyTree(srcScripts, filepath.Join(dst, "scripts"), fsutil.Options{}); err != nil {
 			return "", fmt.Errorf("copy scripts: %w", err)
 		}
 	}
@@ -130,7 +132,7 @@ func DeriveFlatWithWiki(srcSkill, dst string) (string, error) {
 	srcWiki := filepath.Join(srcSkill, "references", "wiki")
 	if _, err := os.Stat(srcWiki); err == nil {
 		dstWiki := filepath.Join(dst, "references", "wiki")
-		if err := copyTree(srcWiki, dstWiki); err != nil {
+		if err := fsutil.CopyTree(srcWiki, dstWiki, fsutil.Options{}); err != nil {
 			return "", fmt.Errorf("copy wiki: %w", err)
 		}
 	}
@@ -318,20 +320,6 @@ func ReadsFromBrain(transcript []byte) int {
 }
 
 // --- internal helpers -------------------------------------------------------
-
-func copyTree(src, dst string) error {
-	return filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, _ := filepath.Rel(src, p)
-		target := filepath.Join(dst, rel)
-		if d.IsDir() {
-			return os.MkdirAll(target, 0o755)
-		}
-		return copyFile(p, target)
-	})
-}
 
 func copyFile(src, dst string) error {
 	in, err := os.Open(src)

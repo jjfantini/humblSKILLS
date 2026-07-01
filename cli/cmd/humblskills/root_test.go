@@ -46,18 +46,6 @@ func TestRoot_UnknownCommandErrors(t *testing.T) {
 	}
 }
 
-func TestFirstNonEmpty(t *testing.T) {
-	if got := firstNonEmpty("", "", "c", "d"); got != "c" {
-		t.Errorf("got %q", got)
-	}
-	if got := firstNonEmpty("", ""); got != "" {
-		t.Errorf("got %q", got)
-	}
-	if got := firstNonEmpty("a"); got != "a" {
-		t.Errorf("got %q", got)
-	}
-}
-
 func TestResolveCacheDir_Override(t *testing.T) {
 	got, err := resolveCacheDir("/tmp/override")
 	if err != nil {
