@@ -158,13 +158,16 @@ func (m profileModel) updateValue(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case " ", "x":
 		m = m.toggleCurrent()
 	case "enter":
-		m = m.toggleCurrent()
-		// For radio-style settings (scope), enter commits and returns to
-		// the settings pane; for multi-select (platforms) it stays in the
-		// right pane so the user can toggle more.
+		// Space is the only toggle key, consistent with every other
+		// multi-select surface in the TUI (e.g. the install platform
+		// modal). For radio-style settings (scope), enter commits the
+		// highlighted option and returns to the settings pane; for
+		// multi-select (platforms) it never toggles — it just returns,
+		// same as esc.
 		if profileSettings[m.settingIdx].kind == settingRadio {
-			m.focus = focusSettings
+			m = m.toggleCurrent()
 		}
+		m.focus = focusSettings
 	}
 	return m, nil
 }
@@ -373,7 +376,7 @@ func (m profileModel) renderRight(width int) string {
 	if m.focus == focusSettings {
 		hint = "press enter to edit"
 	} else if setting.kind == settingMulti {
-		hint = "space to toggle · enter to toggle · esc to return"
+		hint = "space to toggle · enter/esc to return"
 	} else {
 		hint = "enter to select · esc to return"
 	}
