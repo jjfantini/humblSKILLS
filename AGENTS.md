@@ -39,3 +39,28 @@ so **no backend/database/network services are required** to build, test, or run 
 - Needs Python venv tooling (`python3.12-venv`). Build with the venv at `~/.venvs/humblskills-docs`:
   `~/.venvs/humblskills-docs/bin/mkdocs build --strict` (config: `mkdocs.yml`). `mkdocs serve` for preview.
   Note `mkdocs build` drops a `docs/__pycache__/` (not gitignored) — remove it after building.
+
+### Commit messages MUST be Conventional Commits (non-negotiable)
+`release-please-config.json` sets `release-type: "go"`, which cuts releases **only** from commits that
+follow [Conventional Commits](https://www.conventionalcommits.org) syntax on `main`. A commit that doesn't
+match is silently invisible to release-please — no changelog entry, no version bump, no release, and
+`humblskills upgrade` never sees the change. This already happened once (commits like `profile:`,
+`adapters:`, `install:`, `tui:` merged to `main` with zero release effect) and had to be fixed forward with
+an extra empty `feat:` commit — don't repeat it.
+
+Every commit message, on every branch that will reach `main` (not just the PR title), must be:
+
+```
+<type>[(optional-scope)]: <description>
+```
+
+- `feat` → minor bump. `fix` / `perf` → patch bump. Add `!` after the type/scope (`feat!:`) or a
+  `BREAKING CHANGE:` footer for a major bump.
+- `chore`, `docs`, `refactor`, `test`, `build`, `ci`, `style`, `revert` are valid types but do **not**
+  trigger a release on their own — use them for exactly what they mean, don't reach for `feat`/`fix` just to
+  force a release.
+- The scope is the affected area, in parentheses, e.g. `feat(install):`, `fix(tui):`, `chore(registry):`.
+  Never use the area name as the type itself (`install: ...`, `tui: ...` are invalid — that's the mistake
+  that caused the missed release).
+- If a PR/branch has no `feat`/`fix`/`perf` commit but ships a user-visible change, add one (or make the
+  final merge commit one) — don't rely on non-conventional prose to describe user-facing work.
