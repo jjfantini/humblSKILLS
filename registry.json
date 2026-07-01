@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-01T05:46:38Z",
+  "generated_at": "2026-07-01T15:47:33Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "work/pr165",
-    "sha": "90e0d164a481c1538599b4e8a991a68ff2c32afc"
+    "ref": "cursor/feat-skillset-init-scaffold-edb2",
+    "sha": "9741f6663d80f0186d66dcacf1eb06a6b69d9796"
   },
   "skills": [
     {
