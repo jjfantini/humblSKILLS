@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.21.0](https://github.com/jjfantini/humblSKILLS/compare/v2.20.0...v2.21.0) (2026-07-01)
+
+
+### Features
+
+* **frontmatter,registry:** add a required, closed-set skill category field ([6b3b50e](https://github.com/jjfantini/humblSKILLS/commit/6b3b50ef0db867e06a6c255fe7883f50a20e6f00))
+* **registry:** add a required skill category taxonomy ([f42c232](https://github.com/jjfantini/humblSKILLS/commit/f42c232f3e04255d2530a71373fd1068aa97720a))
+* **search:** add --category filter and show category in search/TUI ([8eee526](https://github.com/jjfantini/humblSKILLS/commit/8eee526b965be7257a4fc5c1db82762e1b90df31))
+* **skills:** categorize all 11 skills and bump patch versions ([21dcbd3](https://github.com/jjfantini/humblSKILLS/commit/21dcbd35406b44ebc33f6c4906eb177342695a87))
+
 ## [2.20.0](https://github.com/jjfantini/humblSKILLS/compare/v2.19.4...v2.20.0) (2026-07-01)
 
 
