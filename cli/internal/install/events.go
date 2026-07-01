@@ -29,7 +29,8 @@ const (
 
 // Event is a single progress notification emitted by the engine. Not every
 // field is populated for every Phase — Total is only meaningful on RunStart,
-// Outcome only on TargetDone, Err only on Error, Msg only on Warn.
+// Outcome/Path/Version/StorePath only on TargetDone, Err only on Error, Msg
+// only on Warn.
 type Event struct {
 	Phase    Phase
 	Skill    string
@@ -40,6 +41,14 @@ type Event struct {
 	Outcome  Outcome
 	Err      error
 	Msg      string
+	// Path is the platform-facing symlink target written for this triple.
+	Path string
+	// Version is the installed skill's version.
+	Version string
+	// StorePath is the canonical humblskills-owned directory this target
+	// symlinks to — the "source of truth" install location, shared across
+	// every platform/scope in the same run.
+	StorePath string
 }
 
 // EventSink receives engine progress events. Callers that don't care about
