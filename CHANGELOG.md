@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.18.0](https://github.com/jjfantini/humblSKILLS/compare/v2.17.0...v2.18.0) (2026-06-30)
+
+
+### Features
+
+* **cli:** add humblskills upgrade command ([71f7481](https://github.com/jjfantini/humblSKILLS/commit/71f74817bfbd1742021afe569140b12ca1ccaeb8))
+
+## [2.17.0](https://github.com/jjfantini/humblSKILLS/compare/v2.16.0...v2.17.0) (2026-06-30)
+
+
+### Features
+
+* **skills:** add use-upload-thing humblSKILL ([50c4ff2](https://github.com/jjfantini/humblSKILLS/commit/50c4ff202eb88f44190d9634a10da1c0396d74b1))
+
+## [2.16.0](https://github.com/jjfantini/humblSKILLS/compare/v2.15.0...v2.16.0) (2026-06-12)
+
+
+### Features
+
+* **cli:** add unified skill fanout installs ([d679b0c](https://github.com/jjfantini/humblSKILLS/commit/d679b0c6599b67ea555269a0d4b27c5be794b876))
+
 ## [2.15.0](https://github.com/jjfantini/humblSKILLS/compare/v2.14.0...v2.15.0) (2026-06-12)
 
 
