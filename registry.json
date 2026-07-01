@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-01T00:08:40Z",
+  "generated_at": "2026-07-01T00:12:24Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "cursor/improve-install-list-ux-2f10",
-    "sha": "a22b6629f450827ba7c5499e38291b15fb64b4a3"
+    "ref": "develop",
+    "sha": "82260fa548bfe624b8c2501e3611f4b36d330588"
   },
   "skills": [
     {
