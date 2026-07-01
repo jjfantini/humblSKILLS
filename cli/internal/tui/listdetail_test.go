@@ -13,10 +13,10 @@ type testItem struct {
 	name, filter string
 }
 
-func (t testItem) Key() string                                     { return t.name }
-func (t testItem) FilterValue() string                              { return t.filter }
-func (t testItem) Row(_ *ui.Theme, _ int, selected bool) string    { return t.name }
-func (t testItem) Detail(_ *ui.Theme, _ int) string                { return "detail:" + t.name }
+func (t testItem) Key() string                                  { return t.name }
+func (t testItem) FilterValue() string                          { return t.filter }
+func (t testItem) Row(_ *ui.Theme, _ int, selected bool) string { return t.name }
+func (t testItem) Detail(_ *ui.Theme, _ int) string             { return "detail:" + t.name }
 
 func newTestListDetail(items []Item, actions []ActionSpec) Model {
 	return NewListDetail(Config{
