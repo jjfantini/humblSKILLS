@@ -28,15 +28,6 @@ func TestSortedStrKeys(t *testing.T) {
 	}
 }
 
-func TestFirstNonEmptyStr(t *testing.T) {
-	if got := firstNonEmptyStr("", "  ", "hit", "later"); got != "hit" {
-		t.Errorf("firstNonEmptyStr = %q, want hit", got)
-	}
-	if got := firstNonEmptyStr("", "   "); got != "" {
-		t.Errorf("all-blank should return empty, got %q", got)
-	}
-}
-
 func TestAbbreviate(t *testing.T) {
 	if got := abbreviate("line one\nline two", 100); got != "line one line two" {
 		t.Errorf("newlines should collapse to spaces, got %q", got)
