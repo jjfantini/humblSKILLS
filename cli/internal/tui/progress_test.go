@@ -2,6 +2,7 @@ package tui
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -63,7 +64,7 @@ func TestProgressModel_ApplyEventLifecycle(t *testing.T) {
 
 func TestProgressModel_RenderSummary_GroupsBySkillAndShowsStorePath(t *testing.T) {
 	m := newTestProgress(t)
-	m.width = 100
+	m.width, m.height = 100, 40
 	m.running = false
 	m.err = nil
 	m.applyEvent(install.Event{Phase: install.PhaseRunStart, Total: 3})
@@ -97,6 +98,10 @@ func TestProgressModel_RenderSummary_GroupsBySkillAndShowsStorePath(t *testing.T
 		t.Errorf("bar group malformed: %+v", groups[1])
 	}
 
+	// The done summary lives in the scrollable resultView body, which is
+	// only populated on Update (WindowSizeMsg/ProgressDoneMsg) in real use —
+	// simulate that here since the test drives applyEvent directly.
+	m.refreshResultContent(true)
 	view := m.View()
 	for _, want := range []string{
 		"foo", "v1.0.0", "/home/u/.humblskills/skills/foo",
@@ -112,9 +117,10 @@ func TestProgressModel_RenderSummary_GroupsBySkillAndShowsStorePath(t *testing.T
 
 func TestProgressModel_RenderSummary_EmptyWhenNothingInstalled(t *testing.T) {
 	m := newTestProgress(t)
-	m.width = 80
+	m.width, m.height = 80, 40
 	m.running = false
 	m.err = nil
+	m.refreshResultContent(true)
 	view := m.View()
 	if !strings.Contains(view, "nothing to do") {
 		t.Errorf("expected empty-summary message, got:\n%s", view)
@@ -162,12 +168,13 @@ func TestProgressModel_UpsertReturnsExisting(t *testing.T) {
 
 func TestProgressModel_ViewMentionsCommandAndCounts(t *testing.T) {
 	m := newTestProgress(t)
-	m.width = 80
+	m.width, m.height = 80, 40
 	m.applyEvent(install.Event{Phase: install.PhaseRunStart, Total: 2})
 	m.applyEvent(install.Event{
 		Phase: install.PhaseTargetStart,
 		Skill: "foo", Platform: "x", Scope: "user",
 	})
+	m.refreshResultContent(false)
 	v := m.View()
 	if !strings.Contains(v, "install") {
 		t.Errorf("view missing command header:\n%s", v)
@@ -261,10 +268,13 @@ func TestProgressModel_DoneMsg_Success_WithAutoReturn_StartsCountdown(t *testing
 	doneErr := make(chan error, 1)
 	m := NewProgressModel(ui.DefaultTheme(), "install", events, doneErr, 5*time.Second)
 	m.running = true
+	// A short, empty summary fits without scrolling, so — like today, before
+	// this screen could ever overflow — the countdown arms immediately.
+	m.width, m.height = 80, 40
 	out, cmd := m.Update(ProgressDoneMsg{Err: nil})
 	updated := out.(ProgressModel)
-	if !updated.autoReturn.Active() {
-		t.Error("expected the autoReturn timer to be armed on a successful done state")
+	if !updated.resultView.Active() {
+		t.Error("expected the auto-return timer to be armed on a successful done state that already fits on screen")
 	}
 	if cmd == nil {
 		t.Error("expected a tea.Cmd to schedule the first countdown tick")
@@ -276,9 +286,10 @@ func TestProgressModel_DoneMsg_Error_WithAutoReturn_NeverStartsCountdown(t *test
 	doneErr := make(chan error, 1)
 	m := NewProgressModel(ui.DefaultTheme(), "install", events, doneErr, 5*time.Second)
 	m.running = true
+	m.width, m.height = 80, 40
 	out, cmd := m.Update(ProgressDoneMsg{Err: errors.New("boom")})
 	updated := out.(ProgressModel)
-	if updated.autoReturn.Active() {
+	if updated.resultView.Active() {
 		t.Error("a failed run must never auto-return, regardless of the configured duration")
 	}
 	if cmd != nil {
@@ -286,10 +297,52 @@ func TestProgressModel_DoneMsg_Error_WithAutoReturn_NeverStartsCountdown(t *test
 	}
 }
 
+// TestProgressModel_ArmIfReady_WaitsForScrollWhenContentOverflows is the
+// core of the "auto-return should only trigger once the user has scrolled
+// down to see all the content" behavior: when the done summary is taller
+// than the viewport, the countdown must not arm until the user actually
+// scrolls to the bottom.
+func TestProgressModel_ArmIfReady_WaitsForScrollWhenContentOverflows(t *testing.T) {
+	events := make(chan install.Event, 32)
+	doneErr := make(chan error, 1)
+	m := NewProgressModel(ui.DefaultTheme(), "update", events, doneErr, 5*time.Second)
+	m.running = true
+	// A tall terminal budget-wise but small enough that ten skills' worth of
+	// summary blocks won't fit — see resizeResultView's bodyH computation.
+	m.width, m.height = 80, 12
+
+	for i := 0; i < 10; i++ {
+		skill := fmt.Sprintf("skill-%d", i)
+		m.applyEvent(install.Event{
+			Phase: install.PhaseTargetDone, Skill: skill, Platform: "claude-code", Scope: "user",
+			Outcome: install.OutcomeInstalled, Path: "/x/" + skill, Version: "1.0.0", StorePath: "/store/" + skill,
+		})
+	}
+
+	out, cmd := m.Update(ProgressDoneMsg{Err: nil})
+	updated := out.(ProgressModel)
+	if !updated.resultView.Overflows() {
+		t.Fatalf("expected the 10-skill summary to overflow a %d-row viewport", updated.resultView.content.Height)
+	}
+	if updated.resultView.Active() || cmd != nil {
+		t.Fatal("auto-return must not arm before the user has scrolled to see the whole summary")
+	}
+
+	// Scroll all the way down.
+	out, cmd = updated.Update(tea.KeyMsg{Type: tea.KeyEnd})
+	updated = out.(ProgressModel)
+	if !updated.resultView.Active() {
+		t.Error("expected auto-return to arm once the user scrolled to the bottom")
+	}
+	if cmd == nil {
+		t.Error("expected a tea.Cmd to schedule the first countdown tick after reaching the bottom")
+	}
+}
+
 func TestProgressModel_AutoReturnTick_QuitsAfterDeadline(t *testing.T) {
 	m := newTestProgress(t)
 	m.running = false
-	m.autoReturn = autoReturnTimer{duration: time.Millisecond, deadline: time.Now().Add(-time.Second)}
+	m.resultView.auto = autoReturnTimer{duration: time.Millisecond, deadline: time.Now().Add(-time.Second)}
 	_, cmd := m.Update(autoReturnTickMsg{})
 	if cmd == nil {
 		t.Fatal("expected a tea.Quit cmd once the deadline has passed")
@@ -302,8 +355,8 @@ func TestProgressModel_AutoReturnTick_QuitsAfterDeadline(t *testing.T) {
 func TestProgressModel_View_ShowsCountdownWhenAutoReturnActive(t *testing.T) {
 	m := newTestProgress(t)
 	m.running = false
-	m.width = 80
-	m.autoReturn = autoReturnTimer{duration: 5 * time.Second, deadline: time.Now().Add(5 * time.Second)}
+	m.width, m.height = 80, 40
+	m.resultView.auto = autoReturnTimer{duration: 5 * time.Second, deadline: time.Now().Add(5 * time.Second)}
 	v := m.View()
 	if !strings.Contains(v, "closing in") {
 		t.Errorf("view should show the countdown when auto-return is active:\n%s", v)
