@@ -238,16 +238,37 @@ func TestDelete_ReturnsErrorWhenPathIsDirectory(t *testing.T) {
 
 func TestIsValidScope(t *testing.T) {
 	cases := map[string]bool{
-		"":        true,
-		"user":    true,
-		"project": true,
-		"global":  false,
-		"USER":    false,
-		" user":   false,
+		"":                true,
+		"user":            true,
+		"project":         true,
+		"global":          true,
+		"adapter-default": true,
+		"USER":            false,
+		" user":           false,
 	}
 	for in, want := range cases {
 		if got := profile.IsValidScope(in); got != want {
 			t.Errorf("IsValidScope(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
+
+func TestResolvedScope(t *testing.T) {
+	cases := []struct {
+		name string
+		p    *profile.Profile
+		want string
+	}{
+		{"nil profile defaults to global", nil, profile.ScopeGlobal},
+		{"unset defaults to global", &profile.Profile{}, profile.ScopeGlobal},
+		{"explicit global", &profile.Profile{DefaultScope: profile.ScopeGlobal}, profile.ScopeGlobal},
+		{"explicit user", &profile.Profile{DefaultScope: profile.ScopeUser}, profile.ScopeUser},
+		{"explicit project", &profile.Profile{DefaultScope: profile.ScopeProject}, profile.ScopeProject},
+		{"explicit adapter-default", &profile.Profile{DefaultScope: profile.ScopeAdapterDefault}, profile.ScopeAdapterDefault},
+	}
+	for _, c := range cases {
+		if got := c.p.ResolvedScope(); got != c.want {
+			t.Errorf("%s: ResolvedScope() = %q, want %q", c.name, got, c.want)
 		}
 	}
 }

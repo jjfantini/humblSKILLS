@@ -27,12 +27,11 @@ func newTestModal(selected, detected map[string]bool) installModalModel {
 		detected: detected,
 		selected: selected,
 		scopes: []scopeOpt{
-			{label: "Global fanout", value: "global"},
-			{label: "adapter default", value: ""},
+			{label: "global humblskills", value: "global"},
 			{label: "user", value: "user"},
 			{label: "project", value: "project"},
 		},
-		scopeIdx: 1,
+		scopeIdx: 0,
 		actions: []actionOpt{
 			{label: "install", value: "install"},
 			{label: "cancel", value: "cancel"},
@@ -154,17 +153,21 @@ func TestInstallModal_Hints_ScopeGroup(t *testing.T) {
 	}
 }
 
-func TestInstallModal_InfoPane_BothSelected_Warning(t *testing.T) {
+func TestInstallModal_InfoPane_BothSelected_RedundantCopyNote(t *testing.T) {
 	m := newTestModal(
 		map[string]bool{"claude-code": true, "cursor": true},
 		map[string]bool{"claude-code": true, "cursor": true},
 	)
+	m.scopeIdx = 1 // non-global, so the claude/cursor-specific copy applies
 	heading, body := m.infoContent(40)
-	if !strings.Contains(heading, "Duplicate") {
-		t.Errorf("heading should warn about duplicates; got %q", heading)
+	if !strings.Contains(heading, "redundant") {
+		t.Errorf("heading should note the redundant copy; got %q", heading)
 	}
-	if !strings.Contains(body, "drift") {
-		t.Errorf("body should mention drift; got %q", body)
+	if !strings.Contains(body, "removed") {
+		t.Errorf("body should mention resilience if Claude Code is removed; got %q", body)
+	}
+	if strings.Contains(heading, "Duplicate") || strings.Contains(body, "drift") {
+		t.Errorf("copy should no longer discourage installing to both; got heading=%q body=%q", heading, body)
 	}
 }
 
@@ -173,6 +176,7 @@ func TestInstallModal_InfoPane_ClaudeOnly_Tip(t *testing.T) {
 		map[string]bool{"claude-code": true},
 		map[string]bool{"claude-code": true, "cursor": true},
 	)
+	m.scopeIdx = 1 // non-global
 	heading, body := m.infoContent(40)
 	if !strings.Contains(heading, "Tip") {
 		t.Errorf("heading should be a tip; got %q", heading)
@@ -187,6 +191,7 @@ func TestInstallModal_InfoPane_CursorOnly_Note(t *testing.T) {
 		map[string]bool{"cursor": true},
 		map[string]bool{"claude-code": true, "cursor": true},
 	)
+	m.scopeIdx = 1 // non-global
 	heading, body := m.infoContent(40)
 	if !strings.Contains(heading, "Note") {
 		t.Errorf("heading should be a note; got %q", heading)
@@ -201,6 +206,7 @@ func TestInstallModal_InfoPane_CursorOnly_ClaudeNotDetected(t *testing.T) {
 		map[string]bool{"cursor": true},
 		map[string]bool{"cursor": true},
 	)
+	m.scopeIdx = 1 // non-global
 	_, body := m.infoContent(40)
 	if !strings.Contains(body, "not detected") {
 		t.Errorf("body should note claude-code not detected; got %q", body)
@@ -209,6 +215,7 @@ func TestInstallModal_InfoPane_CursorOnly_ClaudeNotDetected(t *testing.T) {
 
 func TestInstallModal_InfoPane_NoneSelected_EmptyState(t *testing.T) {
 	m := newTestModal(nil, map[string]bool{"claude-code": true})
+	m.scopeIdx = 1 // non-global
 	heading, body := m.infoContent(40)
 	if heading != "" {
 		t.Errorf("empty state should have no heading; got %q", heading)
@@ -225,8 +232,8 @@ func TestInstallModal_InfoPane_GlobalFanout(t *testing.T) {
 	)
 	m.scopeIdx = 0
 	heading, body := m.infoContent(60)
-	if !strings.Contains(heading, "Global fanout") {
-		t.Errorf("heading should describe global fanout; got %q", heading)
+	if !strings.Contains(heading, "global humblskills") {
+		t.Errorf("heading should describe global humblskills; got %q", heading)
 	}
 	if !strings.Contains(body, ".humblskills") {
 		t.Errorf("body should mention canonical .humblskills store; got %q", body)
@@ -254,6 +261,24 @@ func TestInstallModal_WideTerminal_HasDivider(t *testing.T) {
 	body := m.renderBody()
 	if !strings.Contains(body, "│") {
 		t.Errorf("wide terminal should render divider; got:\n%s", body)
+	}
+}
+
+func TestInstallModal_AdapterDefaultNote_RendersInScopeGroup(t *testing.T) {
+	m := newTestModal(nil, nil)
+	m.adapterDefaultNote = true
+	body := m.renderLeftStacked(80)
+	if !strings.Contains(body, "adapter default") {
+		t.Errorf("expected adapter-default note in scope group; got:\n%s", body)
+	}
+}
+
+func TestInstallModal_NoAdapterDefaultNote_WhenNotSet(t *testing.T) {
+	m := newTestModal(nil, nil)
+	m.adapterDefaultNote = false
+	body := m.renderLeftStacked(80)
+	if strings.Contains(body, "pick a concrete scope") {
+		t.Errorf("should not render adapter-default note when unset; got:\n%s", body)
 	}
 }
 

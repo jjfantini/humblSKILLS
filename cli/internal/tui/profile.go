@@ -193,13 +193,24 @@ func (m profileModel) toggleCurrent() profileModel {
 		}
 		m.changed = true
 	case 1: // scope
-		values := []string{"", "user", "project"}
-		if m.valueIdx >= 0 && m.valueIdx < len(values) {
-			m.profile.DefaultScope = values[m.valueIdx]
+		if m.valueIdx >= 0 && m.valueIdx < len(scopeSettingOpts) {
+			m.profile.DefaultScope = scopeSettingOpts[m.valueIdx].value
 			m.changed = true
 		}
 	}
 	return m
+}
+
+// scopeSettingOpts is the profile's full scope picker — unlike the
+// per-install modal (3 concrete choices only), the profile also offers
+// "adapter default" as an explicit, deliberate opt-in: it can't show a
+// concrete location at install time, so it only belongs here, not in the
+// interactive install flow.
+var scopeSettingOpts = []struct{ label, value string }{
+	{"global humblskills (recommended)", profile.ScopeGlobal},
+	{"user", profile.ScopeUser},
+	{"project", profile.ScopeProject},
+	{"adapter default", profile.ScopeAdapterDefault},
 }
 
 // currentSelectionIndex returns the index in the right-pane options list that
@@ -210,11 +221,11 @@ func (m profileModel) currentSelectionIndex() int {
 	case 0:
 		return 0
 	case 1:
-		switch m.profile.DefaultScope {
-		case "user":
-			return 1
-		case "project":
-			return 2
+		resolved := m.profile.ResolvedScope()
+		for i, opt := range scopeSettingOpts {
+			if opt.value == resolved {
+				return i
+			}
 		}
 	}
 	return 0
@@ -225,7 +236,7 @@ func (m profileModel) valueCount() int {
 	case 0:
 		return len(m.adapters)
 	case 1:
-		return 3
+		return len(scopeSettingOpts)
 	}
 	return 0
 }
@@ -419,19 +430,17 @@ func (m profileModel) renderPlatformOptions(bar string, width int) []string {
 
 func (m profileModel) renderScopeOptions(bar string, width int) []string {
 	th := m.theme
-	opts := []struct{ label, value string }{
-		{"adapter default", ""},
-		{"user", "user"},
-		{"project", "project"},
-	}
-	rows := make([]string, 0, len(opts)+2)
+	resolved := m.profile.ResolvedScope()
+	rows := make([]string, 0, len(scopeSettingOpts)+4)
 	rows = append(rows, bar+" "+th.Detail.Render(
-		"Which scope to install into. Adapter default falls back to each adapter's own default (usually user)."))
+		"Which scope installs default to. Global humblskills installs one canonical "+
+			"copy and symlinks it to every selected platform — recommended for most "+
+			"setups. User/project pin a concrete platform-native location instead."))
 	rows = append(rows, bar)
 	rows = append(rows, bar+" "+th.SectionTitle.Render("OPTIONS"))
-	for i, opt := range opts {
+	for i, opt := range scopeSettingOpts {
 		cursorHere := i == m.valueIdx && m.focus == focusValue
-		isCurrent := m.profile.DefaultScope == opt.value
+		isCurrent := opt.value == resolved
 		marker := "( )"
 		if isCurrent {
 			marker = "(●)"
@@ -450,6 +459,14 @@ func (m profileModel) renderScopeOptions(bar string, width int) []string {
 			prefix = bar + " " + th.Bullet.Render("▸") + " "
 		}
 		rows = append(rows, prefix+styled)
+	}
+	if resolved == profile.ScopeAdapterDefault {
+		rows = append(rows, bar)
+		rows = append(rows, bar+" "+th.Detail.Render(
+			"Note: adapter default can't show a concrete location up front — "+
+				"every platform here happens to default to \"user\" today, but the "+
+				"install screen will still ask you to pick a scope since it can't "+
+				"display one for this setting."))
 	}
 	_ = width
 	return rows
@@ -477,20 +494,25 @@ func (m profileModel) settingBadge(key string) string {
 		return fmt.Sprintf("%d platform%s", len(m.profile.DefaultPlatforms),
 			plural2(len(m.profile.DefaultPlatforms)))
 	case "scope":
-		if m.profile.DefaultScope == "" {
+		switch resolved := m.profile.ResolvedScope(); resolved {
+		case profile.ScopeGlobal:
+			return "global humblskills"
+		case profile.ScopeAdapterDefault:
 			return "adapter default"
+		default:
+			return resolved
 		}
-		return m.profile.DefaultScope
 	}
 	return ""
 }
 
+// settingValueEmpty reports whether a setting has no meaningful value yet.
+// Scope is never "empty" — an unset DefaultScope already resolves to a
+// concrete, deliberate default (global humblskills) via ResolvedScope.
 func (m profileModel) settingValueEmpty(key string) bool {
 	switch key {
 	case "platforms":
 		return len(m.profile.DefaultPlatforms) == 0
-	case "scope":
-		return m.profile.DefaultScope == ""
 	}
 	return false
 }

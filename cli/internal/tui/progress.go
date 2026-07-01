@@ -70,6 +70,13 @@ type progressEntry struct {
 	outcome  install.Outcome
 	done     bool
 	errored  bool
+	// path is the platform-facing symlink target. version and storePath
+	// (the canonical "source of truth" location) are filled in on
+	// PhaseTargetDone — see applyEvent — and feed the grouped summary
+	// rendered once the run finishes successfully.
+	path      string
+	version   string
+	storePath string
 }
 
 func (p *progressEntry) key() string {
@@ -132,9 +139,16 @@ func (m ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 
 	case ProgressDoneMsg:
+		// Root cause of the "results flash by and vanish" bug: this used to
+		// return tea.Quit unconditionally, so the screen tore itself down
+		// the instant the engine finished — before the user could read
+		// anything, success or failure. Now it just flips to the done
+		// state (running=false) and stays on screen; the tea.KeyMsg case
+		// below is what actually dismisses it, matching the "enter/q to
+		// close" footer hint that was previously dead code.
 		m.err = msg.Err
 		m.running = false
-		return m, tea.Quit
+		return m, nil
 
 	case spinner.TickMsg:
 		var cmd tea.Cmd
@@ -173,14 +187,18 @@ func (m ProgressModel) View() string {
 	}
 	sb.WriteString("  " + m.bar.View() + "\n\n")
 
-	for _, it := range m.items {
-		active := m.running && m.current == it && !it.done && !it.errored
-		line := m.renderEntry(it, active)
-		prefix := "  "
-		if active {
-			prefix = th.Bullet.Render("▌") + " "
+	if !m.running && m.err == nil {
+		sb.WriteString(m.renderSummary())
+	} else {
+		for _, it := range m.items {
+			active := m.running && m.current == it && !it.done && !it.errored
+			line := m.renderEntry(it, active)
+			prefix := "  "
+			if active {
+				prefix = th.Bullet.Render("▌") + " "
+			}
+			sb.WriteString(prefix + line + "\n")
 		}
-		sb.WriteString(prefix + line + "\n")
 	}
 
 	if m.err != nil {
@@ -207,6 +225,9 @@ func (m *ProgressModel) applyEvent(ev install.Event) {
 		it := m.upsert(ev)
 		it.done = true
 		it.outcome = ev.Outcome
+		it.path = ev.Path
+		it.version = ev.Version
+		it.storePath = ev.StorePath
 		m.done++
 	case install.PhaseError:
 		if ev.Skill != "" {
@@ -259,6 +280,80 @@ func (m ProgressModel) renderEntry(it *progressEntry, active bool) string {
 	return fmt.Sprintf("%s %s %s %s", icon, name, where, label)
 }
 
+// skillSummaryGroup is every target this run touched for one skill, plus the
+// version and canonical store path shared across them.
+type skillSummaryGroup struct {
+	skill     string
+	version   string
+	storePath string
+	entries   []*progressEntry
+}
+
+// groupedBySkill buckets m.items by skill name, preserving first-seen order
+// (the engine emits every target for one skill consecutively, so this is
+// already a stable grouping, not just a sort).
+func (m ProgressModel) groupedBySkill() []skillSummaryGroup {
+	var groups []skillSummaryGroup
+	idx := map[string]int{}
+	for _, it := range m.items {
+		i, ok := idx[it.skill]
+		if !ok {
+			i = len(groups)
+			idx[it.skill] = i
+			groups = append(groups, skillSummaryGroup{skill: it.skill})
+		}
+		g := &groups[i]
+		if g.version == "" {
+			g.version = it.version
+		}
+		if g.storePath == "" {
+			g.storePath = it.storePath
+		}
+		g.entries = append(g.entries, it)
+	}
+	return groups
+}
+
+// renderSummary is the "what just happened" status screen shown once the run
+// finishes successfully: one block per skill with its version, the
+// canonical source-of-truth store location, and every platform symlink the
+// run touched — the detail that used to only exist as stdout lines the
+// dashboard loop immediately hid by re-entering the alt-screen.
+func (m ProgressModel) renderSummary() string {
+	th := m.theme
+	groups := m.groupedBySkill()
+	if len(groups) == 0 {
+		return "  " + th.Detail.Render("nothing to do — every target was already up-to-date") + "\n"
+	}
+	var sb strings.Builder
+	for i, g := range groups {
+		if i > 0 {
+			sb.WriteString("\n")
+		}
+		name := th.DetailTitle.Render(g.skill)
+		ver := ""
+		if g.version != "" {
+			ver = "  " + th.DetailSub.Render("v"+g.version)
+		}
+		sb.WriteString("  " + name + ver + "\n")
+		if g.storePath != "" {
+			sb.WriteString("    " + th.KVKey.Render("installed to") + "  " + th.KVValue.Render(g.storePath) + "\n")
+		}
+		sb.WriteString("    " + th.SectionTitle.Render("SYMLINKED PLATFORMS") + "\n")
+		for _, it := range g.entries {
+			icon := th.DotOK.Render("●")
+			label := th.Detail.Render(string(it.outcome))
+			if it.errored {
+				icon = th.DotNo.Render("●")
+				label = th.Error.Render("error")
+			}
+			where := th.Platform.Render(it.platform + "/" + it.scope)
+			sb.WriteString(fmt.Sprintf("      %s %s  %s  %s\n", icon, where, th.PathValue.Render(it.path), label))
+		}
+	}
+	return sb.String()
+}
+
 // ExecuteWithProgress runs fn in a goroutine while a ProgressModel UI shows
 // live engine progress. fn is expected to call engine.Execute (or equivalent)
 // with an EventSink that forwards onto events. fn's error becomes
@@ -285,4 +380,3 @@ func ExecuteWithProgress(theme *ui.Theme, command string, fn func(sink install.E
 	}
 	return nil
 }
-

@@ -16,6 +16,20 @@ import (
 
 const SchemaVersion = 1
 
+// Scope constants for Profile.DefaultScope. ScopeGlobal is the recommended
+// default: one canonical copy under ~/.humblskills/skills, symlinked to
+// every selected platform. ScopeAdapterDefault opts back into each
+// platform's own documented default scope (today: "user" for every
+// adapter) instead of a concrete scope — it only exists as an explicit,
+// profile-only escape hatch because it can't show a concrete location at
+// install time.
+const (
+	ScopeGlobal         = "global"
+	ScopeUser           = "user"
+	ScopeProject        = "project"
+	ScopeAdapterDefault = "adapter-default"
+)
+
 // Profile is the full on-disk document.
 type Profile struct {
 	SchemaVersion    int          `json:"schema_version"`
@@ -28,7 +42,7 @@ type Profile struct {
 // live here - they go through cli/internal/secrets which supports env +
 // OS keyring + 0600 file fallback.
 type EvalProfile struct {
-	Runner                 string `json:"runner,omitempty"`                   // claudecode|cursor-agent|codex|anthropic-api|openai-api|mock
+	Runner                 string `json:"runner,omitempty"` // claudecode|cursor-agent|codex|anthropic-api|openai-api|mock
 	ExecutorModel          string `json:"executor_model,omitempty"`
 	GraderModel            string `json:"grader_model,omitempty"`
 	RunsPerConfiguration   int    `json:"runs_per_configuration,omitempty"`
@@ -122,7 +136,24 @@ func FilterKnownPlatforms(platforms []string, known map[string]struct{}) (kept, 
 	return kept, dropped
 }
 
-// IsValidScope reports whether s is one of the accepted scope values.
+// IsValidScope reports whether s is one of the accepted scope values. "" is
+// accepted as shorthand for the unset/default state — see ResolvedScope.
 func IsValidScope(s string) bool {
-	return s == "" || s == "user" || s == "project"
+	switch s {
+	case "", ScopeGlobal, ScopeUser, ScopeProject, ScopeAdapterDefault:
+		return true
+	}
+	return false
+}
+
+// ResolvedScope returns the profile's effective default scope, treating an
+// unset DefaultScope ("") as ScopeGlobal — the recommended default of one
+// canonical store symlinked to every selected platform. Callers that need to
+// distinguish "explicitly global" from "unset" should read DefaultScope
+// directly instead.
+func (p *Profile) ResolvedScope() string {
+	if p == nil || p.DefaultScope == "" {
+		return ScopeGlobal
+	}
+	return p.DefaultScope
 }
