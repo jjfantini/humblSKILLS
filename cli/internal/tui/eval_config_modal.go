@@ -432,16 +432,6 @@ func indexOfInt(xs []int, v, fallback int) int {
 	return fallback
 }
 
-func clampInt(v, lo, hi int) int {
-	if v < lo {
-		return lo
-	}
-	if v > hi {
-		return hi
-	}
-	return v
-}
-
 func groupLabel(g cfgGroup) string {
 	switch g {
 	case grpArms:

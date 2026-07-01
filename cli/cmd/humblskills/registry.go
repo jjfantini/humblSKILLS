@@ -8,6 +8,7 @@ import (
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
@@ -68,7 +69,7 @@ func runRegistryRefresh(app *App) error {
 					return tui.StatusResult{}, err
 				}
 				return tui.StatusResult{
-					Headline: fmt.Sprintf("registry refreshed: %d skill%s from %s", res.Skills, plural(res.Skills), res.Source),
+					Headline: fmt.Sprintf("registry refreshed: %d skill%s from %s", res.Skills, textutil.Plural(res.Skills), res.Source),
 					Lines:    []string{"cache: " + res.CachePath},
 				}, nil
 			})
@@ -87,7 +88,7 @@ func runRegistryRefresh(app *App) error {
 	if app.Config.JSON {
 		return app.UI.JSON(res)
 	}
-	app.UI.Success("registry refreshed: %d skill%s from %s", res.Skills, plural(res.Skills), res.Source)
+	app.UI.Success("registry refreshed: %d skill%s from %s", res.Skills, textutil.Plural(res.Skills), res.Source)
 	app.UI.Detail("  cache: %s", res.CachePath)
 	return nil
 }

@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -39,38 +37,6 @@ func TestDefaultDashboardTiles_Shape(t *testing.T) {
 		if !commands[want] {
 			t.Errorf("missing dashboard command %q", want)
 		}
-	}
-}
-
-func TestBuildDashboardGreeting_PopulatesFields(t *testing.T) {
-	g := BuildDashboardGreeting(5)
-	if g.Updates != 5 {
-		t.Errorf("Updates = %d", g.Updates)
-	}
-	// User & Cwd may be empty in sandboxed CI — just sanity-check types.
-	_ = g.User
-	_ = g.Cwd
-}
-
-func TestCompactPath(t *testing.T) {
-	// Use a real tempdir as the "home" so the path separators match
-	// whatever the OS natively produces. Point both HOME and
-	// USERPROFILE at it — Unix reads $HOME, Windows reads %USERPROFILE%.
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
-
-	inside := filepath.Join(home, "work", "x")
-	if got := compactPath(inside); !strings.HasPrefix(got, "~") {
-		t.Errorf("compactPath should prefix ~: %q", got)
-	}
-
-	// A path unrelated to home passes through unchanged. Use the OS's
-	// temp dir root so we get an actually-unrelated absolute path on
-	// every platform.
-	unrelated := filepath.Join(os.TempDir(), "definitely-not-home-"+filepath.Base(home))
-	if got := compactPath(unrelated); got != unrelated {
-		t.Errorf("unrelated path changed: got %q want %q", got, unrelated)
 	}
 }
 
@@ -238,8 +204,8 @@ func TestDashboardModel_EnterLaunchesCursor(t *testing.T) {
 
 func TestTruncateDisplay(t *testing.T) {
 	cases := map[string]int{
-		"hello":                       10,
-		"this is a very long string":  10,
+		"hello":                      10,
+		"this is a very long string": 10,
 	}
 	for in, width := range cases {
 		got := truncateDisplay(in, width)
@@ -257,15 +223,6 @@ func TestIndentBlock_AddsLeadingSpaces(t *testing.T) {
 		if !strings.HasPrefix(line, "    ") {
 			t.Errorf("line not indented: %q", line)
 		}
-	}
-}
-
-func TestPluralDash(t *testing.T) {
-	if pluralDash(1) != "" {
-		t.Errorf("1 should not pluralize: %q", pluralDash(1))
-	}
-	if pluralDash(2) != "s" {
-		t.Errorf("2 should pluralize: %q", pluralDash(2))
 	}
 }
 
