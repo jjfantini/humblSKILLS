@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
@@ -109,5 +111,69 @@ func TestProfileModel_RenderScopeOptions_GlobalHasNoNote(t *testing.T) {
 	joined := strings.Join(rows, "\n")
 	if strings.Contains(joined, "can't show a concrete location") {
 		t.Errorf("global scope should not show the adapter-default note:\n%s", joined)
+	}
+}
+
+// --- enter vs space key semantics ------------------------------------------
+//
+// Regression coverage: multi-select values (platforms) must only toggle on
+// space, matching every other multi-select surface in the TUI (e.g. the
+// install platform modal). Enter previously also toggled here, which was
+// inconsistent and easy to trigger by accident while navigating.
+
+func TestProfileModel_MultiSelect_EnterDoesNotToggle_JustReturns(t *testing.T) {
+	m := newTestProfileModel(profile.Profile{})
+	m.settingIdx = 0 // platforms
+	m.focus = focusValue
+	m.valueIdx = 0 // claude-code
+
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated := out.(profileModel)
+
+	if len(updated.profile.DefaultPlatforms) != 0 {
+		t.Errorf("enter must not toggle a platform on; DefaultPlatforms = %v", updated.profile.DefaultPlatforms)
+	}
+	if updated.changed {
+		t.Error("enter must not mark the profile as changed when it doesn't toggle anything")
+	}
+	if updated.focus != focusSettings {
+		t.Errorf("enter should return focus to the settings pane, got %v", updated.focus)
+	}
+}
+
+func TestProfileModel_MultiSelect_SpaceStillToggles_AndStaysInValuePane(t *testing.T) {
+	m := newTestProfileModel(profile.Profile{})
+	m.settingIdx = 0 // platforms
+	m.focus = focusValue
+	m.valueIdx = 0 // claude-code
+
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{' '}})
+	updated := out.(profileModel)
+
+	if len(updated.profile.DefaultPlatforms) != 1 || updated.profile.DefaultPlatforms[0] != "claude-code" {
+		t.Errorf("space should toggle claude-code on; DefaultPlatforms = %v", updated.profile.DefaultPlatforms)
+	}
+	if !updated.changed {
+		t.Error("expected changed=true after toggling")
+	}
+	if updated.focus != focusValue {
+		t.Errorf("space should not leave the value pane, got focus=%v", updated.focus)
+	}
+}
+
+func TestProfileModel_Radio_EnterTogglesAndReturns(t *testing.T) {
+	m := newTestProfileModel(profile.Profile{})
+	m.settingIdx = 1 // scope (radio)
+	m.focus = focusValue
+	m.valueIdx = 2 // project
+
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated := out.(profileModel)
+
+	if updated.profile.DefaultScope != profile.ScopeProject {
+		t.Errorf("enter should commit the highlighted radio option; DefaultScope = %q", updated.profile.DefaultScope)
+	}
+	if updated.focus != focusSettings {
+		t.Errorf("enter should return focus to the settings pane, got %v", updated.focus)
 	}
 }
