@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-01T19:06:48Z",
+  "generated_at": "2026-07-01T21:00:36Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "cursor/tui-status-screens-ffa3",
-    "sha": "bce60c39891ab7dd11dbd74d41f9a496d635e534"
+    "ref": "develop",
+    "sha": "68e4d856b2971e766cc3ae3e39383e9a1d4d6fc5"
   },
   "skills": [
     {
