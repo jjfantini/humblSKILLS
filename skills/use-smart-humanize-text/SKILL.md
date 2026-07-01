@@ -10,7 +10,8 @@ description: >
 license: MIT
 metadata:
   author: jjfantini
-  version: 2.0.2
+  version: 2.0.3
+  category: writing
   platforms: [claude-code, cursor, codex]
   preserve:
     - references/raw/
