@@ -71,15 +71,18 @@ func newSyncCmd(app *App) *cobra.Command {
 	var f installFlags
 	var prune bool
 	cmd := &cobra.Command{
-		Use:   "sync [file]",
-		Short: "Install every skill listed in a skillset file",
-		Long: "sync reads a skillset file (default: ./humblskills.json) and installs " +
+		Use:   "sync [file-or-url]",
+		Short: "Install every skill listed in a skillset file or URL",
+		Long: "sync reads a skillset (default: ./humblskills.json) and installs " +
 			"every skill it lists that isn't already present, pulling the current " +
-			"registry version. Already up-to-date skills are skipped (use --force to " +
-			"reinstall). With --prune it also uninstalls any skill you have that the " +
-			"skillset doesn't list, making your local set match the file exactly. " +
-			"Platforms/scope follow the same rules as install: explicit " +
-			"--platform/--scope/--global flags win, otherwise your profile defaults apply.",
+			"registry version. The source can be a local path, a file:// URL, or an " +
+			"http(s):// URL - so a team can host one canonical skillset and everyone " +
+			"runs 'humblskills sync https://example.com/humblskills.json'. Already " +
+			"up-to-date skills are skipped (use --force to reinstall). With --prune it " +
+			"also uninstalls any skill you have that the skillset doesn't list, making " +
+			"your local set match the file exactly. Platforms/scope follow the same " +
+			"rules as install: explicit --platform/--scope/--global flags win, " +
+			"otherwise your profile defaults apply.",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := skillset.DefaultFilename
@@ -100,7 +103,7 @@ func newSyncCmd(app *App) *cobra.Command {
 }
 
 func runSync(app *App, path string, f installFlags, prune bool) error {
-	set, err := skillset.Load(path)
+	set, err := skillset.LoadFrom(path)
 	if err != nil {
 		return err
 	}
