@@ -4,9 +4,9 @@ description: Drive an ML system design from an ambiguous prompt to a production-
 license: MIT
 metadata:
   author: Jennings Fantini
-  version: "2.0.0"
+  version: "2.0.1"
   tags: [ml-system-design, interviews, machine-learning]
-  platforms: [claude-code, cursor]
+  platforms: [claude-code, cursor, codex]
   preserve:
     - references/decisions.md
     - references/log.md

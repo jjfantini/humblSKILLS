@@ -11,9 +11,9 @@ description: >
 license: MIT
 metadata:
   author: jjfantini
-  version: "1.0.0"
+  version: "1.0.1"
   tags: [git, commits, conventional-commits, workflow, humblskill]
-  platforms: [claude-code, cursor]
+  platforms: [claude-code, cursor, codex]
   preserve:
     - references/decisions.md
     - references/log.md

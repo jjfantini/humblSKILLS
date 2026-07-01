@@ -11,9 +11,9 @@ license: MIT
 compatibility: "Requires git 2.5+, GitHub CLI (`gh`) for PR/check operations, and network access for remote sync, CI, releases, and Homebrew verification."
 metadata:
   author: jjfantini
-  version: "1.0.0"
+  version: "1.0.1"
   tags: [git, worktree, pull-requests, release, workflow, humblskill]
-  platforms: [claude-code, cursor]
+  platforms: [claude-code, cursor, codex]
   preserve:
     - references/decisions.md
     - references/log.md

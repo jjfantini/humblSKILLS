@@ -12,9 +12,9 @@ license: MIT
 compatibility: "Requires python3 only for scripts/lint.sh. Frontend implementation uses whatever stack exists in the target repo."
 metadata:
   author: jjfantini
-  version: "1.0.0"
+  version: "1.0.1"
   tags: [frontend, design, ui, ux, react, css, humblskill]
-  platforms: [claude-code, cursor]
+  platforms: [claude-code, cursor, codex]
   preserve:
     - references/decisions.md
     - references/log.md
