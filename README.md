@@ -102,12 +102,15 @@ version-controlled source of truth for "which skills does this project want".
 humblskills export -o humblskills.json   # write the skillset
 humblskills sync                         # install missing skills from ./humblskills.json
 humblskills sync path/to/set.json --force  # reinstall everything from a specific file
+humblskills sync --prune                 # also uninstall skills not in the file
 ```
 
 `sync` pulls the current registry version of each skill (like `install`),
 skips skills already up-to-date, and warns (without failing) about any skill in
-the file that the registry doesn't know about. Platforms/scope follow the same
-rules as `install`.
+the file that the registry doesn't know about. Add `--prune` to make your local
+set match the file exactly — any installed skill the skillset doesn't list is
+uninstalled (you're asked to confirm unless `--yes`). Platforms/scope follow the
+same rules as `install`.
 
 Every command accepts `--json` for machine-readable output and `--yes` to
 skip confirmation prompts.

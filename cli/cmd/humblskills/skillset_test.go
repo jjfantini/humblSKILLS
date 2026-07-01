@@ -128,6 +128,114 @@ func TestSync_UnknownSkill_WarnsNonFatal(t *testing.T) {
 	}
 }
 
+func TestSync_Prune_RemovesSkillsNotInSet(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{
+			Name: "foo", Version: "1.0.0",
+			Platforms: []string{"claude-code"},
+			Files:     testutil.SkillTree{"SKILL.md": sampleSkillMD},
+		},
+		{
+			Name: "bar", Version: "1.0.0",
+			Platforms: []string{"claude-code"},
+			Files:     testutil.SkillTree{"SKILL.md": sampleSkillMD},
+		},
+	})
+
+	// Install both foo and bar directly.
+	for _, name := range []string{"foo", "bar"} {
+		res := runCLIWithStdoutCapture(t,
+			"install", name,
+			"--registry", regURL,
+			"--cache-dir", s.CacheDir,
+			"--manifest", s.ManifestPath,
+			"--platform", "claude-code",
+			"--scope", "user",
+			"--yes",
+		)
+		if res.RunErr != nil {
+			t.Fatalf("install %s: %v\n%s", name, res.RunErr, res.Err)
+		}
+	}
+
+	// Skillset lists only foo; sync --prune should uninstall bar.
+	setPath := filepath.Join(s.Root, "humblskills.json")
+	if err := os.WriteFile(setPath, []byte(`{"schema_version":1,"skills":[{"name":"foo"}]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	res := runCLIWithStdoutCapture(t,
+		"sync", setPath,
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--platform", "claude-code",
+		"--scope", "user",
+		"--prune",
+		"--yes",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("sync --prune: %v\n%s", res.RunErr, res.Err)
+	}
+
+	m, err := manifest.Load(s.ManifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.FindAll("foo")) == 0 {
+		t.Errorf("foo should remain installed after prune")
+	}
+	if len(m.FindAll("bar")) != 0 {
+		t.Errorf("bar should be pruned (not in skillset); manifest: %+v", m.Installations)
+	}
+	if !strings.Contains(res.Out+res.Err, "pruned bar") {
+		t.Errorf("expected a 'pruned bar' line:\n%s\n%s", res.Out, res.Err)
+	}
+}
+
+func TestSync_NoPrune_LeavesExtraSkills(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{Name: "foo", Version: "1.0.0", Platforms: []string{"claude-code"},
+			Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+		{Name: "bar", Version: "1.0.0", Platforms: []string{"claude-code"},
+			Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+	})
+
+	res := runCLIWithStdoutCapture(t,
+		"install", "bar",
+		"--registry", regURL, "--cache-dir", s.CacheDir, "--manifest", s.ManifestPath,
+		"--platform", "claude-code", "--scope", "user", "--yes",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("install bar: %v\n%s", res.RunErr, res.Err)
+	}
+
+	setPath := filepath.Join(s.Root, "humblskills.json")
+	if err := os.WriteFile(setPath, []byte(`{"schema_version":1,"skills":[{"name":"foo"}]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Without --prune, bar stays installed even though it's not in the set.
+	res = runCLIWithStdoutCapture(t,
+		"sync", setPath,
+		"--registry", regURL, "--cache-dir", s.CacheDir, "--manifest", s.ManifestPath,
+		"--platform", "claude-code", "--scope", "user", "--yes",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("sync: %v\n%s", res.RunErr, res.Err)
+	}
+	m, _ := manifest.Load(s.ManifestPath)
+	if len(m.FindAll("bar")) == 0 {
+		t.Errorf("bar should remain without --prune; manifest: %+v", m.Installations)
+	}
+}
+
 func TestSync_MissingFile_Errors(t *testing.T) {
 	s := testutil.NewSandbox(t)
 	res := runCLIWithStdoutCapture(t,

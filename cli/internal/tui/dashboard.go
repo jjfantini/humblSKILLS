@@ -79,6 +79,7 @@ func DefaultDashboardTiles() []DashboardTile {
 		{Command: "list", Label: "list", Hotkey: "l", Desc: "what's installed, where, and what drifted", Sub: "manifest · platforms", Aliases: []string{"ls", "installed"}},
 		{Command: "update", Label: "update", Hotkey: "u", Desc: "pull newer registry versions onto installs", Sub: "diff · apply", Aliases: []string{"upgrade-skills"}},
 		{Command: "search", Label: "search", Hotkey: "/", Desc: "browse every skill in the registry", Sub: "fuzzy over name, tag, desc", Aliases: []string{"find", "browse"}},
+		{Command: "sync", Label: "sync", Hotkey: "s", Desc: "install the skills listed in humblskills.json", Sub: "shareable skill set", Aliases: []string{"skillset", "team"}},
 		{Command: "uninstall", Label: "uninstall", Hotkey: "x", Desc: "remove a skill from every target", Sub: "manifest-aware", Aliases: []string{"remove", "rm", "delete"}},
 		{Command: "profile", Label: "profile", Hotkey: "p", Desc: "edit install defaults (platforms, scope)", Sub: "user-wide preferences", Aliases: []string{"config", "prefs"}},
 		{Command: "eval", Label: "eval", Hotkey: "e", Desc: "benchmark skills · three-arm · longitudinal", Sub: "runners · trajectories · reports", Aliases: []string{"test", "benchmark", "evaluate"}},
