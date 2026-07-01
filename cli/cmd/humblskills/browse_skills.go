@@ -9,6 +9,7 @@ import (
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
@@ -246,7 +247,7 @@ func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBr
 		}
 	}
 	localMeta := func(items []tui.Item, _ int) string {
-		parts := []string{fmt.Sprintf("%d skill%s", len(items), plural(len(items)))}
+		parts := []string{fmt.Sprintf("%d skill%s", len(items), textutil.Plural(len(items)))}
 		if installedCount > 0 {
 			parts = append(parts, fmt.Sprintf("%d installed", installedCount))
 		}
