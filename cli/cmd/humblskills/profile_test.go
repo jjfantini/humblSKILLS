@@ -150,6 +150,84 @@ func TestProfileSet_EmptyPlatformsClears(t *testing.T) {
 	}
 }
 
+func TestProfileSet_StatusAutoReturnSeconds(t *testing.T) {
+	s := testutil.NewSandbox(t)
+
+	res := runCLIWithStdoutCapture(t,
+		"profile", "set", "status_auto_return_seconds", "10",
+		"--profile", s.ProfilePath,
+		"--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v", res.RunErr)
+	}
+	p, err := profile.Load(s.ProfilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.StatusAutoReturnSeconds == nil || *p.StatusAutoReturnSeconds != 10 {
+		t.Errorf("StatusAutoReturnSeconds = %v", p.StatusAutoReturnSeconds)
+	}
+}
+
+func TestProfileSet_StatusAutoReturnSeconds_Off(t *testing.T) {
+	s := testutil.NewSandbox(t)
+
+	res := runCLIWithStdoutCapture(t,
+		"profile", "set", "status_auto_return_seconds", "off",
+		"--profile", s.ProfilePath,
+		"--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v", res.RunErr)
+	}
+	p, err := profile.Load(s.ProfilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.StatusAutoReturnSeconds == nil || *p.StatusAutoReturnSeconds != 0 {
+		t.Errorf("StatusAutoReturnSeconds = %v, want 0", p.StatusAutoReturnSeconds)
+	}
+	if p.StatusAutoReturnDuration() != 0 {
+		t.Errorf("StatusAutoReturnDuration() = %v, want 0 (disabled)", p.StatusAutoReturnDuration())
+	}
+}
+
+func TestProfileSet_StatusAutoReturnSeconds_Default(t *testing.T) {
+	s := testutil.NewSandbox(t)
+
+	_ = runCLIWithStdoutCapture(t,
+		"profile", "set", "status_auto_return_seconds", "10",
+		"--profile", s.ProfilePath, "--json",
+	)
+	res := runCLIWithStdoutCapture(t,
+		"profile", "set", "status_auto_return_seconds", "default",
+		"--profile", s.ProfilePath, "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v", res.RunErr)
+	}
+	p, err := profile.Load(s.ProfilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.StatusAutoReturnSeconds != nil {
+		t.Errorf("StatusAutoReturnSeconds = %v, want nil (unset/default)", *p.StatusAutoReturnSeconds)
+	}
+}
+
+func TestProfileSet_StatusAutoReturnSeconds_Invalid(t *testing.T) {
+	s := testutil.NewSandbox(t)
+
+	res := runCLIWithStdoutCapture(t,
+		"profile", "set", "status_auto_return_seconds", "not-a-number",
+		"--profile", s.ProfilePath,
+	)
+	if res.RunErr == nil {
+		t.Fatal("expected error for invalid status_auto_return_seconds value")
+	}
+}
+
 func TestProfileReset_RemovesFile(t *testing.T) {
 	s := testutil.NewSandbox(t)
 

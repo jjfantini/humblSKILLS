@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -15,7 +16,7 @@ func newTestProgress(t *testing.T) ProgressModel {
 	t.Helper()
 	events := make(chan install.Event, 8)
 	doneErr := make(chan error, 1)
-	return NewProgressModel(ui.DefaultTheme(), "install", events, doneErr)
+	return NewProgressModel(ui.DefaultTheme(), "install", events, doneErr, 0)
 }
 
 func TestProgressModel_ApplyEventLifecycle(t *testing.T) {
@@ -252,6 +253,60 @@ func TestProgressModel_DoneMsg_WithError_DoesNotAutoQuit(t *testing.T) {
 	}
 	if cmd != nil {
 		t.Error("ProgressDoneMsg must not auto-quit even on error")
+	}
+}
+
+func TestProgressModel_DoneMsg_Success_WithAutoReturn_StartsCountdown(t *testing.T) {
+	events := make(chan install.Event, 8)
+	doneErr := make(chan error, 1)
+	m := NewProgressModel(ui.DefaultTheme(), "install", events, doneErr, 5*time.Second)
+	m.running = true
+	out, cmd := m.Update(ProgressDoneMsg{Err: nil})
+	updated := out.(ProgressModel)
+	if !updated.autoReturn.Active() {
+		t.Error("expected the autoReturn timer to be armed on a successful done state")
+	}
+	if cmd == nil {
+		t.Error("expected a tea.Cmd to schedule the first countdown tick")
+	}
+}
+
+func TestProgressModel_DoneMsg_Error_WithAutoReturn_NeverStartsCountdown(t *testing.T) {
+	events := make(chan install.Event, 8)
+	doneErr := make(chan error, 1)
+	m := NewProgressModel(ui.DefaultTheme(), "install", events, doneErr, 5*time.Second)
+	m.running = true
+	out, cmd := m.Update(ProgressDoneMsg{Err: errors.New("boom")})
+	updated := out.(ProgressModel)
+	if updated.autoReturn.Active() {
+		t.Error("a failed run must never auto-return, regardless of the configured duration")
+	}
+	if cmd != nil {
+		t.Error("error done state must not schedule an auto-quit")
+	}
+}
+
+func TestProgressModel_AutoReturnTick_QuitsAfterDeadline(t *testing.T) {
+	m := newTestProgress(t)
+	m.running = false
+	m.autoReturn = autoReturnTimer{duration: time.Millisecond, deadline: time.Now().Add(-time.Second)}
+	_, cmd := m.Update(autoReturnTickMsg{})
+	if cmd == nil {
+		t.Fatal("expected a tea.Quit cmd once the deadline has passed")
+	}
+	if _, ok := cmd().(tea.QuitMsg); !ok {
+		t.Error("expected the elapsed countdown to return tea.Quit")
+	}
+}
+
+func TestProgressModel_View_ShowsCountdownWhenAutoReturnActive(t *testing.T) {
+	m := newTestProgress(t)
+	m.running = false
+	m.width = 80
+	m.autoReturn = autoReturnTimer{duration: 5 * time.Second, deadline: time.Now().Add(5 * time.Second)}
+	v := m.View()
+	if !strings.Contains(v, "closing in") {
+		t.Errorf("view should show the countdown when auto-return is active:\n%s", v)
 	}
 }
 

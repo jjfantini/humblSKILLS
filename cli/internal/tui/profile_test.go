@@ -161,6 +161,75 @@ func TestProfileModel_MultiSelect_SpaceStillToggles_AndStaysInValuePane(t *testi
 	}
 }
 
+// --- status auto-return setting --------------------------------------------
+
+func TestProfileModel_AutoReturn_CurrentSelectionIndex_UnsetResolvesToDefault(t *testing.T) {
+	m := newTestProfileModel(profile.Profile{})
+	m.settingIdx = 2
+	if got := m.currentSelectionIndex(); got != 0 {
+		t.Errorf("unset auto-return should select index 0 (default), got %d", got)
+	}
+}
+
+func TestProfileModel_AutoReturn_CurrentSelectionIndex_ExplicitValues(t *testing.T) {
+	ptr := func(n int) *int { return &n }
+	cases := []struct {
+		seconds *int
+		want    int
+	}{
+		{ptr(10), 1},
+		{ptr(15), 2},
+		{ptr(30), 3},
+		{ptr(0), 4},
+	}
+	for _, c := range cases {
+		m := newTestProfileModel(profile.Profile{StatusAutoReturnSeconds: c.seconds})
+		m.settingIdx = 2
+		if got := m.currentSelectionIndex(); got != c.want {
+			t.Errorf("seconds=%v: currentSelectionIndex() = %d, want %d", *c.seconds, got, c.want)
+		}
+	}
+}
+
+func TestProfileModel_AutoReturn_ValueCount(t *testing.T) {
+	m := newTestProfileModel(profile.Profile{})
+	m.settingIdx = 2
+	if got := m.valueCount(); got != 5 {
+		t.Errorf("valueCount() = %d, want 5 (5s/10s/15s/30s/disabled)", got)
+	}
+}
+
+func TestProfileModel_AutoReturn_ToggleCurrent_SetsExplicitValue(t *testing.T) {
+	m := newTestProfileModel(profile.Profile{})
+	m.settingIdx = 2
+	m.valueIdx = 4 // disabled
+	m = m.toggleCurrent()
+	if m.profile.StatusAutoReturnSeconds == nil || *m.profile.StatusAutoReturnSeconds != 0 {
+		t.Errorf("StatusAutoReturnSeconds = %v, want 0 (disabled)", m.profile.StatusAutoReturnSeconds)
+	}
+	if !m.changed {
+		t.Error("expected changed=true")
+	}
+}
+
+func TestProfileModel_AutoReturn_SettingBadge(t *testing.T) {
+	ptr := func(n int) *int { return &n }
+	cases := []struct {
+		seconds *int
+		want    string
+	}{
+		{nil, "5s (default)"},
+		{ptr(10), "10s"},
+		{ptr(0), "disabled"},
+	}
+	for _, c := range cases {
+		m := newTestProfileModel(profile.Profile{StatusAutoReturnSeconds: c.seconds})
+		if got := m.settingBadge("status_auto_return"); got != c.want {
+			t.Errorf("seconds=%v: settingBadge = %q, want %q", c.seconds, got, c.want)
+		}
+	}
+}
+
 func TestProfileModel_Radio_EnterTogglesAndReturns(t *testing.T) {
 	m := newTestProfileModel(profile.Profile{})
 	m.settingIdx = 1 // scope (radio)
