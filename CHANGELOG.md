@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.19.0](https://github.com/jjfantini/humblSKILLS/compare/v2.18.0...v2.19.0) (2026-07-01)
+
+
+### Features
+
+* **cli:** default installs to global humblskills scope with source-of-truth list and post-install summary ([a15381b](https://github.com/jjfantini/humblSKILLS/commit/a15381bdcc4acf26bc7eefe4f830adfd04bc27e3))
+* **cli:** retroactively trigger release for install/list UX overhaul ([b814dad](https://github.com/jjfantini/humblSKILLS/commit/b814dad7c875ee95b3c852aa4756c7f5b3750bdb))
+
 ## [2.18.0](https://github.com/jjfantini/humblSKILLS/compare/v2.17.0...v2.18.0) (2026-06-30)
 
 
