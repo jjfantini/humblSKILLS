@@ -18,7 +18,12 @@ const (
 	PhaseDownloading    Phase = "downloading"
 	PhaseVerifyingSum   Phase = "verifying_checksum"
 	PhaseInstalling     Phase = "installing"
-	PhaseError          Phase = "error"
+	// PhaseBrewUpdating fires while refreshing Homebrew's local tap
+	// metadata (`brew update`), before PhaseBrewUpgrading.
+	PhaseBrewUpdating Phase = "brew_updating"
+	// PhaseBrewUpgrading fires while running `brew upgrade humblskills`.
+	PhaseBrewUpgrading Phase = "brew_upgrading"
+	PhaseError         Phase = "error"
 )
 
 // Event is a single progress notification emitted while running

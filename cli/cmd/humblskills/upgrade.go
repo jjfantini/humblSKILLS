@@ -30,12 +30,14 @@ var (
 	brewRunner   selfupdate.Runner
 )
 
-// applyPhaseSteps maps internal/selfupdate's download/verify/install
+// applyPhaseSteps maps internal/selfupdate's download/verify/install/brew
 // phases onto the upgrade command's own themed step list.
 var applyPhaseSteps = map[selfupdate.Phase]tui.UpgradeStep{
-	selfupdate.PhaseDownloading:  tui.UpgradeStepDownloading,
-	selfupdate.PhaseVerifyingSum: tui.UpgradeStepVerifyingChecksum,
-	selfupdate.PhaseInstalling:   tui.UpgradeStepInstalling,
+	selfupdate.PhaseDownloading:   tui.UpgradeStepDownloading,
+	selfupdate.PhaseVerifyingSum:  tui.UpgradeStepVerifyingChecksum,
+	selfupdate.PhaseInstalling:    tui.UpgradeStepInstalling,
+	selfupdate.PhaseBrewUpdating:  tui.UpgradeStepBrewUpdating,
+	selfupdate.PhaseBrewUpgrading: tui.UpgradeStepBrewUpgrading,
 }
 
 type upgradeFlags struct {
@@ -176,21 +178,24 @@ func applyHomebrewUpgrade(app *App, plan *selfupdate.Plan, exePath string) (stri
 		return "", errUpgradeSkipped
 	}
 
-	steps := []tui.UpgradeStep{tui.UpgradeStepBrewUpgrading, tui.UpgradeStepVerifyingInstall}
+	steps := []tui.UpgradeStep{tui.UpgradeStepBrewUpdating, tui.UpgradeStepBrewUpgrading, tui.UpgradeStepVerifyingInstall}
 	useTUI := tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
 
 	var installed string
 	run := func(sink func(tui.UpgradeEvent)) error {
-		sink(tui.UpgradeEvent{Step: tui.UpgradeStepBrewUpgrading})
-
 		var stdout, stderr io.Writer = app.UI.Out(), app.UI.Err()
 		if useTUI {
 			// brew's own progress output would corrupt our alt-screen.
 			stdout, stderr = io.Discard, io.Discard
 		}
-		if err := selfupdate.Upgrade(context.Background(), brewRunner, stdout, stderr); err != nil {
+		brewSink := func(ev selfupdate.Event) {
+			if step, ok := applyPhaseSteps[ev.Phase]; ok {
+				sink(tui.UpgradeEvent{Step: step})
+			}
+		}
+		if err := selfupdate.Upgrade(context.Background(), brewRunner, stdout, stderr, brewSink); err != nil {
 			if errors.Is(err, selfupdate.ErrBrewNotFound) {
-				return fmt.Errorf("brew not found on PATH — run `brew upgrade humblskills` yourself: %w", err)
+				return fmt.Errorf("brew not found on PATH — run `brew update && brew upgrade humblskills` yourself: %w", err)
 			}
 			return fmt.Errorf("brew upgrade humblskills: %w", err)
 		}

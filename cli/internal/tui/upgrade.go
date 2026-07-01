@@ -21,6 +21,7 @@ type UpgradeStep string
 
 const (
 	UpgradeStepCheckingLatest    UpgradeStep = "checking_latest"
+	UpgradeStepBrewUpdating      UpgradeStep = "brew_updating"
 	UpgradeStepBrewUpgrading     UpgradeStep = "brew_upgrading"
 	UpgradeStepDownloading       UpgradeStep = "downloading"
 	UpgradeStepVerifyingChecksum UpgradeStep = "verifying_checksum"
@@ -30,9 +31,11 @@ const (
 
 // upgradeStepLabels is the display label for every step that could appear.
 // A given run only walks a subset — the Homebrew path skips
-// download/verify/install in favour of UpgradeStepBrewUpgrading.
+// download/verify/install in favour of UpgradeStepBrewUpdating +
+// UpgradeStepBrewUpgrading.
 var upgradeStepLabels = map[UpgradeStep]string{
 	UpgradeStepCheckingLatest:    "checking latest release",
+	UpgradeStepBrewUpdating:      "running brew update",
 	UpgradeStepBrewUpgrading:     "running brew upgrade humblskills",
 	UpgradeStepDownloading:       "downloading release archive",
 	UpgradeStepVerifyingChecksum: "verifying checksum",
