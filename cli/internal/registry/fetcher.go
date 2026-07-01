@@ -94,6 +94,37 @@ func (f *Fetcher) Refresh() (*Registry, Origin, error) {
 	return r, OriginNetwork, nil
 }
 
+// LoadCached returns the registry from local sources only, never hitting the
+// network. A file:// URL (or bare path) is read directly; an http(s) URL is
+// served from the on-disk cache if present, ignoring the TTL. ok is false when
+// no local copy is available.
+//
+// This is for read-only views (e.g. `list`) that must stay fast and
+// offline-friendly and should not trigger a fetch. Freshness is a separate
+// concern: `registry refresh`, `update`, and `search` refill the cache.
+func (f *Fetcher) LoadCached() (*Registry, bool) {
+	if isLocal(f.URL) {
+		r, err := f.loadLocal()
+		if err != nil {
+			return nil, false
+		}
+		return r, true
+	}
+	m, err := f.readMeta()
+	if err != nil || m.URL != f.URL {
+		return nil, false
+	}
+	data, err := os.ReadFile(f.bodyPath())
+	if err != nil {
+		return nil, false
+	}
+	r, err := parseRegistry(data)
+	if err != nil {
+		return nil, false
+	}
+	return r, true
+}
+
 // Inspect reports on-disk cache state without triggering a fetch.
 func (f *Fetcher) Inspect() CacheInfo {
 	info := CacheInfo{URL: f.URL, Path: f.bodyPath()}

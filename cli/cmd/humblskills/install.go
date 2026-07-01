@@ -11,6 +11,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
@@ -281,7 +282,7 @@ func printInstall(app *App, r install.Result) {
 		app.UI.Detail("already up-to-date: %s [%s/%s]", t.Skill, t.Platform, t.Scope)
 	}
 	if len(installed)+len(replaced)+len(forced) == 0 {
-		app.UI.Info("%d target%s already up-to-date (use --force to reinstall)", len(skipped), plural(len(skipped)))
+		app.UI.Info("%d target%s already up-to-date (use --force to reinstall)", len(skipped), textutil.Plural(len(skipped)))
 	}
 }
 
