@@ -9,6 +9,7 @@ import (
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
@@ -578,7 +579,7 @@ func (m profileModel) settingBadge(key string) string {
 			return "all detected"
 		}
 		return fmt.Sprintf("%d platform%s", len(m.profile.DefaultPlatforms),
-			plural2(len(m.profile.DefaultPlatforms)))
+			textutil.Plural(len(m.profile.DefaultPlatforms)))
 	case "scope":
 		switch resolved := m.profile.ResolvedScope(); resolved {
 		case profile.ScopeGlobal:
@@ -641,13 +642,6 @@ func (m profileModel) hints() []KeyHint {
 		{Keys: "esc", Label: "back"},
 		{Keys: "q", Label: "quit"},
 	}
-}
-
-func plural2(n int) string {
-	if n == 1 {
-		return ""
-	}
-	return "s"
 }
 
 // --- per-install modal (moved) ----------------------------------------------
