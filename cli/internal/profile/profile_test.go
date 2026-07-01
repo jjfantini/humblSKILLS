@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
@@ -170,17 +171,98 @@ func TestDelete_RemovesFile_AndToleratesMissing(t *testing.T) {
 	}
 }
 
-func TestDefaultPath_ResolvesUnderSandboxedXDG(t *testing.T) {
+func TestDefaultPath_ResolvesUnderHumblskillsHome(t *testing.T) {
 	s := testutil.NewSandbox(t)
 	got, err := profile.DefaultPath()
 	if err != nil {
 		t.Fatalf("DefaultPath: %v", err)
 	}
-	if !strings.HasPrefix(got, s.XDGConfigHome) {
-		t.Errorf("DefaultPath = %q, want under %q", got, s.XDGConfigHome)
+	want := filepath.Join(s.Home, ".humblskills", "profile.json")
+	if got != want {
+		t.Errorf("DefaultPath = %q, want %q", got, want)
 	}
-	if filepath.Base(got) != "config.json" {
-		t.Errorf("DefaultPath basename = %q, want config.json", filepath.Base(got))
+}
+
+func TestDefaultPath_MigratesLegacyXDGConfigProfile(t *testing.T) {
+	s := testutil.NewSandbox(t)
+
+	legacy := filepath.Join(s.XDGConfigHome, "humblskills", "config.json")
+	body := `{"schema_version": 1, "default_scope": "project"}` + "\n"
+	if err := os.MkdirAll(filepath.Dir(legacy), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(legacy, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := profile.DefaultPath()
+	if err != nil {
+		t.Fatalf("DefaultPath: %v", err)
+	}
+	want := filepath.Join(s.Home, ".humblskills", "profile.json")
+	if got != want {
+		t.Errorf("DefaultPath = %q, want %q", got, want)
+	}
+
+	// The legacy file must be gone - migration moves, it doesn't copy.
+	if _, err := os.Stat(legacy); !os.IsNotExist(err) {
+		t.Errorf("legacy profile still exists at %q after migration: err=%v", legacy, err)
+	}
+
+	p, err := profile.Load(got)
+	if err != nil {
+		t.Fatalf("Load migrated profile: %v", err)
+	}
+	if p.DefaultScope != "project" {
+		t.Errorf("migrated profile DefaultScope = %q, want %q", p.DefaultScope, "project")
+	}
+
+	// A second resolution must be a no-op (no legacy file left to migrate,
+	// and DefaultPath is a pure resolver - it doesn't require Save to have
+	// run first).
+	got2, err := profile.DefaultPath()
+	if err != nil {
+		t.Fatalf("DefaultPath (second call): %v", err)
+	}
+	if got2 != want {
+		t.Errorf("DefaultPath (second call) = %q, want %q", got2, want)
+	}
+}
+
+func TestDefaultPath_NoMigrationWhenNewProfileAlreadyExists(t *testing.T) {
+	s := testutil.NewSandbox(t)
+
+	// A legacy file exists, but so does a profile at the new location -
+	// the new one must win and the legacy file must be left untouched.
+	legacy := filepath.Join(s.XDGConfigHome, "humblskills", "config.json")
+	if err := os.MkdirAll(filepath.Dir(legacy), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(legacy, []byte(`{"schema_version": 1, "default_scope": "project"}`+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	newPath := filepath.Join(s.Home, ".humblskills", "profile.json")
+	if err := profile.Save(newPath, &profile.Profile{DefaultScope: "user"}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := profile.DefaultPath()
+	if err != nil {
+		t.Fatalf("DefaultPath: %v", err)
+	}
+	if got != newPath {
+		t.Errorf("DefaultPath = %q, want %q", got, newPath)
+	}
+	if _, err := os.Stat(legacy); err != nil {
+		t.Errorf("legacy profile should be left alone when a new profile already exists: %v", err)
+	}
+	p, err := profile.Load(got)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if p.DefaultScope != "user" {
+		t.Errorf("DefaultScope = %q, want %q (legacy must not have overwritten the new file)", p.DefaultScope, "user")
 	}
 }
 
@@ -249,6 +331,26 @@ func TestIsValidScope(t *testing.T) {
 	for in, want := range cases {
 		if got := profile.IsValidScope(in); got != want {
 			t.Errorf("IsValidScope(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
+
+func TestStatusAutoReturnDuration(t *testing.T) {
+	ptr := func(n int) *int { return &n }
+	cases := []struct {
+		name string
+		p    *profile.Profile
+		want time.Duration
+	}{
+		{"nil profile defaults to 5s", nil, 5 * time.Second},
+		{"unset defaults to 5s", &profile.Profile{}, 5 * time.Second},
+		{"zero disables the timer", &profile.Profile{StatusAutoReturnSeconds: ptr(0)}, 0},
+		{"negative disables the timer", &profile.Profile{StatusAutoReturnSeconds: ptr(-3)}, 0},
+		{"explicit positive value", &profile.Profile{StatusAutoReturnSeconds: ptr(10)}, 10 * time.Second},
+	}
+	for _, c := range cases {
+		if got := c.p.StatusAutoReturnDuration(); got != c.want {
+			t.Errorf("%s: StatusAutoReturnDuration() = %v, want %v", c.name, got, c.want)
 		}
 	}
 }

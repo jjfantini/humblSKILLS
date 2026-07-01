@@ -10,6 +10,7 @@ import (
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
@@ -44,18 +45,32 @@ func newUpdateCmd(app *App) *cobra.Command {
 }
 
 func runUpdate(app *App, only []string, f updateFlags) error {
-	m, err := manifest.Load(app.Config.ManifestPath)
+	useTUI := tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
+
+	m, err := tui.RunWithLoadingIf(useTUI, app.UI.Theme(), "loading manifest…", func() (*manifest.Manifest, error) {
+		m, err := manifest.Load(app.Config.ManifestPath)
+		if err != nil {
+			return nil, fmt.Errorf("load manifest: %w", err)
+		}
+		return m, nil
+	})
 	if err != nil {
-		return fmt.Errorf("load manifest: %w", err)
+		return err
 	}
 	if len(m.Installations) == 0 {
 		app.UI.Info("no skills installed")
 		return nil
 	}
 
-	reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+	reg, err := tui.RunWithLoadingIf(useTUI, app.UI.Theme(), "loading registry…", func() (*registry.Registry, error) {
+		reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+		if err != nil {
+			return nil, fmt.Errorf("load registry: %w", err)
+		}
+		return reg, nil
+	})
 	if err != nil {
-		return fmt.Errorf("load registry: %w", err)
+		return err
 	}
 
 	plans := install.PlanUpdates(reg, m, only)
@@ -93,7 +108,6 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 	}
 
 	engine := install.NewEngine(app.Config.CacheDir, app.Config.ManifestPath)
-	useTUI := tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
 	var aggregate install.Result
 
 	run := func(sink install.EventSink) error {
@@ -153,7 +167,11 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 	}
 
 	if useTUI {
-		if err := tui.ExecuteWithProgress(app.UI.Theme(), "update", run); err != nil {
+		p, err := profile.Load(app.Config.ProfilePath)
+		if err != nil {
+			return err
+		}
+		if err := tui.ExecuteWithProgress(app.UI.Theme(), "update", p.StatusAutoReturnDuration(), run); err != nil {
 			return err
 		}
 		// Feedback already lives in the progress model's blocking done/summary

@@ -11,6 +11,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
+	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
@@ -125,7 +126,11 @@ func runMigrate(app *App, sourcePlatform string, f migrateFlags) error {
 	}
 
 	if useTUI {
-		if err := tui.ExecuteWithProgress(app.UI.Theme(), "migrate", run); err != nil {
+		p, err := profile.Load(app.Config.ProfilePath)
+		if err != nil {
+			return err
+		}
+		if err := tui.ExecuteWithProgress(app.UI.Theme(), "migrate", p.StatusAutoReturnDuration(), run); err != nil {
 			return err
 		}
 	} else {

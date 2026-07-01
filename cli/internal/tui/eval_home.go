@@ -38,7 +38,10 @@ type EvalHomeData struct {
 // ESC or a run is complete.
 func RunEvalHome(theme *ui.Theme, crumb string, load func() (EvalHomeData, error), onRun func(string) error) error {
 	for {
-		data, err := load()
+		// Behind its own alt-screen loading spinner, not the exposed
+		// terminal buffer — load scans the eval workspace on disk, which
+		// can take a moment on a large history.
+		data, err := RunWithLoading(theme, "loading eval workspace…", load)
 		if err != nil {
 			return err
 		}

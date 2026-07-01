@@ -200,6 +200,11 @@ func (m profileModel) toggleCurrent() profileModel {
 			m.profile.DefaultScope = scopeSettingOpts[m.valueIdx].value
 			m.changed = true
 		}
+	case 2: // status auto-return
+		if m.valueIdx >= 0 && m.valueIdx < len(autoReturnSettingOpts) {
+			m.profile.StatusAutoReturnSeconds = autoReturnSettingOpts[m.valueIdx].value
+			m.changed = true
+		}
 	}
 	return m
 }
@@ -216,6 +221,23 @@ var scopeSettingOpts = []struct{ label, value string }{
 	{"adapter default", profile.ScopeAdapterDefault},
 }
 
+// autoReturnSettingOpts is the picker for StatusAutoReturnSeconds. nil means
+// "unset" — i.e. the built-in default — rather than a concrete duration, so
+// this can't reuse a plain []int; each option pairs a label with the exact
+// pointer value toggling it should write into the profile.
+var autoReturnSettingOpts = []struct {
+	label string
+	value *int
+}{
+	{fmt.Sprintf("%ds (default)", profile.DefaultStatusAutoReturnSeconds), nil},
+	{"10s", intPtr(10)},
+	{"15s", intPtr(15)},
+	{"30s", intPtr(30)},
+	{"disabled — wait for enter/q", intPtr(0)},
+}
+
+func intPtr(n int) *int { return &n }
+
 // currentSelectionIndex returns the index in the right-pane options list that
 // represents the profile's current value for the focused setting. Used to
 // place the cursor on the already-selected option when the user drills in.
@@ -230,8 +252,25 @@ func (m profileModel) currentSelectionIndex() int {
 				return i
 			}
 		}
+	case 2:
+		cur := m.profile.StatusAutoReturnSeconds
+		for i, opt := range autoReturnSettingOpts {
+			if autoReturnValueEqual(cur, opt.value) {
+				return i
+			}
+		}
 	}
 	return 0
+}
+
+// autoReturnValueEqual compares two *int settings by value, treating nil as
+// its own distinct state (unset/default) rather than equal to any concrete
+// number, including 0.
+func autoReturnValueEqual(a, b *int) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return *a == *b
 }
 
 func (m profileModel) valueCount() int {
@@ -240,6 +279,8 @@ func (m profileModel) valueCount() int {
 		return len(m.adapters)
 	case 1:
 		return len(scopeSettingOpts)
+	case 2:
+		return len(autoReturnSettingOpts)
 	}
 	return 0
 }
@@ -262,6 +303,7 @@ type profileSetting struct {
 var profileSettings = []profileSetting{
 	{key: "platforms", label: "default platforms", kind: settingMulti},
 	{key: "scope", label: "default scope", kind: settingRadio},
+	{key: "status_auto_return", label: "status auto-return", kind: settingRadio},
 }
 
 func (m profileModel) View() string {
@@ -388,6 +430,8 @@ func (m profileModel) renderRight(width int) string {
 		body = append(body, m.renderPlatformOptions(bar, width)...)
 	case 1:
 		body = append(body, m.renderScopeOptions(bar, width)...)
+	case 2:
+		body = append(body, m.renderAutoReturnOptions(bar, width)...)
 	}
 	return strings.Join(body, "\n")
 }
@@ -475,6 +519,45 @@ func (m profileModel) renderScopeOptions(bar string, width int) []string {
 	return rows
 }
 
+// renderAutoReturnOptions renders the StatusAutoReturnSeconds picker: how
+// long a completed status screen (registry refresh, install, update) waits
+// before auto-returning to the dashboard.
+func (m profileModel) renderAutoReturnOptions(bar string, width int) []string {
+	th := m.theme
+	cur := m.profile.StatusAutoReturnSeconds
+	rows := make([]string, 0, len(autoReturnSettingOpts)+4)
+	rows = append(rows, bar+" "+th.Detail.Render(
+		"How long a completed status screen (registry refresh, install, update) "+
+			"stays up before automatically returning to the dashboard. A failed run "+
+			"always waits for enter/q — this only applies to successful runs."))
+	rows = append(rows, bar)
+	rows = append(rows, bar+" "+th.SectionTitle.Render("OPTIONS"))
+	for i, opt := range autoReturnSettingOpts {
+		cursorHere := i == m.valueIdx && m.focus == focusValue
+		isCurrent := autoReturnValueEqual(cur, opt.value)
+		marker := "( )"
+		if isCurrent {
+			marker = "(●)"
+		}
+		var styled string
+		switch {
+		case cursorHere:
+			styled = th.RowSelected.Render(marker + "  " + opt.label)
+		case isCurrent:
+			styled = th.Success.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
+		default:
+			styled = th.RowDim.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
+		}
+		prefix := bar + "   "
+		if cursorHere {
+			prefix = bar + " " + th.Bullet.Render("▸") + " "
+		}
+		rows = append(rows, prefix+styled)
+	}
+	_ = width
+	return rows
+}
+
 func (m profileModel) layoutRow(label, badge string, width int) string {
 	lw := lipgloss.Width(label)
 	bw := lipgloss.Width(badge)
@@ -505,8 +588,23 @@ func (m profileModel) settingBadge(key string) string {
 		default:
 			return resolved
 		}
+	case "status_auto_return":
+		return formatAutoReturnBadge(m.profile.StatusAutoReturnSeconds)
 	}
 	return ""
+}
+
+// formatAutoReturnBadge renders StatusAutoReturnSeconds for the left-pane
+// badge and the profile CLI's `show`/`set` output.
+func formatAutoReturnBadge(seconds *int) string {
+	switch {
+	case seconds == nil:
+		return fmt.Sprintf("%ds (default)", profile.DefaultStatusAutoReturnSeconds)
+	case *seconds <= 0:
+		return "disabled"
+	default:
+		return fmt.Sprintf("%ds", *seconds)
+	}
 }
 
 // settingValueEmpty reports whether a setting has no meaningful value yet.
