@@ -98,6 +98,7 @@ type Model struct {
 	preview viewport.Model
 	filter  textinput.Model
 	filtOn  bool
+	helpOn  bool // ? overlay: full-body keybinding cheatsheet
 	result  Result
 	keys    Keys
 	actions map[string]ActionSpec // keyed by ActionSpec.Key
@@ -166,11 +167,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case tea.KeyMsg:
+		if m.helpOn {
+			return m.updateHelp(msg)
+		}
 		if m.filtOn {
 			return m.updateFilter(msg)
 		}
 		return m.updateNav(msg)
 	}
+	return m, nil
+}
+
+// updateHelp handles keys while the ? overlay is open. ctrl+c still quits the
+// program; every other key just dismisses the overlay so it never traps the
+// user.
+func (m Model) updateHelp(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if msg.String() == "ctrl+c" {
+		m.result = Result{Quit: true}
+		m.done = true
+		return m, tea.Quit
+	}
+	m.helpOn = false
 	return m, nil
 }
 
@@ -218,6 +235,9 @@ func (m Model) updateNav(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.filtOn = true
 			m.filter.Focus()
 		}
+		return m, nil
+	case key.Matches(msg, m.keys.Help):
+		m.helpOn = true
 		return m, nil
 	}
 
@@ -412,17 +432,23 @@ func (m Model) View() string {
 		Meta:    metaRight,
 	}, m.width)
 
-	body := m.renderBody(leftW, rightW)
-
-	focused := ""
-	if m.cfg.FocusedLabel != nil {
-		focused = m.cfg.FocusedLabel(m.items, m.cursor)
-	} else if len(m.items) > 0 {
-		// "focused:" stays muted; the value (item key) renders in the
-		// magenta brand colour to match the design.
-		focused = th.Meta.Render("focused: ") + th.Brand.Render(m.items[m.cursor].Key())
+	var body string
+	var footer string
+	if m.helpOn {
+		body = m.renderHelp()
+		footer = Footer(th, []KeyHint{{Keys: "any key", Label: "close help"}}, "", m.width)
+	} else {
+		body = m.renderBody(leftW, rightW)
+		focused := ""
+		if m.cfg.FocusedLabel != nil {
+			focused = m.cfg.FocusedLabel(m.items, m.cursor)
+		} else if len(m.items) > 0 {
+			// "focused:" stays muted; the value (item key) renders in the
+			// magenta brand colour to match the design.
+			focused = th.Meta.Render("focused: ") + th.Brand.Render(m.items[m.cursor].Key())
+		}
+		footer = Footer(th, m.hints(), focused, m.width)
 	}
-	footer := Footer(th, m.hints(), focused, m.width)
 
 	bodyH := m.height - lipgloss.Height(header) - lipgloss.Height(footer) - 1
 	if bodyH < 5 {
@@ -554,8 +580,83 @@ func (m Model) hints() []KeyHint {
 	if backLabel == "" {
 		backLabel = "quit"
 	}
+	hints = append(hints, KeyHint{Keys: "?", Label: "help"})
 	hints = append(hints, KeyHint{Keys: backKey, Label: backLabel})
 	return hints
+}
+
+// renderHelp draws the ? overlay body: a keybinding cheatsheet grouped by
+// concern. It reflects the model's actual configuration (filter only when the
+// list is filterable, the caller's Actions, the caller's back key/label) so the
+// sheet never advertises a key that does nothing.
+func (m Model) renderHelp() string {
+	th := m.cfg.Theme
+
+	type helpRow struct{ keys, label string }
+	type helpGroup struct {
+		title string
+		rows  []helpRow
+	}
+
+	nav := helpGroup{title: "NAVIGATE", rows: []helpRow{
+		{"↑ / k", "move up"},
+		{"↓ / j", "move down"},
+	}}
+	if m.cfg.Items != nil {
+		nav.rows = append(nav.rows, helpRow{"/", "filter list"})
+	}
+
+	scroll := helpGroup{title: "SCROLL DETAIL", rows: []helpRow{
+		{"⇞ / ⇟", "page up / down"},
+		{"ctrl+u / ctrl+d", "half page up / down"},
+		{"shift+↑ / shift+↓", "line up / down"},
+		{"home / end", "jump to top / bottom"},
+	}}
+
+	groups := []helpGroup{nav, scroll}
+
+	if len(m.cfg.Actions) > 0 {
+		rows := make([]helpRow, 0, len(m.cfg.Actions))
+		for i, a := range m.cfg.Actions {
+			keys := a.Key
+			if i == 0 {
+				// The first action is also bound to enter (see updateNav).
+				keys = a.Key + " / enter"
+			}
+			rows = append(rows, helpRow{keys, a.Label})
+		}
+		groups = append(groups, helpGroup{title: "ACTIONS", rows: rows})
+	}
+
+	backKey := textutil.FirstNonEmpty(m.cfg.BackKey, "q")
+	backLabel := textutil.FirstNonEmpty(m.cfg.BackLabel, "quit")
+	groups = append(groups, helpGroup{title: "GENERAL", rows: []helpRow{
+		{"?", "toggle this help"},
+		{backKey + " / esc", backLabel},
+		{"ctrl+c", "quit"},
+	}})
+
+	// Align the key column to the widest key across every group so the labels
+	// form a clean second column.
+	keyW := 0
+	for _, g := range groups {
+		for _, r := range g.rows {
+			if w := lipgloss.Width(r.keys); w > keyW {
+				keyW = w
+			}
+		}
+	}
+
+	var sb strings.Builder
+	sb.WriteString("  " + th.SectionTitle.Render(spacedUpper("Keybindings")) + "\n")
+	for _, g := range groups {
+		sb.WriteString("\n  " + th.Meta.Render(g.title) + "\n")
+		for _, r := range g.rows {
+			keyCol := r.keys + strings.Repeat(" ", keyW-lipgloss.Width(r.keys))
+			sb.WriteString("    " + th.Brand.Render(keyCol) + "  " + th.Detail.Render(r.label) + "\n")
+		}
+	}
+	return strings.TrimRight(sb.String(), "\n")
 }
 
 // RunListDetail runs the model on an alt-screen and returns the user's choice.

@@ -178,6 +178,65 @@ func TestModel_ViewMentionsTitles(t *testing.T) {
 	}
 }
 
+func TestModel_HelpOverlayTogglesAndDismisses(t *testing.T) {
+	m := newTestListDetail(
+		[]Item{testItem{name: "a", filter: "a"}},
+		[]ActionSpec{{Key: "i", Label: "install", Action: "install"}},
+	)
+	m.width, m.height = 80, 24
+	m.resize()
+
+	// ? opens the overlay.
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("?")})
+	mm := out.(Model)
+	if !mm.helpOn {
+		t.Fatal("expected help overlay on after ?")
+	}
+
+	// The overlay body lists the caller's action and the general keys.
+	v := mm.View()
+	for _, want := range []string{"KEYBINDINGS", "NAVIGATE", "install", "toggle this help", "close help"} {
+		if !strings.Contains(v, want) {
+			t.Errorf("help view missing %q:\n%s", want, v)
+		}
+	}
+
+	// Any key (here: a bare rune) dismisses the overlay without firing actions.
+	out, _ = mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x")})
+	mm = out.(Model)
+	if mm.helpOn {
+		t.Error("expected help overlay dismissed after key press")
+	}
+	if mm.result.Action != "" || mm.result.Quit {
+		t.Errorf("dismiss key should not trigger action/quit: %+v", mm.result)
+	}
+}
+
+func TestModel_HelpOverlayCtrlCQuits(t *testing.T) {
+	m := newTestListDetail([]Item{testItem{name: "a", filter: "a"}}, nil)
+	m.width, m.height = 80, 24
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("?")})
+	mm := out.(Model)
+	out, cmd := mm.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	mm = out.(Model)
+	if !mm.result.Quit {
+		t.Error("ctrl+c from help should quit")
+	}
+	if cmd == nil {
+		t.Error("expected Quit cmd from ctrl+c")
+	}
+}
+
+func TestModel_FooterShowsHelpHint(t *testing.T) {
+	m := newTestListDetail([]Item{testItem{name: "a", filter: "a"}}, nil)
+	m.width, m.height = 80, 24
+	m.resize()
+	v := m.View()
+	if !strings.Contains(v, "help") {
+		t.Errorf("footer should advertise the ? help hint:\n%s", v)
+	}
+}
+
 func TestModel_EmptyItemsShowsEmptyMsg(t *testing.T) {
 	m := newTestListDetail(nil, nil)
 	m.width, m.height = 80, 24
