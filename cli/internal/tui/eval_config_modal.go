@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -108,24 +109,33 @@ func (m evalConfigModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q", "esc":
+		keys := DefaultKeys()
+		switch {
+		case key.Matches(msg, keys.Quit), key.Matches(msg, keys.Back):
 			m.done = true
 			return m, tea.Quit
+		case key.Matches(msg, keys.Up):
+			m.cursor = clamp(m.cursor-1, 0, m.groupLen()-1)
+			return m, nil
+		case key.Matches(msg, keys.Down):
+			m.cursor = clamp(m.cursor+1, 0, m.groupLen()-1)
+			return m, nil
+		case key.Matches(msg, keys.Enter):
+			return m.onEnter()
+		}
+		// Group cycling and multi-select toggle aren't shared keymap verbs.
+		switch msg.String() {
 		case "tab":
 			m.group = cfgGroup((int(m.group) + 1) % 6)
 			m.cursor = m.cursorDefault()
+			return m, nil
 		case "shift+tab":
 			m.group = cfgGroup((int(m.group) + 5) % 6)
 			m.cursor = m.cursorDefault()
-		case "up", "k":
-			m.cursor = clamp(m.cursor-1, 0, m.groupLen()-1)
-		case "down", "j":
-			m.cursor = clamp(m.cursor+1, 0, m.groupLen()-1)
+			return m, nil
 		case " ":
 			m.toggleCurrent()
-		case "enter":
-			return m.onEnter()
+			return m, nil
 		}
 	}
 	return m, nil

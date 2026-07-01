@@ -80,6 +80,37 @@ func TestDashboardModel_QuitKeys(t *testing.T) {
 	}
 }
 
+func TestDashboardModel_VimKeysNavigateViaSharedKeymap(t *testing.T) {
+	m := dashboardModel{cfg: DashboardConfig{Theme: ui.DefaultTheme(), Tiles: DefaultDashboardTiles()}}
+	m.width = 120 // 3 columns
+	m.rebuildVisible()
+
+	// j moves down a full row (cols tiles) via keys.Down ("down"/"j").
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("j")})
+	dm := out.(dashboardModel)
+	if dm.cursor == 0 {
+		t.Errorf("j should move the cursor down, got %d", dm.cursor)
+	}
+
+	// l moves right one tile (keys.Right = right/l), and must NOT launch the
+	// "list" command whose hotkey is also "l" — movement shadows it.
+	out, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("l")})
+	dm = out.(dashboardModel)
+	if dm.result.Command != "" {
+		t.Errorf("l should move right, not launch a command: %+v", dm.result)
+	}
+	if dm.cursor != 1 {
+		t.Errorf("l should move cursor right to 1, got %d", dm.cursor)
+	}
+
+	// A hotkey that doesn't collide with hjkl still launches.
+	out, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("d")})
+	dm = out.(dashboardModel)
+	if dm.result.Command != "doctor" {
+		t.Errorf("d should launch doctor, got %+v", dm.result)
+	}
+}
+
 func TestDashboardModel_HotkeyLaunchesCommand(t *testing.T) {
 	m := dashboardModel{
 		cfg: DashboardConfig{
