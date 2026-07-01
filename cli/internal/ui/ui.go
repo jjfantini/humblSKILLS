@@ -4,6 +4,7 @@
 package ui
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -135,6 +136,33 @@ func (p *Printer) IsJSON() bool { return p.jsonMode }
 // level semantics.
 func (p *Printer) Out() io.Writer { return p.out }
 func (p *Printer) Err() io.Writer { return p.err }
+
+// CaptureWriters temporarily redirects both Out and Err to an in-memory
+// buffer and returns a restore function that puts the original writers back
+// and returns everything written while captured.
+//
+// This exists for callers like the dashboard loop that re-enter an
+// alt-screen bubbletea program immediately after running a sub-command: any
+// plain Info/Success/Warn/Error line that sub-command prints in the gap
+// between screens would otherwise be silently overwritten before anyone
+// could read it. Capturing it here lets the caller show it as a proper
+// blocking status screen instead — the dashboard ends up displaying exactly
+// what the standalone CLI would have printed.
+//
+// Safe with respect to colour: the Theme's renderer already picked its
+// colour profile from the real Out at Printer construction time (see
+// NewTheme in theme.go), so redirecting p.out/p.err afterward doesn't
+// change how styles are rendered — it only changes where the resulting
+// bytes are written.
+func (p *Printer) CaptureWriters() (restore func() string) {
+	var buf bytes.Buffer
+	prevOut, prevErr := p.out, p.err
+	p.out, p.err = &buf, &buf
+	return func() string {
+		p.out, p.err = prevOut, prevErr
+		return buf.String()
+	}
+}
 
 // Header prints the shared breadcrumb used above command output:
 //
