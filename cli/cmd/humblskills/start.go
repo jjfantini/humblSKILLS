@@ -40,7 +40,16 @@ func runStart(app *App) error {
 	}
 
 	for {
-		summary := buildDashboardSummary(app)
+		// Rebuilt behind its own loading spinner (not synchronously on the
+		// exposed terminal buffer) so returning here after every dashboard
+		// command doesn't flash the underlying terminal while adapters,
+		// manifest, and registry get re-read.
+		summary, err := tui.RunWithLoading(app.UI.Theme(), "refreshing dashboard…", func() (dashboardSummary, error) {
+			return buildDashboardSummary(app), nil
+		})
+		if err != nil {
+			return err
+		}
 		status := tui.DashboardStatus{
 			Healthy:   summary.drifted == 0,
 			Platforms: summary.platforms,
@@ -94,11 +103,16 @@ func dispatchDashboardCommand(app *App, cmd string) error {
 	case "upgrade":
 		return runUpgrade(app, upgradeFlags{})
 	case "search":
-		reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+		hits, err := tui.RunWithLoading(app.UI.Theme(), "loading registry…", func() ([]registry.Skill, error) {
+			reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+			if err != nil {
+				return nil, err
+			}
+			return append([]registry.Skill(nil), reg.Skills...), nil
+		})
 		if err != nil {
 			return err
 		}
-		hits := append([]registry.Skill(nil), reg.Skills...)
 		return runSearchTUI(app, hits, true)
 	case "uninstall":
 		return runUninstallPicker(app, true)

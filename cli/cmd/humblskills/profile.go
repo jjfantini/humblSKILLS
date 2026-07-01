@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -44,9 +45,10 @@ func newProfileShowCmd(app *App) *cobra.Command {
 
 func newProfileSetCmd(app *App) *cobra.Command {
 	return &cobra.Command{
-		Use:   "set <key> <value>",
-		Short: "Set a profile value. Keys: platforms (csv), scope (global|user|project|adapter-default).",
-		Args:  cobra.ExactArgs(2),
+		Use: "set <key> <value>",
+		Short: "Set a profile value. Keys: platforms (csv), scope (global|user|project|adapter-default), " +
+			"status_auto_return_seconds (seconds, or default|off).",
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runProfileSet(app, args[0], args[1])
 		},
@@ -82,14 +84,28 @@ func runProfileDefault(app *App) error {
 }
 
 func runProfileEditor(app *App) error {
-	adapterList, err := app.Adapters()
-	if err != nil {
-		return fmt.Errorf("load adapters: %w", err)
+	useTUI := tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
+
+	type preload struct {
+		adapters []adapters.Adapter
+		profile  *profile.Profile
 	}
-	p, err := profile.Load(app.Config.ProfilePath)
+	pre, err := tui.RunWithLoadingIf(useTUI, app.UI.Theme(), "loading profile…", func() (preload, error) {
+		adapterList, err := app.Adapters()
+		if err != nil {
+			return preload{}, fmt.Errorf("load adapters: %w", err)
+		}
+		p, err := profile.Load(app.Config.ProfilePath)
+		if err != nil {
+			return preload{}, err
+		}
+		return preload{adapters: adapterList, profile: p}, nil
+	})
 	if err != nil {
 		return err
 	}
+	adapterList, p := pre.adapters, pre.profile
+
 	updated, saved, err := tui.RunProfileEditorWith(app.UI.Theme(), adapterList, p, tui.ProfileHeaderSpec{
 		Section: app.headerSection("Profile"),
 		Meta:    app.headerMeta(""),
@@ -126,6 +142,8 @@ func runProfileShow(app *App) error {
 		th.KVValue.Render(formatPlatforms(p.DefaultPlatforms)))
 	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("scope")+"        "+
 		th.KVValue.Render(formatScope(p.DefaultScope)))
+	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("auto-return")+"  "+
+		th.KVValue.Render(formatAutoReturn(p.StatusAutoReturnSeconds)))
 	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("path")+"         "+
 		th.KVValue.Render(app.Config.ProfilePath))
 	return nil
@@ -160,8 +178,14 @@ func runProfileSet(app *App, key, value string) error {
 			return fmt.Errorf("invalid scope %q — valid: global, user, project, adapter-default, \"\"", value)
 		}
 		p.DefaultScope = value
+	case "status_auto_return_seconds":
+		seconds, err := parseStatusAutoReturnSeconds(value)
+		if err != nil {
+			return err
+		}
+		p.StatusAutoReturnSeconds = seconds
 	default:
-		return fmt.Errorf("unknown key %q — valid keys: platforms, scope", key)
+		return fmt.Errorf("unknown key %q — valid keys: platforms, scope, status_auto_return_seconds", key)
 	}
 
 	if err := profile.Save(app.Config.ProfilePath, p); err != nil {
@@ -229,6 +253,36 @@ func formatPlatforms(p []string) string {
 		return "(all detected)"
 	}
 	return strings.Join(p, ", ")
+}
+
+// parseStatusAutoReturnSeconds parses the `profile set status_auto_return_seconds`
+// value: "default"/"" resets to unset (built-in default), "off"/"disabled"
+// disables the timer, anything else must be a non-negative integer.
+func parseStatusAutoReturnSeconds(value string) (*int, error) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "default", "":
+		return nil, nil
+	case "off", "disabled":
+		n := 0
+		return &n, nil
+	}
+	n, err := strconv.Atoi(value)
+	if err != nil || n < 0 {
+		return nil, fmt.Errorf("invalid status_auto_return_seconds %q — expected a non-negative integer, \"off\"/\"disabled\", or \"default\"", value)
+	}
+	return &n, nil
+}
+
+// formatAutoReturn renders StatusAutoReturnSeconds for `profile show`.
+func formatAutoReturn(seconds *int) string {
+	switch {
+	case seconds == nil:
+		return fmt.Sprintf("%ds (default)", profile.DefaultStatusAutoReturnSeconds)
+	case *seconds <= 0:
+		return "disabled — wait for enter/q"
+	default:
+		return fmt.Sprintf("%ds", *seconds)
+	}
 }
 
 func formatScope(s string) string {

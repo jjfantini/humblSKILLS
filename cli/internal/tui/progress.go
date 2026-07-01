@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -61,6 +62,8 @@ type ProgressModel struct {
 	running bool
 	events  <-chan install.Event
 	doneErr <-chan error
+
+	autoReturn autoReturnTimer
 }
 
 type progressEntry struct {
@@ -83,9 +86,12 @@ func (p *progressEntry) key() string {
 	return p.skill + "\x00" + p.platform + "\x00" + p.scope
 }
 
-// NewProgressModel builds a model subscribed to events/doneErr. command is the
-// header breadcrumb ("install" or "update").
-func NewProgressModel(theme *ui.Theme, command string, events <-chan install.Event, doneErr <-chan error) ProgressModel {
+// NewProgressModel builds a model subscribed to events/doneErr. command is
+// the header breadcrumb ("install" or "update"). autoReturn is how long the
+// done screen waits before auto-returning to the dashboard on success (0
+// disables it - see profile.Profile.StatusAutoReturnDuration); a failed run
+// always waits for the user regardless of this value.
+func NewProgressModel(theme *ui.Theme, command string, events <-chan install.Event, doneErr <-chan error, autoReturn time.Duration) ProgressModel {
 	p := progress.New(
 		progress.WithGradient(string(theme.Palette.Brand), string(theme.Palette.Accent)),
 		progress.WithoutPercentage(),
@@ -97,14 +103,15 @@ func NewProgressModel(theme *ui.Theme, command string, events <-chan install.Eve
 	sp.Style = theme.Brand
 
 	return ProgressModel{
-		theme:   theme,
-		command: command,
-		bar:     p,
-		spin:    sp,
-		keyed:   map[string]*progressEntry{},
-		events:  events,
-		doneErr: doneErr,
-		running: true,
+		theme:      theme,
+		command:    command,
+		bar:        p,
+		spin:       sp,
+		keyed:      map[string]*progressEntry{},
+		events:     events,
+		doneErr:    doneErr,
+		running:    true,
+		autoReturn: autoReturnTimer{duration: autoReturn},
 	}
 }
 
@@ -145,10 +152,22 @@ func (m ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// anything, success or failure. Now it just flips to the done
 		// state (running=false) and stays on screen; the tea.KeyMsg case
 		// below is what actually dismisses it, matching the "enter/q to
-		// close" footer hint that was previously dead code.
+		// close" footer hint that was previously dead code. On success only,
+		// autoReturn additionally arms a countdown that dismisses the screen
+		// on its own — a failure always waits for the user to read it.
 		m.err = msg.Err
 		m.running = false
+		if m.err == nil {
+			return m, m.autoReturn.Start()
+		}
 		return m, nil
+
+	case autoReturnTickMsg:
+		quit, cmd := m.autoReturn.Tick()
+		if quit {
+			return m, tea.Quit
+		}
+		return m, cmd
 
 	case spinner.TickMsg:
 		var cmd tea.Cmd
@@ -206,9 +225,13 @@ func (m ProgressModel) View() string {
 	}
 
 	var footer string
-	if m.running {
+	switch {
+	case m.running:
 		footer = Footer(th, []KeyHint{{Keys: "ctrl+c", Label: "abort"}}, "", m.width)
-	} else {
+	case m.autoReturn.Active():
+		footer = Footer(th, []KeyHint{{Keys: "enter/q", Label: "close now"}},
+			th.Detail.Render(fmt.Sprintf("closing in %ds", m.autoReturn.RemainingSeconds())), m.width)
+	default:
 		footer = Footer(th, []KeyHint{{Keys: "enter/q", Label: "close"}}, "", m.width)
 	}
 	return header + "\n\n" + sb.String() + "\n" + footer
@@ -357,10 +380,11 @@ func (m ProgressModel) renderSummary() string {
 // ExecuteWithProgress runs fn in a goroutine while a ProgressModel UI shows
 // live engine progress. fn is expected to call engine.Execute (or equivalent)
 // with an EventSink that forwards onto events. fn's error becomes
-// ProgressDoneMsg.Err.
+// ProgressDoneMsg.Err. autoReturn is how long the done screen waits before
+// auto-returning to the dashboard on success (see NewProgressModel).
 //
 // Returns the final engine error when the model exits.
-func ExecuteWithProgress(theme *ui.Theme, command string, fn func(sink install.EventSink) error) error {
+func ExecuteWithProgress(theme *ui.Theme, command string, autoReturn time.Duration, fn func(sink install.EventSink) error) error {
 	events := make(chan install.Event, 32)
 	doneErr := make(chan error, 1)
 
@@ -371,7 +395,7 @@ func ExecuteWithProgress(theme *ui.Theme, command string, fn func(sink install.E
 		doneErr <- fn(sink)
 	}()
 
-	m, err := Run(NewProgressModel(theme, command, events, doneErr))
+	m, err := Run(NewProgressModel(theme, command, events, doneErr, autoReturn))
 	if err != nil {
 		return err
 	}

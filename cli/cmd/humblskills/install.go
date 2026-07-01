@@ -49,15 +49,27 @@ func newInstallCmd(app *App) *cobra.Command {
 }
 
 func runInstall(app *App, skill string, f installFlags, fromDashboard bool) error {
-	adapterList, err := app.Adapters()
-	if err != nil {
-		return fmt.Errorf("load adapters: %w", err)
-	}
+	useTUI := tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
 
-	reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
-	if err != nil {
-		return fmt.Errorf("load registry: %w", err)
+	type preload struct {
+		adapters []adapters.Adapter
+		reg      *registry.Registry
 	}
+	pre, err := tui.RunWithLoadingIf(useTUI, app.UI.Theme(), "loading adapters + registry…", func() (preload, error) {
+		adapterList, err := app.Adapters()
+		if err != nil {
+			return preload{}, fmt.Errorf("load adapters: %w", err)
+		}
+		reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+		if err != nil {
+			return preload{}, fmt.Errorf("load registry: %w", err)
+		}
+		return preload{adapters: adapterList, reg: reg}, nil
+	})
+	if err != nil {
+		return err
+	}
+	adapterList, reg := pre.adapters, pre.reg
 
 	if skill == "" {
 		skill, err = pickSkill(app, reg, fromDashboard)
@@ -81,7 +93,7 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 	platforms := f.platforms
 	scope := f.scope
 	global := f.global
-	useTUIForModal := !explicitFlags && tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
+	useTUIForModal := !explicitFlags && useTUI
 	if useTUIForModal {
 		plats, scp, glob, ok, err := promptInstallTargets(app, adapterList, skill)
 		if err != nil {
@@ -117,7 +129,6 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 	}
 
 	engine := install.NewEngine(app.Config.CacheDir, app.Config.ManifestPath)
-	useTUI := tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
 
 	if !useTUI {
 		app.UI.Detail("plan:")
@@ -145,7 +156,7 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 	}
 
 	if useTUI {
-		if err := tui.ExecuteWithProgress(app.UI.Theme(), "install", run); err != nil {
+		if err := tui.ExecuteWithProgress(app.UI.Theme(), "install", p.StatusAutoReturnDuration(), run); err != nil {
 			return err
 		}
 		// Feedback already lives in the progress model's blocking done/summary
@@ -320,10 +331,16 @@ func pickSkill(app *App, reg *registry.Registry, fromDashboard bool) (string, er
 	skills := append([]registry.Skill(nil), reg.Skills...)
 	sort.Slice(skills, func(i, j int) bool { return skills[i].Name < skills[j].Name })
 
-	m, err := manifest.Load(app.Config.ManifestPath)
-	if err != nil {
-		m = &manifest.Manifest{}
-	}
+	// ShouldUseTUI already returned true above, so this always runs behind
+	// its own alt-screen loading spinner rather than on the exposed
+	// terminal buffer right before the picker takes over.
+	m, _ := tui.RunWithLoading(app.UI.Theme(), "loading manifest…", func() (*manifest.Manifest, error) {
+		m, err := manifest.Load(app.Config.ManifestPath)
+		if err != nil {
+			return &manifest.Manifest{}, nil
+		}
+		return m, nil
+	})
 	items := buildSkillItems(skills, m)
 
 	skill, action, err := runSkillBrowser(app, "Install", items, modeSearch, "registry is empty", fromDashboard)

@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
@@ -38,25 +40,49 @@ func newRegistryRefreshCmd(app *App) *cobra.Command {
 
 func runRegistryRefresh(app *App) error {
 	f := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir)
-	var (
-		reg    *registry.Registry
-		origin registry.Origin
-	)
+
+	refresh := func() (refreshResult, error) {
+		r, o, err := f.Refresh()
+		if err != nil {
+			return refreshResult{}, err
+		}
+		info := f.Inspect()
+		return refreshResult{
+			URL:       app.Config.RegistryURL,
+			Source:    string(o),
+			Skills:    len(r.Skills),
+			FetchedAt: info.FetchedAt,
+			CachePath: info.Path,
+		}, nil
+	}
+
+	if tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
+		p, err := profile.Load(app.Config.ProfilePath)
+		if err != nil {
+			return err
+		}
+		_, err = tui.ExecuteWithStatus(app.UI.Theme(), "registry", "refreshing registry…", p.StatusAutoReturnDuration(),
+			func() (tui.StatusResult, error) {
+				res, err := refresh()
+				if err != nil {
+					return tui.StatusResult{}, err
+				}
+				return tui.StatusResult{
+					Headline: fmt.Sprintf("registry refreshed: %d skill%s from %s", res.Skills, plural(res.Skills), res.Source),
+					Lines:    []string{"cache: " + res.CachePath},
+				}, nil
+			})
+		return err
+	}
+
+	var res refreshResult
 	err := tui.RunWithSpinner(app.UI.Theme(), "refreshing registry…", func() error {
-		r, o, e := f.Refresh()
-		reg, origin = r, o
+		r, e := refresh()
+		res = r
 		return e
 	})
 	if err != nil {
 		return err
-	}
-	info := f.Inspect()
-	res := refreshResult{
-		URL:       app.Config.RegistryURL,
-		Source:    string(origin),
-		Skills:    len(reg.Skills),
-		FetchedAt: info.FetchedAt,
-		CachePath: info.Path,
 	}
 	if app.Config.JSON {
 		return app.UI.JSON(res)

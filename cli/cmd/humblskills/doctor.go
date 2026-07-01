@@ -113,7 +113,23 @@ func newDoctorCmd(app *App) *cobra.Command {
 }
 
 func runDoctor(app *App) error {
-	report, err := buildDoctorReport(app)
+	useTUI := tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
+
+	var report doctorReport
+	var err error
+	if useTUI {
+		// Build the report inside its own alt-screen loading spinner, not on
+		// the exposed terminal buffer — see loadingModel's doc comment for
+		// why that matters for avoiding the alt-screen "flash".
+		report, err = tui.RunWithLoading(app.UI.Theme(), "scanning environment…", func() (doctorReport, error) {
+			return buildDoctorReport(app)
+		})
+	} else {
+		err = tui.RunWithSpinner(app.UI.Theme(), "scanning environment…", func() error {
+			report, err = buildDoctorReport(app)
+			return err
+		})
+	}
 	if err != nil {
 		return err
 	}
@@ -128,7 +144,7 @@ func runDoctor(app *App) error {
 		return nil
 	}
 
-	if tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
+	if useTUI {
 		for {
 			rerun, err := runDoctorTUI(app, report)
 			if err != nil {
@@ -137,7 +153,9 @@ func runDoctor(app *App) error {
 			if !rerun {
 				break
 			}
-			report, err = buildDoctorReport(app)
+			report, err = tui.RunWithLoading(app.UI.Theme(), "rescanning…", func() (doctorReport, error) {
+				return buildDoctorReport(app)
+			})
 			if err != nil {
 				return err
 			}
@@ -186,16 +204,10 @@ func buildDoctorReport(app *App) (doctorReport, error) {
 	}
 
 	f := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir)
-	var (
-		reg    *registry.Registry
-		origin registry.Origin
-		rErr   error
-	)
-	// Don't spin during the TUI; buildDoctorReport is called outside alt-screen.
-	_ = tui.RunWithSpinner(app.UI.Theme(), "loading registry…", func() error {
-		reg, origin, rErr = f.Load()
-		return nil
-	})
+	// No spinner here - the caller (runDoctor) already wraps this whole
+	// function in one loading/spinner screen, so a second nested spinner
+	// would just fight it for the terminal.
+	reg, origin, rErr := f.Load()
 	rr := registryReport{URL: app.Config.RegistryURL, Source: string(origin)}
 	if rErr != nil {
 		rr.Error = rErr.Error()
