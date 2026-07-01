@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -413,15 +414,23 @@ func (m Model) View() string {
 
 	body := m.renderBody(leftW, rightW)
 
-	focused := ""
-	if m.cfg.FocusedLabel != nil {
-		focused = m.cfg.FocusedLabel(m.items, m.cursor)
-	} else if len(m.items) > 0 {
-		// "focused:" stays muted; the value (item key) renders in the
-		// magenta brand colour to match the design.
-		focused = th.Meta.Render("focused: ") + th.Brand.Render(m.items[m.cursor].Key())
+	var footer string
+	if m.filtOn {
+		// While typing a filter the nav/action keys are inert, so surface the
+		// two keys that actually do something (esc clears, enter applies) plus
+		// a live match count instead of the stale nav hints.
+		footer = Footer(th, m.filterHints(), m.filterContext(), m.width)
+	} else {
+		focused := ""
+		if m.cfg.FocusedLabel != nil {
+			focused = m.cfg.FocusedLabel(m.items, m.cursor)
+		} else if len(m.items) > 0 {
+			// "focused:" stays muted; the value (item key) renders in the
+			// magenta brand colour to match the design.
+			focused = th.Meta.Render("focused: ") + th.Brand.Render(m.items[m.cursor].Key())
+		}
+		footer = Footer(th, m.hints(), focused, m.width)
 	}
-	footer := Footer(th, m.hints(), focused, m.width)
 
 	bodyH := m.height - lipgloss.Height(header) - lipgloss.Height(footer) - 1
 	if bodyH < 5 {
@@ -510,6 +519,13 @@ func (m Model) renderRight(width int) string {
 		return title
 	}
 
+	// When the detail body overflows the viewport, right-anchor a compact
+	// scroll indicator on the title row (▲/▽ arrows + percent) so users know
+	// there's more to see and which way to scroll.
+	if ind := m.scrollIndicator(th); ind != "" {
+		title = padBetween(title, ind, width)
+	}
+
 	preview := m.preview.View()
 	lines := strings.Split(preview, "\n")
 	out := make([]string, 0, len(lines)+2)
@@ -520,8 +536,47 @@ func (m Model) renderRight(width int) string {
 	for _, ln := range lines {
 		out = append(out, bar+" "+ln)
 	}
-	_ = width
 	return strings.Join(out, "\n")
+}
+
+// scrollIndicator returns a compact "▲▼ NN%" widget when the detail viewport
+// has more content than fits, or "" when everything is visible. A filled arrow
+// means there's content in that direction; a hollow one means you're at that
+// edge.
+func (m Model) scrollIndicator(th *ui.Theme) string {
+	if m.preview.TotalLineCount() <= m.preview.Height {
+		return ""
+	}
+	up, down := "△", "▽"
+	if !m.preview.AtTop() {
+		up = "▲"
+	}
+	if !m.preview.AtBottom() {
+		down = "▼"
+	}
+	pct := int(m.preview.ScrollPercent()*100 + 0.5)
+	return th.Meta.Render(fmt.Sprintf("%s%s %d%%", up, down, pct))
+}
+
+// filterHints are the footer hints shown while the filter input is focused.
+// Only esc/enter do anything in this mode, so advertise exactly those.
+func (m Model) filterHints() []KeyHint {
+	return []KeyHint{
+		{Keys: "esc", Label: "clear filter"},
+		{Keys: "enter", Label: "apply"},
+	}
+}
+
+// filterContext is the right-anchored footer text during filtering: a live
+// count of how many items currently match.
+func (m Model) filterContext() string {
+	th := m.cfg.Theme
+	n := len(m.items)
+	noun := "matches"
+	if n == 1 {
+		noun = "match"
+	}
+	return th.Meta.Render(fmt.Sprintf("%d %s", n, noun))
 }
 
 func (m Model) hints() []KeyHint {
