@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.19.1](https://github.com/jjfantini/humblSKILLS/compare/v2.19.0...v2.19.1) (2026-07-01)
+
+
+### Bug Fixes
+
+* **upgrade:** run brew update before brew upgrade humblskills ([a37f54e](https://github.com/jjfantini/humblSKILLS/commit/a37f54eb6e994d26cc3a838cb570eac5fbbd3a44))
+* **upgrade:** run brew update before brew upgrade humblskills ([2eabf9e](https://github.com/jjfantini/humblSKILLS/commit/2eabf9e24b0e22ae05e651f13a5886c64625b2b3))
+
 ## [2.19.0](https://github.com/jjfantini/humblSKILLS/compare/v2.18.0...v2.19.0) (2026-07-01)
 
 
