@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
+	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
 // Doctor tests exercise the JSON output path (deterministic) rather
@@ -61,6 +62,28 @@ func TestDoctor_ReportsAdapters(t *testing.T) {
 	}
 	if got.Registry.Skills != 1 {
 		t.Errorf("registry.skills = %d, want 1", got.Registry.Skills)
+	}
+}
+
+func TestAdapterItem_DetailHumanizesReasonAndExplainsBadges(t *testing.T) {
+	th := ui.NewTheme(ui.DefaultPalette(), nil, true)
+	it := adapterItem{a: adapterReport{
+		Name:     "cursor",
+		Detected: true,
+		Reason:   "found ~/.cursor",
+		Targets: []targetReport{
+			{Scope: "user", Path: "/home/x/.cursor/skills", Writable: true},
+			{Scope: "project", Path: "/ro/.cursor/skills", Writable: false},
+		},
+	}}
+	d := it.Detail(th, 60)
+	for _, want := range []string{"reason", "found ~/.cursor", "rw = writable", "read-only"} {
+		if !strings.Contains(d, want) {
+			t.Errorf("adapter detail missing %q:\n%s", want, d)
+		}
+	}
+	if strings.Contains(d, "matched on") {
+		t.Errorf("stale 'matched on' label still present:\n%s", d)
 	}
 }
 

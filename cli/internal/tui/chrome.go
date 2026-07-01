@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
@@ -66,9 +67,29 @@ func Footer(theme *ui.Theme, hints []KeyHint, right string, width int) string {
 	left := strings.Join(parts, "  ")
 	// `right` is passed through unchanged so callers can compose mixed
 	// styles (e.g. muted label + magenta value for `focused: <name>`).
-	line := padBetween(left, right, width-2)
+	line := composeFooterLine(left, right, width-2)
 	rule := DashedRule(theme, width-2)
 	return "  " + rule + "\n  " + line
+}
+
+// composeFooterLine fits the hint block (left) and context (right) into avail
+// display columns without overflowing — an overflowing footer wraps in the
+// alt-screen and shoves the whole layout up a row. Priority: keep the
+// keybindings. If left+right won't fit, drop the (secondary) right context;
+// if the hints alone still overflow, truncate them with an ellipsis.
+func composeFooterLine(left, right string, avail int) string {
+	if avail < 1 {
+		avail = 1
+	}
+	lw := lipgloss.Width(left)
+	rw := lipgloss.Width(right)
+	if rw > 0 && lw+1+rw <= avail {
+		return padBetween(left, right, avail)
+	}
+	if lw <= avail {
+		return left
+	}
+	return ansi.Truncate(left, avail, "…")
 }
 
 // DashedRule returns a dashed horizontal line (╌) coloured with the border

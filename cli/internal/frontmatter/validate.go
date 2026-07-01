@@ -16,6 +16,24 @@ var winDriveRegex = regexp.MustCompile(`^[A-Za-z]:`)
 // NameRegex is the allowed shape for a skill name.
 var NameRegex = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
+// Categories is the closed, stable set of skill categories. It's a single
+// coarse bucket per skill (unlike freeform `tags`), used for browsing and
+// filtering. Keep this list short - adding a category is a taxonomy
+// decision, not a per-skill one.
+var Categories = []string{"development", "design", "writing", "meta"}
+
+// IsKnownCategory reports whether c is one of Categories. Exported so
+// callers outside this package (e.g. the search command's --category flag)
+// can validate against the same closed set used at registry-build time.
+func IsKnownCategory(c string) bool {
+	for _, known := range Categories {
+		if c == known {
+			return true
+		}
+	}
+	return false
+}
+
 // isStrictSemver accepts only MAJOR.MINOR.PATCH, optionally with prerelease
 // or build metadata. Go's x/mod/semver treats "1.2" as valid (v1.2.0); we
 // want to reject shortened forms.
@@ -132,6 +150,13 @@ func (fm Frontmatter) Validate(dirName string, ctx ValidationContext) error {
 		errs = append(errs, "version is required (set `metadata.version`)")
 	case !isStrictSemver(version):
 		errs = append(errs, fmt.Sprintf("version %q is not valid semver (want MAJOR.MINOR.PATCH)", version))
+	}
+
+	switch category := fm.Category(); {
+	case category == "":
+		errs = append(errs, fmt.Sprintf("category is required (set `metadata.category` to one of %s)", strings.Join(Categories, ", ")))
+	case !IsKnownCategory(category):
+		errs = append(errs, fmt.Sprintf("unknown category %q (must be one of %s)", category, strings.Join(Categories, ", ")))
 	}
 
 	for _, plat := range fm.Platforms() {

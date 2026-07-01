@@ -11,6 +11,8 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/skillset"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
+	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
 // --- export -----------------------------------------------------------------
@@ -58,7 +60,7 @@ func runExport(app *App, output string) error {
 	if err := skillset.Save(output, set); err != nil {
 		return err
 	}
-	app.UI.Success("exported %d skill%s to %s", len(set.Skills), plural(len(set.Skills)), output)
+	app.UI.Success("exported %d skill%s to %s", len(set.Skills), textutil.Plural(len(set.Skills)), output)
 	app.UI.Detail("commit it and run 'humblskills sync' on another machine to install the same set")
 	return nil
 }
@@ -67,6 +69,7 @@ func runExport(app *App, output string) error {
 
 func newSyncCmd(app *App) *cobra.Command {
 	var f installFlags
+	var prune bool
 	cmd := &cobra.Command{
 		Use:   "sync [file-or-url]",
 		Short: "Install every skill listed in a skillset file or URL",
@@ -75,9 +78,11 @@ func newSyncCmd(app *App) *cobra.Command {
 			"registry version. The source can be a local path, a file:// URL, or an " +
 			"http(s):// URL - so a team can host one canonical skillset and everyone " +
 			"runs 'humblskills sync https://example.com/humblskills.json'. Already " +
-			"up-to-date skills are skipped (use --force to reinstall). Platforms/scope " +
-			"follow the same rules as install: explicit --platform/--scope/--global " +
-			"flags win, otherwise your profile defaults apply.",
+			"up-to-date skills are skipped (use --force to reinstall). With --prune it " +
+			"also uninstalls any skill you have that the skillset doesn't list, making " +
+			"your local set match the file exactly. Platforms/scope follow the same " +
+			"rules as install: explicit --platform/--scope/--global flags win, " +
+			"otherwise your profile defaults apply.",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := skillset.DefaultFilename
@@ -86,22 +91,23 @@ func newSyncCmd(app *App) *cobra.Command {
 			}
 			f.platformsSet = cmd.Flags().Changed("platform")
 			f.scopeSet = cmd.Flags().Changed("scope")
-			return runSync(app, path, f)
+			return runSync(app, path, f, prune)
 		},
 	}
 	cmd.Flags().StringSliceVar(&f.platforms, "platform", nil, "restrict install to these adapters (default: profile default, else all detected)")
 	cmd.Flags().StringVar(&f.scope, "scope", "", "install scope: global|user|project|adapter-default (default: your profile's default scope)")
 	cmd.Flags().BoolVar(&f.force, "force", false, "reinstall skills even if already up-to-date")
 	cmd.Flags().BoolVar(&f.global, "global", false, "alias for --scope global")
+	cmd.Flags().BoolVar(&prune, "prune", false, "uninstall skills not listed in the skillset (make local set match the file)")
 	return cmd
 }
 
-func runSync(app *App, path string, f installFlags) error {
+func runSync(app *App, path string, f installFlags, prune bool) error {
 	set, err := skillset.LoadFrom(path)
 	if err != nil {
 		return err
 	}
-	if len(set.Skills) == 0 {
+	if len(set.Skills) == 0 && !prune {
 		app.UI.Info("skillset %s lists no skills — nothing to sync", path)
 		return nil
 	}
@@ -160,13 +166,86 @@ func runSync(app *App, path string, f installFlags) error {
 		aggregate.Warnings = append(aggregate.Warnings, res.Warnings...)
 	}
 
+	var pruned []install.TargetResult
+	if prune {
+		pruned, err = pruneToSkillset(app, set)
+		if err != nil {
+			return err
+		}
+	}
+
 	if app.Config.JSON {
-		return app.UI.JSON(aggregate)
+		return app.UI.JSON(struct {
+			install.Result
+			Pruned []install.TargetResult `json:"pruned,omitempty"`
+		}{aggregate, pruned})
 	}
 	printInstall(app, aggregate)
+	for _, t := range pruned {
+		app.UI.Success("pruned %s [%s/%s]", t.Skill, t.Platform, t.Scope)
+	}
 	if len(missing) > 0 {
 		app.UI.Warn("%d skill%s in %s not found in the registry: %v",
-			len(missing), plural(len(missing)), path, missing)
+			len(missing), textutil.Plural(len(missing)), path, missing)
 	}
 	return nil
+}
+
+// pruneToSkillset uninstalls every skill that's installed locally but absent
+// from the skillset, so the local set ends up matching the file exactly. It
+// reloads the manifest first because the preceding install pass may have added
+// entries. Destructive, so it confirms (unless --yes / --json).
+func pruneToSkillset(app *App, set *skillset.Set) ([]install.TargetResult, error) {
+	m, err := manifest.Load(app.Config.ManifestPath)
+	if err != nil {
+		return nil, fmt.Errorf("load manifest: %w", err)
+	}
+	keep := map[string]bool{}
+	for _, name := range set.Names() {
+		keep[name] = true
+	}
+	var extra []string
+	for _, name := range uniqueSkillsFromManifest(m) {
+		if !keep[name] {
+			extra = append(extra, name)
+		}
+	}
+	if len(extra) == 0 {
+		return nil, nil
+	}
+	sort.Strings(extra)
+
+	if !app.Config.Yes && !app.Config.JSON {
+		theme := app.UI.Theme()
+		lines := make([]string, 0, len(extra))
+		for _, name := range extra {
+			lines = append(lines, theme.Name.Render(name))
+		}
+		ok, err := tui.ConfirmWithSummary(
+			theme,
+			"Prune skills not in the skillset",
+			fmt.Sprintf("Uninstall %d skill%s not listed in the skillset?", len(extra), textutil.Plural(len(extra))),
+			lines,
+			false,
+			app.Prompt.Interactive,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			app.UI.Info("prune cancelled — installed skills left untouched")
+			return nil, nil
+		}
+	}
+
+	engine := install.NewEngine(app.Config.CacheDir, app.Config.ManifestPath)
+	var pruned []install.TargetResult
+	for _, name := range extra {
+		res, err := engine.Uninstall(name)
+		if err != nil {
+			return nil, fmt.Errorf("prune %s: %w", name, err)
+		}
+		pruned = append(pruned, res...)
+	}
+	return pruned, nil
 }

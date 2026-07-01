@@ -12,6 +12,7 @@
 //	metadata:
 //	  author: jjfantini
 //	  version: 1.0.0                   # humblSKILLS requires this
+//	  category: development            # humblSKILLS requires this, one of a closed set
 //	  tags: [...]
 //	  platforms: [claude-code]
 //	  requires: [...]
@@ -40,6 +41,7 @@ const delimiter = "---"
 type Metadata struct {
 	Author    string   `yaml:"author,omitempty"`
 	Version   string   `yaml:"version,omitempty"`
+	Category  string   `yaml:"category,omitempty"`
 	Requires  []string `yaml:"requires,omitempty"`
 	Platforms []string `yaml:"platforms,omitempty"`
 	Tags      []string `yaml:"tags,omitempty"`
@@ -51,10 +53,10 @@ type Metadata struct {
 // fields it owns.
 //
 // Read humblSKILLS-owned fields through the accessor methods
-// ([Frontmatter.Version], [Frontmatter.Requires], [Frontmatter.Platforms],
-// [Frontmatter.Tags], [Frontmatter.Preserve]) rather than reaching into
-// [Frontmatter.Metadata] directly - the accessors honour the legacy
-// top-level fallback.
+// ([Frontmatter.Version], [Frontmatter.Category], [Frontmatter.Requires],
+// [Frontmatter.Platforms], [Frontmatter.Tags], [Frontmatter.Preserve])
+// rather than reaching into [Frontmatter.Metadata] directly - the accessors
+// honour the legacy top-level fallback (except Category, which has none).
 type Frontmatter struct {
 	Name          string   `yaml:"name"`
 	Description   string   `yaml:"description"`
@@ -80,6 +82,14 @@ func (f Frontmatter) Version() string {
 		return f.Metadata.Version
 	}
 	return f.legacyVersion
+}
+
+// Category returns the skill's single coarse category (e.g. "development",
+// "design"), used for browsing and filtering. Unlike Version/Requires/etc.
+// there is no deprecated top-level fallback - category was introduced after
+// the legacy-field migration window, so metadata is the only source.
+func (f Frontmatter) Category() string {
+	return f.Metadata.Category
 }
 
 // Requires returns the humblSKILLS dep list: metadata.requires first,

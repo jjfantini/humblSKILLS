@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
@@ -119,45 +121,61 @@ func (m profileModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m profileModel) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "q", "ctrl+c", "esc":
+	keys := DefaultKeys()
+	switch {
+	case key.Matches(msg, keys.Quit), key.Matches(msg, keys.Back):
 		m.quit = true
 		return m, tea.Quit
-	case "up", "k":
+	case key.Matches(msg, keys.Up):
 		if m.settingIdx > 0 {
 			m.settingIdx--
 		}
-	case "down", "j":
+		return m, nil
+	case key.Matches(msg, keys.Down):
 		if m.settingIdx < len(profileSettings)-1 {
 			m.settingIdx++
 		}
-	case "enter", "e", "l", "right", "tab":
-		m.focus = focusValue
-		m.valueIdx = m.currentSelectionIndex()
+		return m, nil
+	case key.Matches(msg, keys.Enter), key.Matches(msg, keys.Right):
+		return m.drillIntoValue(), nil
+	}
+	// "e"/tab also drill into the value pane but aren't shared keymap verbs.
+	switch msg.String() {
+	case "e", "tab":
+		return m.drillIntoValue(), nil
 	}
 	return m, nil
 }
 
+// drillIntoValue moves focus to the value pane, placing the cursor on the
+// currently-selected option.
+func (m profileModel) drillIntoValue() profileModel {
+	m.focus = focusValue
+	m.valueIdx = m.currentSelectionIndex()
+	return m
+}
+
 func (m profileModel) updateValue(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	n := m.valueCount()
-	switch msg.String() {
-	case "esc", "h", "left", "shift+tab":
+	keys := DefaultKeys()
+	switch {
+	case key.Matches(msg, keys.Back), key.Matches(msg, keys.Left):
 		m.focus = focusSettings
 		return m, nil
-	case "q", "ctrl+c":
+	case key.Matches(msg, keys.Quit):
 		m.quit = true
 		return m, tea.Quit
-	case "up", "k":
+	case key.Matches(msg, keys.Up):
 		if m.valueIdx > 0 {
 			m.valueIdx--
 		}
-	case "down", "j":
+		return m, nil
+	case key.Matches(msg, keys.Down):
 		if m.valueIdx < n-1 {
 			m.valueIdx++
 		}
-	case " ", "x":
-		m = m.toggleCurrent()
-	case "enter":
+		return m, nil
+	case key.Matches(msg, keys.Enter):
 		// Space is the only toggle key, consistent with every other
 		// multi-select surface in the TUI (e.g. the install platform
 		// modal). For radio-style settings (scope), enter commits the
@@ -168,6 +186,16 @@ func (m profileModel) updateValue(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m = m.toggleCurrent()
 		}
 		m.focus = focusSettings
+		return m, nil
+	}
+	// space/x toggle and shift+tab back aren't part of the shared keymap.
+	switch msg.String() {
+	case " ", "x":
+		m = m.toggleCurrent()
+		return m, nil
+	case "shift+tab":
+		m.focus = focusSettings
+		return m, nil
 	}
 	return m, nil
 }
@@ -578,7 +606,7 @@ func (m profileModel) settingBadge(key string) string {
 			return "all detected"
 		}
 		return fmt.Sprintf("%d platform%s", len(m.profile.DefaultPlatforms),
-			plural2(len(m.profile.DefaultPlatforms)))
+			textutil.Plural(len(m.profile.DefaultPlatforms)))
 	case "scope":
 		switch resolved := m.profile.ResolvedScope(); resolved {
 		case profile.ScopeGlobal:
@@ -641,13 +669,6 @@ func (m profileModel) hints() []KeyHint {
 		{Keys: "esc", Label: "back"},
 		{Keys: "q", Label: "quit"},
 	}
-}
-
-func plural2(n int) string {
-	if n == 1 {
-		return ""
-	}
-	return "s"
 }
 
 // --- per-install modal (moved) ----------------------------------------------

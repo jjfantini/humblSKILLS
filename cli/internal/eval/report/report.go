@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/metrics"
+	"github.com/jjfantini/humblSKILLS/cli/internal/jsonutil"
 )
 
 //go:embed assets/report.html.tmpl
@@ -514,23 +515,13 @@ func writeMarkdown(path string, b *Bundle) error {
 }
 
 func writeJSON(path string, b *Bundle) error {
-	out := map[string]any{
+	return jsonutil.WriteFile(path, map[string]any{
 		"skill":      b.SkillName,
 		"iteration":  b.Iteration,
 		"runner":     b.Runner,
 		"trajectory": b.Trajectory,
 		"benchmark":  b.Benchmark,
-	}
-	data, err := json.MarshalIndent(out, "", "  ")
-	if err != nil {
-		return err
-	}
-	data = append(data, '\n')
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, path)
+	})
 }
 
 // --- ASCII sparkline --------------------------------------------------------
