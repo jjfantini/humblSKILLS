@@ -44,9 +44,10 @@ func Subscribe(ch <-chan install.Event, doneErr <-chan error) tea.Cmd {
 	}
 }
 
-// ProgressModel renders a framed progress bar + per-target status list driven
-// by install engine events. Use alongside a goroutine that wraps
-// engine.Execute and forwards events onto a channel.
+// ProgressModel renders a framed progress bar + a scrollable per-target
+// status list (or, once finished, the grouped summary) driven by install
+// engine events. Use alongside a goroutine that wraps engine.Execute and
+// forwards events onto a channel.
 type ProgressModel struct {
 	theme   *ui.Theme
 	command string // breadcrumb detail, e.g. "install" or "update"
@@ -57,13 +58,16 @@ type ProgressModel struct {
 	total   int
 	done    int
 	width   int
+	height  int
 	current *progressEntry
 	err     error
 	running bool
 	events  <-chan install.Event
 	doneErr <-chan error
 
-	autoReturn autoReturnTimer
+	// resultView owns the scrollable body (live target list, or the done
+	// summary) plus the shared auto-return countdown — see scrollstatus.go.
+	resultView scrollableDone
 }
 
 type progressEntry struct {
@@ -90,7 +94,9 @@ func (p *progressEntry) key() string {
 // the header breadcrumb ("install" or "update"). autoReturn is how long the
 // done screen waits before auto-returning to the dashboard on success (0
 // disables it - see profile.Profile.StatusAutoReturnDuration); a failed run
-// always waits for the user regardless of this value.
+// always waits for the user regardless of this value, and even a successful
+// run waits for the user to scroll to the bottom first if the summary
+// doesn't already fit on screen — see scrollableDone.ArmIfReady.
 func NewProgressModel(theme *ui.Theme, command string, events <-chan install.Event, doneErr <-chan error, autoReturn time.Duration) ProgressModel {
 	p := progress.New(
 		progress.WithGradient(string(theme.Palette.Brand), string(theme.Palette.Accent)),
@@ -111,7 +117,7 @@ func NewProgressModel(theme *ui.Theme, command string, events <-chan install.Eve
 		events:     events,
 		doneErr:    doneErr,
 		running:    true,
-		autoReturn: autoReturnTimer{duration: autoReturn},
+		resultView: newScrollableDone(autoReturn),
 	}
 }
 
@@ -127,6 +133,7 @@ func (m ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
+		m.height = msg.Height
 		barW := m.width - 12
 		if barW < 20 {
 			barW = 20
@@ -135,6 +142,7 @@ func (m ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			barW = 60
 		}
 		m.bar.Width = barW
+		m.refreshResultContent(false)
 		return m, nil
 
 	case ProgressEventMsg:
@@ -143,6 +151,7 @@ func (m ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.total > 0 {
 			cmds = append(cmds, m.bar.SetPercent(float64(m.done)/float64(m.total)))
 		}
+		m.refreshResultContent(false)
 		return m, tea.Batch(cmds...)
 
 	case ProgressDoneMsg:
@@ -153,17 +162,16 @@ func (m ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// state (running=false) and stays on screen; the tea.KeyMsg case
 		// below is what actually dismisses it, matching the "enter/q to
 		// close" footer hint that was previously dead code. On success only,
-		// autoReturn additionally arms a countdown that dismisses the screen
-		// on its own — a failure always waits for the user to read it.
+		// ArmIfReady additionally arms a countdown that dismisses the screen
+		// on its own once the summary has been fully seen — a failure
+		// always waits for the user to read it.
 		m.err = msg.Err
 		m.running = false
-		if m.err == nil {
-			return m, m.autoReturn.Start()
-		}
-		return m, nil
+		m.refreshResultContent(true)
+		return m, m.resultView.ArmIfReady(m.err == nil)
 
 	case autoReturnTickMsg:
-		quit, cmd := m.autoReturn.Tick()
+		quit, cmd := m.resultView.Tick()
 		if quit {
 			return m, tea.Quit
 		}
@@ -181,9 +189,16 @@ func (m ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, cmd
 
+	case tea.MouseMsg:
+		cmd := m.resultView.HandleMouse(msg)
+		return m, tea.Batch(cmd, m.resultView.ArmIfReady(!m.running && m.err == nil))
+
 	case tea.KeyMsg:
 		if !m.running && (msg.String() == "q" || msg.String() == "enter" || msg.String() == "esc") {
 			return m, tea.Quit
+		}
+		if m.resultView.HandleKey(msg.String()) {
+			return m, m.resultView.ArmIfReady(!m.running && m.err == nil)
 		}
 	}
 	return m, nil
@@ -191,50 +206,120 @@ func (m ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m ProgressModel) View() string {
 	th := m.theme
-	header := Header(th, HeaderSpec{Section: m.command}, m.width)
+	header := Header(th, HeaderSpec{
+		Section: m.command,
+		Meta:    m.resultView.ScrollIndicator(th),
+	}, m.width)
 
-	var sb strings.Builder
-	if m.running {
-		sb.WriteString("  " + m.spin.View() + " " +
-			th.Name.Render(fmt.Sprintf("%d / %d", m.done, m.total)) + "\n")
-	} else if m.err != nil {
-		sb.WriteString("  " + th.Error.Render("✗ ") +
-			th.Name.Render(fmt.Sprintf("%d / %d", m.done, m.total)) + "\n")
-	} else {
-		sb.WriteString("  " + th.Success.Render("✓ ") +
-			th.Name.Render(fmt.Sprintf("%d / %d complete", m.done, m.total)) + "\n")
-	}
-	sb.WriteString("  " + m.bar.View() + "\n\n")
-
-	if !m.running && m.err == nil {
-		sb.WriteString(m.renderSummary())
-	} else {
-		for _, it := range m.items {
-			active := m.running && m.current == it && !it.done && !it.errored
-			line := m.renderEntry(it, active)
-			prefix := "  "
-			if active {
-				prefix = th.Bullet.Render("▌") + " "
-			}
-			sb.WriteString(prefix + line + "\n")
-		}
-	}
-
-	if m.err != nil {
-		sb.WriteString("\n  " + th.Error.Render("error: ") + th.Detail.Render(m.err.Error()) + "\n")
-	}
-
-	var footer string
+	var top strings.Builder
 	switch {
 	case m.running:
-		footer = Footer(th, []KeyHint{{Keys: "ctrl+c", Label: "abort"}}, "", m.width)
-	case m.autoReturn.Active():
-		footer = Footer(th, []KeyHint{{Keys: "enter/q", Label: "close now"}},
-			th.Detail.Render(fmt.Sprintf("closing in %ds", m.autoReturn.RemainingSeconds())), m.width)
+		top.WriteString("  " + m.spin.View() + " " + th.Name.Render(fmt.Sprintf("%d / %d", m.done, m.total)) + "\n")
+	case m.err != nil:
+		top.WriteString("  " + th.Error.Render("✗ ") + th.Name.Render(fmt.Sprintf("%d / %d", m.done, m.total)) + "\n")
 	default:
-		footer = Footer(th, []KeyHint{{Keys: "enter/q", Label: "close"}}, "", m.width)
+		top.WriteString("  " + th.Success.Render("✓ ") + th.Name.Render(fmt.Sprintf("%d / %d complete", m.done, m.total)) + "\n")
 	}
-	return header + "\n\n" + sb.String() + "\n" + footer
+	top.WriteString("  " + m.bar.View())
+
+	var tail string
+	if m.err != nil {
+		tail = "\n  " + th.Error.Render("error: ") + th.Detail.Render(m.err.Error())
+	}
+
+	footer := m.renderFooter(th)
+
+	return header + "\n\n" + top.String() + "\n\n" + m.resultView.View() + "\n" + tail + "\n" + footer
+}
+
+// renderFooter picks the key hints + right-anchored context for the current
+// state: running (abort + scroll if the live list overflows), done with an
+// error (close + scroll if there's more than the error line to read), or
+// done successfully (close, plus whichever auto-return affordance applies).
+func (m ProgressModel) renderFooter(th *ui.Theme) string {
+	switch {
+	case m.running:
+		hints := []KeyHint{{Keys: "ctrl+c", Label: "abort"}}
+		if m.resultView.Overflows() {
+			hints = append(hints, KeyHint{Keys: "↑↓/pgup/pgdn", Label: "scroll"})
+		}
+		return Footer(th, hints, "", m.width)
+	case m.err != nil:
+		hints := []KeyHint{{Keys: "enter/q", Label: "close"}}
+		if m.resultView.Overflows() {
+			hints = append(hints, KeyHint{Keys: "↑↓", Label: "scroll"})
+		}
+		return Footer(th, hints, "", m.width)
+	case m.resultView.Active():
+		return Footer(th, []KeyHint{{Keys: "enter/q", Label: "close now"}},
+			th.Detail.Render(fmt.Sprintf("closing in %ds", m.resultView.RemainingSeconds())), m.width)
+	case m.resultView.Enabled():
+		return Footer(th, []KeyHint{{Keys: "enter/q", Label: "close"}, {Keys: "↓/end", Label: "scroll to bottom"}},
+			th.Detail.Render("scroll to bottom to auto-close"), m.width)
+	default:
+		return Footer(th, []KeyHint{{Keys: "enter/q", Label: "close"}}, "", m.width)
+	}
+}
+
+// resizeResultView computes the scrollable body's height budget: total
+// height minus the header, the fixed status+bar block above the body, the
+// blank separator rows, the footer, and (when present) the error line below
+// the body. Mirrors listdetail.go's bodyH computation.
+func (m *ProgressModel) resizeResultView() {
+	if m.width == 0 || m.height == 0 {
+		return
+	}
+	const (
+		headerH   = 2
+		topH      = 2 // status line + bar
+		footerH   = 2
+		blankRows = 3 // header/top, top/body, body/footer separators
+	)
+	fixed := headerH + topH + footerH + blankRows
+	if m.err != nil {
+		fixed += 2 // blank + error line
+	}
+	bodyH := m.height - fixed
+	if bodyH < 3 {
+		bodyH = 3
+	}
+	m.resultView.Resize(m.width, bodyH)
+}
+
+// refreshResultContent recomputes the scrollable body's dimensions and
+// content. resetToTop should be true exactly once — when the run reaches
+// its terminal state — so the user reads the summary from the start; while
+// running, the live list instead tails the bottom like a log.
+func (m *ProgressModel) refreshResultContent(resetToTop bool) {
+	m.resizeResultView()
+	var body string
+	if !m.running && m.err == nil {
+		body = m.renderSummary()
+	} else {
+		body = m.renderItemsList()
+	}
+	m.resultView.SetContent(body, resetToTop)
+	if m.running {
+		m.resultView.FollowBottom()
+	}
+}
+
+// renderItemsList renders one line per tracked target — used both while
+// running (with the active entry highlighted) and, if the run ends in
+// error, as the frozen final state of that same list.
+func (m ProgressModel) renderItemsList() string {
+	th := m.theme
+	var sb strings.Builder
+	for _, it := range m.items {
+		active := m.running && m.current == it && !it.done && !it.errored
+		line := m.renderEntry(it, active)
+		prefix := "  "
+		if active {
+			prefix = th.Bullet.Render("▌") + " "
+		}
+		sb.WriteString(prefix + line + "\n")
+	}
+	return sb.String()
 }
 
 func (m *ProgressModel) applyEvent(ev install.Event) {

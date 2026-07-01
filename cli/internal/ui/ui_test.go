@@ -88,6 +88,31 @@ func TestJSONEncodesDocument(t *testing.T) {
 	}
 }
 
+func TestCaptureWriters_CollectsOutAndErrThenRestores(t *testing.T) {
+	p, out, errW := newTestPrinter(Options{Level: LevelNormal})
+
+	restore := p.CaptureWriters()
+	p.Info("captured info")
+	p.Warn("captured warn")
+	p.Error("captured error")
+	if out.Len() != 0 || errW.Len() != 0 {
+		t.Fatalf("expected nothing written to the original writers while captured, got out=%q err=%q", out.String(), errW.String())
+	}
+
+	captured := restore()
+	for _, want := range []string{"captured info", "captured warn", "captured error"} {
+		if !strings.Contains(captured, want) {
+			t.Errorf("captured output missing %q:\n%s", want, captured)
+		}
+	}
+
+	// Restored writers should receive output normally again.
+	p.Info("after restore")
+	if !strings.Contains(out.String(), "after restore") {
+		t.Errorf("expected writes after restore to reach the original writer, got %q", out.String())
+	}
+}
+
 func TestNoColorStripsANSI(t *testing.T) {
 	// No-color printer produces plain text.
 	p, out, _ := newTestPrinter(Options{Level: LevelNormal})
