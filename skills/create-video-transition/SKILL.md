@@ -18,10 +18,12 @@ compatibility: Requires a modern browser to open the HTML deliverable; an AI ima
 allowed-tools: "Read Write Edit Glob Grep Bash(open:*) Bash(xdg-open:*) Bash(bash:*) Bash(mkdir:*) Bash(ls:*)"
 metadata:
   author: jjfantini
-  version: "1.0.1"
+  version: "1.0.2"
   tags: [video, prompt, transition, image-generation, commercial-director, humblskill]
   platforms: [claude-code, cursor, codex]
   preserve:
+    - references/raw/
+    - references/wiki/
     - references/decisions.md
     - references/log.md
     - references/patterns.md

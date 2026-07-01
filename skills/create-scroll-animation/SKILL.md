@@ -16,10 +16,12 @@ compatibility: Requires ffmpeg and ffprobe on PATH; bash; Node 18+; a React 18+ 
 allowed-tools: "Read Write Edit Glob Grep Bash(ffmpeg:*) Bash(ffprobe:*) Bash(cwebp:*) Bash(bash:*) Bash(mkdir:*) Bash(cp:*) Bash(ls:*)"
 metadata:
   author: jjfantini
-  version: "0.1.1"
+  version: "0.1.2"
   tags: [scroll, canvas, framer-motion, nextjs, react, ffmpeg, webp, apple-style, hero, humblskill]
   platforms: [claude-code, cursor, codex]
   preserve:
+    - references/raw/
+    - references/wiki/
     - references/decisions.md
     - references/log.md
     - references/patterns.md
