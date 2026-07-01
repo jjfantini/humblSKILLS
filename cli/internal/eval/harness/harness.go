@@ -27,6 +27,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner"
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/scenarios"
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/workspace"
+	"github.com/jjfantini/humblSKILLS/cli/internal/fsutil"
 )
 
 // Options controls one full eval invocation.
@@ -337,7 +338,7 @@ func (h *Harness) prepareSkillForArm(arm string) (skillPath string, cleanup func
 		// Copy the skill into a working dir so the harness can mutate
 		// references/ between sessions without touching the source.
 		dst := filepath.Join(h.iterDir, "smart-skill-working")
-		if err := copyTree(h.opts.SkillDir, dst); err != nil {
+		if err := fsutil.CopyTree(h.opts.SkillDir, dst, fsutil.Options{}); err != nil {
 			return "", nil, err
 		}
 		return dst, func() {}, nil
@@ -622,27 +623,3 @@ func writeJSON(path string, v any) error {
 	return os.Rename(tmp, path)
 }
 
-func copyTree(src, dst string) error {
-	return filepath.Walk(src, func(p string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, _ := filepath.Rel(src, p)
-		target := filepath.Join(dst, rel)
-		if info.IsDir() {
-			return os.MkdirAll(target, info.Mode())
-		}
-		data, err := os.ReadFile(p)
-		if err != nil {
-			return err
-		}
-		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
-			return err
-		}
-		if err := os.WriteFile(target, data, 0o644); err != nil {
-			return err
-		}
-		_ = os.Chmod(target, info.Mode())
-		return nil
-	})
-}
