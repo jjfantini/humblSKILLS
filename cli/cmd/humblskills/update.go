@@ -156,10 +156,12 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 		if err := tui.ExecuteWithProgress(app.UI.Theme(), "update", run); err != nil {
 			return err
 		}
-	} else {
-		if err := run(nil); err != nil {
-			return err
-		}
+		// Feedback already lives in the progress model's blocking done/summary
+		// screen — see runInstall for why we don't also print to stdout here.
+		return nil
+	}
+	if err := run(nil); err != nil {
+		return err
 	}
 
 	if app.Config.JSON {

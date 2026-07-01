@@ -27,10 +27,25 @@ const (
 
 // skillItem adapts a registry.Skill (with optional installed-state overlay)
 // to the tui.Item interface. Shared by search, install, list, uninstall.
+//
+// installs holds *every* manifest entry for this skill — one per
+// (platform, scope) the engine wrote a symlink for — not just the first one
+// found. That's what lets Detail() show the canonical humblskills store
+// (source of truth) plus every platform it's symlinked to, instead of
+// whichever platform happened to be inserted into the manifest first.
 type skillItem struct {
-	s         registry.Skill
-	installed *manifest.Installation // nil if not installed on this machine
-	outdated  bool                   // registry version > installed version
+	s        registry.Skill
+	installs []manifest.Installation // empty if not installed on this machine
+	outdated bool                    // any installed entry's version != registry version
+}
+
+// primary returns the first installed entry, or nil if none. Used where a
+// single representative install is enough (e.g. the left-pane row dot).
+func (s skillItem) primary() *manifest.Installation {
+	if len(s.installs) == 0 {
+		return nil
+	}
+	return &s.installs[0]
 }
 
 func (s skillItem) Key() string { return s.s.Name }
@@ -50,14 +65,13 @@ func (s skillItem) NaturalWidth(th *ui.Theme) int {
 
 func (s skillItem) Row(th *ui.Theme, width int, selected bool) string {
 	var dot string
-	if s.installed != nil {
-		if s.outdated {
-			dot = th.DotWarn.Render("●")
-		} else {
-			dot = th.DotOK.Render("●")
-		}
-	} else {
+	switch {
+	case len(s.installs) == 0:
 		dot = th.DotNo.Render("●")
+	case s.outdated:
+		dot = th.DotWarn.Render("●")
+	default:
+		dot = th.DotOK.Render("●")
 	}
 
 	name := rowName(th, s.s.Name, selected, true)
@@ -73,9 +87,10 @@ func (s skillItem) Row(th *ui.Theme, width int, selected bool) string {
 
 func (s skillItem) Detail(th *ui.Theme, width int) string {
 	var sb strings.Builder
+	primary := s.primary()
 	sub := "v" + s.s.Version
-	if s.installed != nil && s.installed.Version != s.s.Version {
-		sub = "v" + s.installed.Version + " → v" + s.s.Version
+	if primary != nil && primary.Version != s.s.Version {
+		sub = "v" + primary.Version + " → v" + s.s.Version
 	}
 	sb.WriteString(th.DetailTitle.Render(s.s.Name) + "  " +
 		th.DetailSub.Render(sub) + "\n\n")
@@ -103,39 +118,80 @@ func (s skillItem) Detail(th *ui.Theme, width int) string {
 		sb.WriteString(kvRow(th, "deps", th.KVValue.Render(strings.Join(s.s.Requires, ", "))))
 	}
 
-	if s.installed != nil {
-		sb.WriteString("\n" + th.SectionTitle.Render("INSTALLED") + "\n")
-		sb.WriteString(kvRow(th, "version", th.KVValue.Render("v"+s.installed.Version)))
-		sb.WriteString(kvRow(th, "platform", th.KVValue.Render(s.installed.Platform)))
-		sb.WriteString(kvRow(th, "scope", th.KVValue.Render(s.installed.Scope)))
-		sb.WriteString(kvRow(th, "path", th.KVValue.Render(s.installed.Path)))
-		if !s.installed.InstalledAt.IsZero() {
+	if len(s.installs) > 0 {
+		sb.WriteString(s.installedSection(th, width))
+	}
+	return sb.String()
+}
+
+// installedSection renders the "INSTALLED" block: the canonical humblskills
+// store (source of truth — every platform below is a symlink to this one
+// directory) followed by every platform/scope it's symlinked to. Falls back
+// gracefully for legacy manifest entries written before store_path existed.
+func (s skillItem) installedSection(th *ui.Theme, width int) string {
+	var sb strings.Builder
+	sb.WriteString("\n" + th.SectionTitle.Render("INSTALLED") + "\n")
+
+	store := ""
+	for _, inst := range s.installs {
+		if inst.StorePath != "" {
+			store = inst.StorePath
+			break
+		}
+	}
+	if store != "" {
+		sb.WriteString(kvRow(th, "store", th.KVValue.Render(store)))
+	}
+
+	sb.WriteString("\n" + th.SectionTitle.Render("SYMLINKED PLATFORMS") + "\n")
+	for i, inst := range s.installs {
+		if i > 0 {
+			sb.WriteString(tui.DashedRule(th, width) + "\n")
+		}
+		ver := "v" + inst.Version
+		if inst.Version != s.s.Version {
+			ver = "v" + inst.Version + " → v" + s.s.Version
+		}
+		sb.WriteString(kvRow(th, "platform", th.Platform.Render(inst.Platform)+"  "+th.KVValue.Render(ver)))
+		sb.WriteString(kvRow(th, "scope", th.KVValue.Render(inst.Scope)))
+		sb.WriteString(kvRow(th, "path", th.KVValue.Render(inst.Path)))
+		if !inst.InstalledAt.IsZero() {
 			sb.WriteString(kvRow(th, "at", th.KVValue.Render(
-				s.installed.InstalledAt.Format("2006-01-02 15:04"))))
+				inst.InstalledAt.Format("2006-01-02 15:04"))))
 		}
 	}
 	return sb.String()
 }
 
 // buildSkillItems joins a registry listing with the install manifest so the
-// returned items know whether they're installed and/or drifted.
+// returned items know every (platform, scope) they're installed onto, and
+// whether any of those have drifted from the registry version.
 func buildSkillItems(skills []registry.Skill, m *manifest.Manifest) []skillItem {
-	installed := map[string]*manifest.Installation{}
+	installed := map[string][]manifest.Installation{}
 	if m != nil {
-		for i := range m.Installations {
-			it := &m.Installations[i]
-			if _, seen := installed[it.Skill]; !seen {
-				installed[it.Skill] = it
-			}
+		for _, inst := range m.Installations {
+			installed[inst.Skill] = append(installed[inst.Skill], inst)
+		}
+		for name, insts := range installed {
+			sort.SliceStable(insts, func(i, j int) bool {
+				if insts[i].Platform != insts[j].Platform {
+					return insts[i].Platform < insts[j].Platform
+				}
+				return insts[i].Scope < insts[j].Scope
+			})
+			installed[name] = insts
 		}
 	}
 	items := make([]skillItem, 0, len(skills))
 	for _, s := range skills {
 		it := skillItem{s: s}
-		if inst, ok := installed[s.Name]; ok {
-			it.installed = inst
-			if inst.Version != s.Version {
-				it.outdated = true
+		if insts, ok := installed[s.Name]; ok {
+			it.installs = insts
+			for _, inst := range insts {
+				if inst.Version != s.Version {
+					it.outdated = true
+					break
+				}
 			}
 		}
 		items = append(items, it)
@@ -179,7 +235,7 @@ func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBr
 
 	installedCount, outdatedCount := 0, 0
 	for _, s := range skills {
-		if s.installed != nil {
+		if len(s.installs) > 0 {
 			installedCount++
 		}
 		if s.outdated {

@@ -53,6 +53,28 @@ func TestProfileSet_ValidScope(t *testing.T) {
 	}
 }
 
+func TestProfileSet_ValidScope_GlobalAndAdapterDefault(t *testing.T) {
+	s := testutil.NewSandbox(t)
+
+	for _, scope := range []string{"global", "adapter-default", "project"} {
+		res := runCLIWithStdoutCapture(t,
+			"profile", "set", "scope", scope,
+			"--profile", s.ProfilePath,
+			"--json",
+		)
+		if res.RunErr != nil {
+			t.Fatalf("scope=%q: run: %v", scope, res.RunErr)
+		}
+		p, err := profile.Load(s.ProfilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if p.DefaultScope != scope {
+			t.Errorf("scope=%q: DefaultScope = %q", scope, p.DefaultScope)
+		}
+	}
+}
+
 func TestProfileSet_InvalidScope(t *testing.T) {
 	s := testutil.NewSandbox(t)
 
@@ -166,12 +188,12 @@ func TestProfilePath_PrintsResolvedPath(t *testing.T) {
 
 func TestParseCSV(t *testing.T) {
 	cases := map[string][]string{
-		"":                nil,
-		"   ":             nil,
-		"a":               {"a"},
-		"a,b":             {"a", "b"},
-		"a,  b ,c":        {"a", "b", "c"},
-		", a ,,b ,":       {"a", "b"},
+		"":          nil,
+		"   ":       nil,
+		"a":         {"a"},
+		"a,b":       {"a", "b"},
+		"a,  b ,c":  {"a", "b", "c"},
+		", a ,,b ,": {"a", "b"},
 	}
 	for in, want := range cases {
 		got := parseCSV(in)
@@ -197,10 +219,19 @@ func TestFormatPlatforms(t *testing.T) {
 }
 
 func TestFormatScope(t *testing.T) {
-	if got := formatScope(""); got != "(adapter default)" {
+	if got := formatScope(""); got != "global humblskills (default)" {
+		t.Errorf("got %q", got)
+	}
+	if got := formatScope(profile.ScopeGlobal); got != "global humblskills" {
 		t.Errorf("got %q", got)
 	}
 	if got := formatScope("user"); got != "user" {
+		t.Errorf("got %q", got)
+	}
+	if got := formatScope("project"); got != "project" {
+		t.Errorf("got %q", got)
+	}
+	if got := formatScope(profile.ScopeAdapterDefault); got != "adapter default" {
 		t.Errorf("got %q", got)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
 )
 
@@ -161,6 +162,256 @@ func TestInstall_GlobalFanoutInstallsCanonicalStoreAndSymlinksDetectedPlatforms(
 		if inst.InstallMode != "global" {
 			t.Errorf("%s install_mode = %q, want global", inst.Platform, inst.InstallMode)
 		}
+	}
+}
+
+func TestInstall_NoFlagsAtAll_DefaultsToGlobalAcrossAllDetectedPlatforms(t *testing.T) {
+	// The recommended default — no --scope, no --global, no --platform, no
+	// saved profile — should resolve to global humblskills: one canonical
+	// copy symlinked to every detected platform.
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+	enableCursor(t, s)
+	enableCodex(t, s)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{
+			Name:        "foo",
+			Version:     "1.0.0",
+			Description: "test skill",
+			Files:       testutil.SkillTree{"SKILL.md": sampleSkillMD},
+		},
+	})
+
+	res := runCLIWithStdoutCapture(t,
+		"install", "foo",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--yes", "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s\nout: %s", res.RunErr, res.Err, res.Out)
+	}
+
+	canonical := filepath.Join(s.Home, ".humblskills", "skills", "foo")
+	if _, err := os.Stat(filepath.Join(canonical, "SKILL.md")); err != nil {
+		t.Fatalf("canonical SKILL.md missing: %v", err)
+	}
+
+	m, err := manifest.Load(s.ManifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Installations) != 3 {
+		t.Fatalf("manifest installs = %d, want 3 (every detected platform): %+v", len(m.Installations), m.Installations)
+	}
+	platforms := map[string]bool{}
+	for _, inst := range m.Installations {
+		platforms[inst.Platform] = true
+		if inst.InstallMode != "global" {
+			t.Errorf("%s install_mode = %q, want global", inst.Platform, inst.InstallMode)
+		}
+		if inst.StorePath != canonical {
+			t.Errorf("%s store_path = %q, want %q", inst.Platform, inst.StorePath, canonical)
+		}
+	}
+	for _, want := range []string{"claude-code", "cursor", "codex"} {
+		if !platforms[want] {
+			t.Errorf("missing platform %q in default global install: %+v", want, m.Installations)
+		}
+	}
+}
+
+func TestInstall_ScopeFlagGlobalIsAliasForGlobalFlag(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{Name: "foo", Version: "1.0.0", Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+	})
+
+	res := runCLIWithStdoutCapture(t,
+		"install", "foo",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--scope", "global",
+		"--yes", "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	m, err := manifest.Load(s.ManifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Installations) != 1 || m.Installations[0].InstallMode != "global" {
+		t.Errorf("expected one global install, got: %+v", m.Installations)
+	}
+}
+
+func TestInstall_GlobalWithExplicitPlatform_NoLongerConflicts(t *testing.T) {
+	// Scope and platform selection are orthogonal: --global picks the
+	// canonical-store-and-symlink scope, --platform picks which adapters
+	// get a symlink. This used to be a hard error; it no longer is.
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+	enableCursor(t, s)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{Name: "foo", Version: "1.0.0", Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+	})
+
+	res := runCLIWithStdoutCapture(t,
+		"install", "foo",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--global", "--platform", "cursor",
+		"--yes", "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	m, err := manifest.Load(s.ManifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Installations) != 1 {
+		t.Fatalf("installs = %d, want 1 (cursor only): %+v", len(m.Installations), m.Installations)
+	}
+	inst := m.Installations[0]
+	if inst.Platform != "cursor" || inst.InstallMode != "global" {
+		t.Errorf("unexpected install: %+v", inst)
+	}
+}
+
+func TestInstall_GlobalWithProjectScopeStillErrors(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{Name: "foo", Version: "1.0.0", Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+	})
+
+	res := runCLIWithStdoutCapture(t,
+		"install", "foo",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--global", "--scope", "project",
+		"--yes", "--json",
+	)
+	if res.RunErr == nil {
+		t.Fatal("expected error combining --global with --scope project")
+	}
+}
+
+func TestInstall_ProfileDefaultScope_HonoredWithoutTUI(t *testing.T) {
+	// Regression: the scripted (--yes) path used to ignore the profile
+	// entirely. A saved "user" scope must still apply with zero install
+	// flags passed.
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+
+	if err := profile.Save(s.ProfilePath, &profile.Profile{DefaultScope: profile.ScopeUser}); err != nil {
+		t.Fatal(err)
+	}
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{Name: "foo", Version: "1.0.0", Platforms: []string{"claude-code"}, Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+	})
+
+	res := runCLIWithStdoutCapture(t,
+		"install", "foo",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--yes", "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	m, err := manifest.Load(s.ManifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Installations) != 1 {
+		t.Fatalf("installs = %d, want 1: %+v", len(m.Installations), m.Installations)
+	}
+	got := m.Installations[0]
+	if got.InstallMode == "global" {
+		t.Errorf("profile scope=user should not install globally: %+v", got)
+	}
+	if got.Scope != "user" {
+		t.Errorf("scope = %q, want user", got.Scope)
+	}
+}
+
+func TestInstall_ProfileDefaultPlatforms_HonoredWithoutTUI(t *testing.T) {
+	// Regression: profile.DefaultPlatforms was never consulted on the
+	// scripted path — only the TUI modal read it.
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+	enableCursor(t, s)
+
+	if err := profile.Save(s.ProfilePath, &profile.Profile{DefaultPlatforms: []string{"cursor"}}); err != nil {
+		t.Fatal(err)
+	}
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{Name: "foo", Version: "1.0.0", Platforms: []string{"claude-code", "cursor"}, Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+	})
+
+	res := runCLIWithStdoutCapture(t,
+		"install", "foo",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--yes", "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	m, err := manifest.Load(s.ManifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Installations) != 1 || m.Installations[0].Platform != "cursor" {
+		t.Errorf("expected only cursor (profile default), got: %+v", m.Installations)
+	}
+}
+
+func TestInstall_AdapterDefaultScopeFlag_FallsBackToAdapterScope(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{Name: "foo", Version: "1.0.0", Platforms: []string{"claude-code"}, Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+	})
+
+	res := runCLIWithStdoutCapture(t,
+		"install", "foo",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--scope", "adapter-default",
+		"--yes", "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	m, err := manifest.Load(s.ManifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Installations) != 1 || m.Installations[0].Scope != "user" {
+		// claude-code.yaml's default_scope is "user".
+		t.Errorf("expected adapter-default to resolve to claude-code's own default (user): %+v", m.Installations)
+	}
+	if m.Installations[0].InstallMode == "global" {
+		t.Error("adapter-default must not install globally")
 	}
 }
 

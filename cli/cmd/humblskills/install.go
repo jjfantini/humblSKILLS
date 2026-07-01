@@ -18,6 +18,7 @@ type installFlags struct {
 	platforms    []string
 	platformsSet bool
 	scope        string
+	scopeSet     bool
 	force        bool
 	global       bool
 }
@@ -36,13 +37,14 @@ func newInstallCmd(app *App) *cobra.Command {
 				skill = args[0]
 			}
 			f.platformsSet = cmd.Flags().Changed("platform")
+			f.scopeSet = cmd.Flags().Changed("scope")
 			return runInstall(app, skill, f, false)
 		},
 	}
-	cmd.Flags().StringSliceVar(&f.platforms, "platform", nil, "restrict install to these adapters (default: all detected)")
-	cmd.Flags().StringVar(&f.scope, "scope", "", "install scope (user|project; default: adapter's default)")
+	cmd.Flags().StringSliceVar(&f.platforms, "platform", nil, "restrict install to these adapters (default: profile default, else all detected)")
+	cmd.Flags().StringVar(&f.scope, "scope", "", "install scope: global|user|project|adapter-default (default: your profile's default scope, itself global unless changed)")
 	cmd.Flags().BoolVar(&f.force, "force", false, "reinstall even if already up-to-date")
-	cmd.Flags().BoolVar(&f.global, "global", false, "install once into ~/.humblskills and symlink to all detected platforms")
+	cmd.Flags().BoolVar(&f.global, "global", false, "alias for --scope global: install once into ~/.humblskills and symlink to the selected platforms")
 	return cmd
 }
 
@@ -67,11 +69,21 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 		}
 	}
 
+	p, err := profile.Load(app.Config.ProfilePath)
+	if err != nil {
+		return err
+	}
+
+	// Any explicit flag (--platform, --scope, --global) opts out of the
+	// interactive modal — scripted/explicit invocations should never be
+	// silently overridden by a prompt the caller can't see.
+	explicitFlags := f.platformsSet || f.scopeSet || f.global
 	platforms := f.platforms
 	scope := f.scope
-	useTUIForModal := !f.platformsSet && tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
+	global := f.global
+	useTUIForModal := !explicitFlags && tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
 	if useTUIForModal {
-		plats, scp, global, ok, err := promptInstallTargets(app, adapterList, skill)
+		plats, scp, glob, ok, err := promptInstallTargets(app, adapterList, skill)
 		if err != nil {
 			return err
 		}
@@ -82,20 +94,16 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 			return fmt.Errorf("install cancelled")
 		}
 		platforms = plats
-		if scp != "" {
-			scope = scp
+		scope = scp
+		global = glob
+	} else {
+		scope, global, err = resolveInstallScope(f, p)
+		if err != nil {
+			return err
 		}
-		f.global = global
 	}
 
-	if f.global && f.platformsSet {
-		return fmt.Errorf("--global cannot be combined with --platform")
-	}
-	if f.global && scope == "project" {
-		return fmt.Errorf("--global installs to user-scope platform targets; use project scope without --global")
-	}
-
-	selected, err := selectPlatforms(adapterList, platforms, f.global)
+	selected, err := selectPlatforms(adapterList, platforms, global, p.DefaultPlatforms)
 	if err != nil {
 		return err
 	}
@@ -129,7 +137,7 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 			Platforms: selected,
 			Scope:     scope,
 			Force:     f.force,
-			Global:    f.global,
+			Global:    global,
 			OnEvent:   sink,
 		})
 		res = r
@@ -140,10 +148,13 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 		if err := tui.ExecuteWithProgress(app.UI.Theme(), "install", run); err != nil {
 			return err
 		}
-	} else {
-		if err := run(nil); err != nil {
-			return err
-		}
+		// Feedback already lives in the progress model's blocking done/summary
+		// screen — printing to the normal buffer here would just get hidden
+		// the instant the dashboard loop re-enters the alt-screen.
+		return nil
+	}
+	if err := run(nil); err != nil {
+		return err
 	}
 
 	if app.Config.JSON {
@@ -154,12 +165,48 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 	return nil
 }
 
+// resolveInstallScope figures out the effective (scope, global) pair when
+// the install isn't going through the interactive platform modal (the modal
+// resolves its own scope/global from the profile internally). Precedence:
+// explicit --global / --scope flags, then the profile's resolved default,
+// then the historical "adapter default" catch-all.
+func resolveInstallScope(f installFlags, p *profile.Profile) (scope string, global bool, err error) {
+	if f.global {
+		if f.scopeSet && f.scope == profile.ScopeProject {
+			return "", false, fmt.Errorf("--global installs to user-scope platform targets; use --scope project without --global")
+		}
+		return "", true, nil
+	}
+	if f.scopeSet {
+		switch f.scope {
+		case profile.ScopeGlobal:
+			return "", true, nil
+		case profile.ScopeAdapterDefault, "":
+			return "", false, nil
+		case profile.ScopeUser, profile.ScopeProject:
+			return f.scope, false, nil
+		default:
+			return "", false, fmt.Errorf("unknown scope %q — valid: global, user, project, adapter-default", f.scope)
+		}
+	}
+	switch p.ResolvedScope() {
+	case profile.ScopeGlobal:
+		return "", true, nil
+	case profile.ScopeUser, profile.ScopeProject:
+		return p.DefaultScope, false, nil
+	default: // adapter-default
+		return "", false, nil
+	}
+}
+
 // selectPlatforms returns the adapter names to install onto. If the user
 // passed --platform, it's the intersection of that list with the declared
-// adapters; otherwise it falls back to the same default cascade the TUI
-// uses (issue #84: prefer claude-code over cursor when both are detected,
-// since Cursor can read ~/.claude/skills natively).
-func selectPlatforms(adapterList []adapters.Adapter, requested []string, global bool) ([]string, error) {
+// adapters — an explicit request always wins, global or not. Otherwise it
+// falls back to the profile's saved platforms, or (failing that) the same
+// default cascade the TUI uses: global scope symlinks every detected
+// platform; non-global scopes prefer claude-code over cursor when both are
+// detected, since Cursor can read ~/.claude/skills natively (issue #84).
+func selectPlatforms(adapterList []adapters.Adapter, requested []string, global bool, profileDefaults []string) ([]string, error) {
 	known := adapters.NameSet(adapterList)
 	if len(requested) > 0 {
 		out := make([]string, 0, len(requested))
@@ -176,17 +223,7 @@ func selectPlatforms(adapterList []adapters.Adapter, requested []string, global 
 	for _, d := range adapters.Detect(adapterList) {
 		detected[d.Name] = d.Detected
 	}
-	if global {
-		out := make([]string, 0, len(adapterList))
-		for _, a := range adapterList {
-			if detected[a.Name] {
-				out = append(out, a.Name)
-			}
-		}
-		sort.Strings(out)
-		return out, nil
-	}
-	out := adapters.PreferredDefaults(adapterList, detected, nil)
+	out := adapters.PreferredDefaults(adapterList, detected, profileDefaults, global)
 	sort.Strings(out)
 	return out, nil
 }

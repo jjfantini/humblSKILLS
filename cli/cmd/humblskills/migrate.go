@@ -87,7 +87,7 @@ func runMigrate(app *App, sourcePlatform string, f migrateFlags) error {
 	sort.Strings(candidates)
 	sort.Strings(skipped)
 
-	selectedPlatforms, err := selectPlatforms(adapterList, nil, f.global)
+	selectedPlatforms, err := selectPlatforms(adapterList, nil, f.global, nil)
 	if err != nil {
 		return err
 	}

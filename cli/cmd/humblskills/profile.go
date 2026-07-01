@@ -45,7 +45,7 @@ func newProfileShowCmd(app *App) *cobra.Command {
 func newProfileSetCmd(app *App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "set <key> <value>",
-		Short: "Set a profile value. Keys: platforms, scope.",
+		Short: "Set a profile value. Keys: platforms (csv), scope (global|user|project|adapter-default).",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runProfileSet(app, args[0], args[1])
@@ -157,7 +157,7 @@ func runProfileSet(app *App, key, value string) error {
 		}
 	case "scope":
 		if !profile.IsValidScope(value) {
-			return fmt.Errorf("invalid scope %q — valid: user, project, \"\"", value)
+			return fmt.Errorf("invalid scope %q — valid: global, user, project, adapter-default, \"\"", value)
 		}
 		p.DefaultScope = value
 	default:
@@ -232,8 +232,16 @@ func formatPlatforms(p []string) string {
 }
 
 func formatScope(s string) string {
-	if s == "" {
-		return "(adapter default)"
+	p := profile.Profile{DefaultScope: s}
+	switch resolved := p.ResolvedScope(); resolved {
+	case profile.ScopeGlobal:
+		if s == "" {
+			return "global humblskills (default)"
+		}
+		return "global humblskills"
+	case profile.ScopeAdapterDefault:
+		return "adapter default"
+	default:
+		return resolved
 	}
-	return s
 }

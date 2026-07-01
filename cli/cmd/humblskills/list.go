@@ -57,25 +57,32 @@ func runList(app *App, fromDashboard bool) error {
 }
 
 // renderListTable prints installs as a bordered table using the shared theme.
-// Used in non-TTY / piped paths.
+// Used in non-TTY / piped paths. "Source" is the canonical humblskills store
+// every row's Path symlinks to — the source of truth — so scripted/piped
+// output reflects the real install location, not just the platform copy.
 func renderListTable(app *App, installs []manifest.Installation) {
 	th := app.UI.Theme()
 	app.UI.Header("list")
 
 	rows := make([][]string, 0, len(installs))
 	for _, inst := range installs {
+		source := inst.StorePath
+		if source == "" {
+			source = "-"
+		}
 		rows = append(rows, []string{
 			th.Name.Render(inst.Skill),
 			th.Version.Render("v" + inst.Version),
 			th.Platform.Render(inst.Platform),
 			th.Label.Render(inst.Scope),
 			th.Detail.Render(inst.Path),
+			th.Detail.Render(source),
 		})
 	}
 	tbl := table.New().
 		Border(lipgloss.RoundedBorder()).
 		BorderStyle(th.RuleLine).
-		Headers("Skill", "Version", "Platform", "Scope", "Path").
+		Headers("Skill", "Version", "Platform", "Scope", "Path", "Source").
 		Rows(rows...).
 		StyleFunc(func(row, _ int) lipgloss.Style {
 			if row == table.HeaderRow {

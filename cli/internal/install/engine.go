@@ -30,11 +30,16 @@ const (
 
 // TargetResult is the outcome of installing one skill onto one adapter+scope.
 type TargetResult struct {
-	Skill    string  `json:"skill"`
-	Platform string  `json:"platform"`
-	Scope    string  `json:"scope"`
-	Path     string  `json:"path"`
-	Outcome  Outcome `json:"outcome"`
+	Skill    string `json:"skill"`
+	Version  string `json:"version"`
+	Platform string `json:"platform"`
+	Scope    string `json:"scope"`
+	Path     string `json:"path"`
+	// StorePath is the canonical humblskills-owned directory Path symlinks
+	// to — the source-of-truth install location, shared across every
+	// platform/scope this run touched for this skill.
+	StorePath string  `json:"store_path,omitempty"`
+	Outcome   Outcome `json:"outcome"`
 }
 
 // Result aggregates every target outcome produced by one install run.
@@ -295,12 +300,13 @@ func (e *Engine) installOne(
 				Platform: pg.adapter.Name, Scope: pg.target.Scope,
 			})
 			skipped = append(skipped, TargetResult{
-				Skill: skill.Name, Platform: pg.adapter.Name, Scope: pg.target.Scope,
-				Path: pg.final, Outcome: OutcomeSkipped,
+				Skill: skill.Name, Version: skill.Version, Platform: pg.adapter.Name, Scope: pg.target.Scope,
+				Path: pg.final, StorePath: storePath, Outcome: OutcomeSkipped,
 			})
 			opts.OnEvent.emit(Event{
 				Phase: PhaseTargetDone, Skill: skill.Name, IsDep: step.IsDep,
 				Platform: pg.adapter.Name, Scope: pg.target.Scope, Outcome: OutcomeSkipped,
+				Path: pg.final, Version: skill.Version, StorePath: storePath,
 			})
 		case upToDate && opts.Force:
 			toWrite = append(toWrite, installPlanTarget{pending: pg, out: OutcomeForced, orphan: orphan, existingPath: existingPath})
@@ -397,16 +403,18 @@ func (e *Engine) installOne(
 			RegistryRef: skill.DirSHA,
 		})
 		results = append(results, TargetResult{
-			Skill:    skill.Name,
-			Platform: pt.pending.adapter.Name,
-			Scope:    pt.pending.target.Scope,
-			Path:     pt.pending.final,
-			Outcome:  pt.out,
+			Skill:     skill.Name,
+			Version:   skill.Version,
+			Platform:  pt.pending.adapter.Name,
+			Scope:     pt.pending.target.Scope,
+			Path:      pt.pending.final,
+			StorePath: storePath,
+			Outcome:   pt.out,
 		})
 		opts.OnEvent.emit(Event{
 			Phase: PhaseTargetDone, Skill: skill.Name, IsDep: step.IsDep,
 			Platform: pt.pending.adapter.Name, Scope: pt.pending.target.Scope,
-			Outcome: pt.out,
+			Outcome: pt.out, Path: pt.pending.final, Version: skill.Version, StorePath: storePath,
 		})
 	}
 	return results, nil
