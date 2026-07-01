@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-01T03:20:46Z",
+  "generated_at": "2026-07-01T05:00:03Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "develop",
-    "sha": "3d0af4b161975be7b41ee8ee9891f125befa67c2"
+    "ref": "cursor/feat-doctor-humanize-reasons-edb2",
+    "sha": "d8986a0c259dbcede49a1fc512a0754c04498fcc"
   },
   "skills": [
     {
