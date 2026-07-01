@@ -3,12 +3,14 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/skillset"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
@@ -75,12 +77,65 @@ func runStart(app *App) error {
 			Crumb:  "Dashboard > " + crumbLabel(res.Command),
 			Status: status,
 		}
-		if err := dispatchDashboardCommand(app, res.Command); err != nil {
-			// Surface the error, then loop back so the user can keep working.
-			app.UI.Error("%s: %v", res.Command, err)
+		if err := runDashboardCommand(app, res.Command); err != nil {
+			return err
 		}
 		app.Nav = NavContext{}
 	}
+}
+
+// runDashboardCommand dispatches cmd and makes sure nothing it would have
+// printed gets lost. Every dashboard sub-command re-enters this loop's
+// alt-screen the instant it returns, which used to silently overwrite any
+// plain app.UI.Info/Warn/Error/Success line printed in the gap — e.g. sync's
+// "no such file" error, or update's "all skills are up-to-date" - before
+// anyone could read it (standalone `humblskills <cmd>` never had this
+// problem, since nothing redraws over the terminal after it exits).
+//
+// It captures everything the sub-command writes via app.UI while it runs;
+// if that capture is non-empty, or the sub-command returned an error, it
+// shows exactly that (the same text the standalone CLI would have printed)
+// on a blocking status screen instead of letting it flash by. A command
+// that already used its own blocking screen for feedback (install/update
+// progress, registry refresh) and printed nothing extra gets no additional
+// screen, so there's no double-dialog.
+//
+// The returned error is only ever a genuine bubbletea/status-screen
+// plumbing failure (e.g. Run() itself couldn't launch) - dispatch errors
+// from cmd itself are always shown via the status screen and swallowed
+// here so the dashboard loop keeps going, matching today's "surface then
+// keep working" behavior.
+func runDashboardCommand(app *App, cmd string) error {
+	restore := app.UI.CaptureWriters()
+	cmdErr := dispatchDashboardCommand(app, cmd)
+	captured := restore()
+
+	if strings.TrimSpace(captured) == "" && cmdErr == nil {
+		return nil
+	}
+
+	autoReturn := profile.DefaultStatusAutoReturnSeconds * time.Second
+	if p, err := profile.Load(app.Config.ProfilePath); err == nil {
+		autoReturn = p.StatusAutoReturnDuration()
+	}
+
+	// ExecuteWithStatus's second return value is exactly whatever our
+	// closure returned as its error, i.e. cmdErr reflected straight back
+	// once the screen has already been shown and dismissed. Propagating
+	// that as this function's own error would make the caller treat a
+	// perfectly normal (and already-displayed) sub-command failure as a
+	// fatal problem and tear down the whole dashboard - which is the exact
+	// "flash back to a bare shell" bug this function exists to prevent.
+	// Only a genuinely different error - Run() failing to even launch the
+	// status screen - is worth propagating further.
+	_, statusErr := tui.ExecuteWithStatus(app.UI.Theme(), app.Nav.Crumb, "…", autoReturn,
+		func() (tui.StatusResult, error) {
+			return tui.StatusResult{Raw: captured}, cmdErr
+		})
+	if statusErr != nil && statusErr != cmdErr {
+		return statusErr
+	}
+	return nil
 }
 
 // crumbLabel maps a dashboard command back to its display label for the
