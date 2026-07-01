@@ -135,6 +135,7 @@ allowed-tools: "TODO or delete - e.g. Bash(bash:*) Read Write Edit. Restricts wh
 metadata:
   author: TODO
   version: "1.0.0"
+  category: TODO  # required, one of: development, design, writing, meta
   tags: [TODO]
   platforms: [claude-code, cursor]
   preserve:

@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
@@ -116,7 +117,7 @@ func runDoctorTUI(app *App, r doctorReport) (bool, error) {
 			parts = append(parts, "registry error")
 		}
 		if r.Updates.Count > 0 {
-			parts = append(parts, fmt.Sprintf("%d update%s", r.Updates.Count, plural(r.Updates.Count)))
+			parts = append(parts, fmt.Sprintf("%d update%s", r.Updates.Count, textutil.Plural(r.Updates.Count)))
 		}
 		return strings.Join(parts, " · ")
 	}
