@@ -32,8 +32,14 @@ func runList(app *App, fromDashboard bool) error {
 	if err != nil {
 		return err
 	}
+
+	// Best-effort, offline-only drift lookup: `list` reports the last-known
+	// registry state without forcing a network fetch, so it stays fast and
+	// works offline. `update` / `registry refresh` are what refill the cache.
+	avail := availableUpdates(app, m)
+
 	if app.Config.JSON {
-		return app.UI.JSON(m)
+		return app.UI.JSON(buildListView(m, avail))
 	}
 	if len(m.Installations) == 0 {
 		app.UI.Info("no skills installed — try 'humblskills install <name>'")
@@ -53,27 +59,100 @@ func runList(app *App, fromDashboard bool) error {
 	if tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
 		return runListTUI(app, m, fromDashboard)
 	}
-	renderListTable(app, installs)
+	renderListTable(app, installs, avail)
 	return nil
+}
+
+// availableUpdates maps a manifest installation key to the newer registry
+// version it can upgrade to. Only drifted installations appear in the map. The
+// registry is read from the local cache only (never fetched); if no cached
+// registry is available the map is nil and callers show no drift.
+func availableUpdates(app *App, m *manifest.Manifest) map[string]string {
+	reg, ok := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).LoadCached()
+	if !ok || reg == nil {
+		return nil
+	}
+	idx := make(map[string]registry.Skill, len(reg.Skills))
+	for _, s := range reg.Skills {
+		idx[s.Name] = s
+	}
+	out := map[string]string{}
+	for _, inst := range m.Installations {
+		rs, found := idx[inst.Skill]
+		if !found {
+			continue
+		}
+		// Drift signals mirror install.PlanUpdates: version or per-skill
+		// DirSHA (RegistryRef) differs. The repo-wide Source.SHA is ignored.
+		if inst.Version != rs.Version || inst.RegistryRef != rs.DirSHA {
+			out[installKey(inst)] = rs.Version
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// installKey uniquely identifies one manifest installation row.
+func installKey(inst manifest.Installation) string {
+	return inst.Skill + "\x00" + inst.Platform + "\x00" + inst.Scope
+}
+
+// listInstallation is a manifest installation enriched with the newer registry
+// version, if any. The embedded Installation's fields are promoted so the JSON
+// shape stays backward-compatible; available_update is purely additive.
+type listInstallation struct {
+	manifest.Installation
+	AvailableUpdate string `json:"available_update,omitempty"`
+}
+
+// listView is the --json document for `list`: identical to the manifest plus
+// the additive per-row available_update field.
+type listView struct {
+	SchemaVersion int                `json:"schema_version"`
+	Installations []listInstallation `json:"installations"`
+}
+
+func buildListView(m *manifest.Manifest, avail map[string]string) listView {
+	v := listView{SchemaVersion: m.SchemaVersion}
+	v.Installations = make([]listInstallation, 0, len(m.Installations))
+	for _, inst := range m.Installations {
+		v.Installations = append(v.Installations, listInstallation{
+			Installation:    inst,
+			AvailableUpdate: avail[installKey(inst)],
+		})
+	}
+	return v
 }
 
 // renderListTable prints installs as a bordered table using the shared theme.
 // Used in non-TTY / piped paths. "Source" is the canonical humblskills store
 // every row's Path symlinks to — the source of truth — so scripted/piped
 // output reflects the real install location, not just the platform copy.
-func renderListTable(app *App, installs []manifest.Installation) {
+func renderListTable(app *App, installs []manifest.Installation, avail map[string]string) {
 	th := app.UI.Theme()
 	app.UI.Header("list")
 
+	outdated := 0
 	rows := make([][]string, 0, len(installs))
 	for _, inst := range installs {
 		source := inst.StorePath
 		if source == "" {
 			source = "-"
 		}
+		// When a newer registry version is known, show the transition
+		// (v1.0.0 → v1.0.2) right in the Version cell instead of adding a
+		// whole extra column to an already-wide table.
+		version := th.Version.Render("v" + inst.Version)
+		if to := avail[installKey(inst)]; to != "" && to != inst.Version {
+			outdated++
+			version = th.DotWarn.Render("↑ ") + th.Version.Render("v"+inst.Version) +
+				th.Detail.Render(" → ") + th.DotWarn.Render("v"+to)
+		}
 		rows = append(rows, []string{
 			th.Name.Render(inst.Skill),
-			th.Version.Render("v" + inst.Version),
+			version,
 			th.Platform.Render(inst.Platform),
 			th.Label.Render(inst.Scope),
 			th.Detail.Render(inst.Path),
@@ -94,6 +173,10 @@ func renderListTable(app *App, installs []manifest.Installation) {
 	fmt.Fprintln(app.UI.Out(), tbl.Render())
 	fmt.Fprintln(app.UI.Out(), "  "+th.Crumb.Render(fmt.Sprintf(
 		"%d install%s total", len(installs), textutil.Plural(len(installs)))))
+	if outdated > 0 {
+		app.UI.Warn("%d install%s can be updated - run 'humblskills update'",
+			outdated, textutil.Plural(outdated))
+	}
 }
 
 // runListTUI opens the shared two-pane browser in installed-only mode so list
