@@ -29,23 +29,36 @@ func RunInstallPlatformModal(
 		p = &profile.Profile{}
 	}
 
+	// Recommended baseline: every detected platform, regardless of which
+	// scope ends up highlighted below — "global humblskills" is the default
+	// scope and its whole point is symlinking every detected platform. A
+	// saved profile platform list always overrides this.
 	selected := map[string]bool{}
-	for _, name := range adapters.PreferredDefaults(adapterList, detected, p.DefaultPlatforms) {
+	for _, name := range adapters.PreferredDefaults(adapterList, detected, p.DefaultPlatforms, true) {
 		selected[name] = true
 	}
 
+	// Only 3 concrete scopes are offered interactively — "adapter default"
+	// can't show a location at install time, so it's a profile-only setting
+	// (see RunProfileEditor). If that's what the profile resolved to, we
+	// still need a concrete starting point here: default to global and
+	// surface a note so the user understands why their profile pick isn't
+	// pre-selected.
 	scopes := []scopeOpt{
-		{label: "Global fanout", value: "global"},
-		{label: "adapter default", value: ""},
+		{label: "global humblskills", value: "global"},
 		{label: "user", value: "user"},
 		{label: "project", value: "project"},
 	}
+	resolvedScope := p.ResolvedScope()
 	scopeIdx := 0
-	for i, s := range scopes {
-		if s.value == p.DefaultScope {
-			scopeIdx = i
-			break
-		}
+	adapterDefaultNote := false
+	switch resolvedScope {
+	case profile.ScopeUser:
+		scopeIdx = 1
+	case profile.ScopeProject:
+		scopeIdx = 2
+	case profile.ScopeAdapterDefault:
+		adapterDefaultNote = true
 	}
 
 	actions := []actionOpt{
@@ -55,18 +68,19 @@ func RunInstallPlatformModal(
 	}
 
 	m := installModalModel{
-		theme:       theme,
-		skill:       skill,
-		adapters:    adapterList,
-		detected:    detected,
-		selected:    selected,
-		scopes:      scopes,
-		scopeIdx:    scopeIdx,
-		actions:     actions,
-		actionIdx:   0,
-		group:       groupPlatforms,
-		cursor:      0,
-		firstSelect: true,
+		theme:              theme,
+		skill:              skill,
+		adapters:           adapterList,
+		detected:           detected,
+		selected:           selected,
+		scopes:             scopes,
+		scopeIdx:           scopeIdx,
+		adapterDefaultNote: adapterDefaultNote,
+		actions:            actions,
+		actionIdx:          0,
+		group:              groupPlatforms,
+		cursor:             0,
+		firstSelect:        true,
 	}
 
 	out, err := Run(m)
@@ -97,11 +111,15 @@ type installModalModel struct {
 	adapters []adapters.Adapter
 	detected map[string]bool
 
-	selected  map[string]bool
-	scopes    []scopeOpt
-	scopeIdx  int
-	actions   []actionOpt
-	actionIdx int
+	selected map[string]bool
+	scopes   []scopeOpt
+	scopeIdx int
+	// adapterDefaultNote is true when the profile's saved default scope is
+	// "adapter default" — there's no concrete option for that here, so the
+	// scope group shows a note explaining why nothing started pre-selected.
+	adapterDefaultNote bool
+	actions            []actionOpt
+	actionIdx          int
 
 	group  modalGroup
 	cursor int
@@ -325,6 +343,10 @@ func (m installModalModel) renderLeftStacked(width int) string {
 	sb.WriteString(m.renderGroup(groupPlatforms, "PLATFORMS", m.platformRows(), width))
 	sb.WriteString("\n")
 	sb.WriteString(m.renderGroup(groupScope, "SCOPE", m.scopeRows(), width))
+	if m.adapterDefaultNote {
+		sb.WriteString("  " + th.Detail.Render(
+			"profile default is \"adapter default\" — pick a concrete scope for this install") + "\n")
+	}
 	sb.WriteString("\n")
 	sb.WriteString(m.renderGroup(groupAction, "ACTION", m.actionRows(), width))
 
@@ -370,19 +392,21 @@ func (m installModalModel) infoContent(width int) (heading, body string) {
 
 	switch {
 	case isGlobal:
-		heading = th.DetailTitle.Render("Global fanout")
+		heading = th.DetailTitle.Render("global humblskills")
 		body = wrap.Render(
 			"Installs one canonical copy in ~/.humblskills/skills and symlinks it " +
-				"to every selected detected platform target. Use this when all agents " +
-				"should share the same skill files.",
+				"to every selected platform target. Recommended default — every " +
+				"agent shares the same skill files.",
 		)
 	case hasClaude && hasCursor:
-		heading = th.Warn.Render("! Duplicate install")
+		heading = th.DetailTitle.Render("Note: redundant copy")
 		body = wrap.Render(
-			"Installing to both creates two copies of each skill that can drift. " +
-				"Cursor can read ~/.claude/skills directly — enable \"Include " +
-				"Third-Party Plugins, Skills and other configs\" in Cursor → Rules, " +
-				"Skills and Plugins, then deselect cursor here.",
+			"Both selected. If Cursor's \"Include Third-Party Plugins, Skills " +
+				"and other configs\" setting is on, it already reads " +
+				"~/.claude/skills directly, so this symlink is redundant today — " +
+				"but it keeps the skill available in Cursor if Claude Code is " +
+				"ever removed. Safe to keep both; deselect cursor if you'd " +
+				"rather avoid the duplicate listing.",
 		)
 	case hasClaude:
 		heading = th.DetailTitle.Render("Tip")
