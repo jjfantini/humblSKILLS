@@ -259,12 +259,12 @@ func TestUpgrade_HomebrewManaged_RunsBrewAndVerifies(t *testing.T) {
 
 	startFakeReleaseAPI(t, latest, "irrelevant for the homebrew path")
 
-	var invoked bool
+	var invocations [][]string
 	prevRunner := brewRunner
 	brewRunner = func(ctx context.Context, name string, args ...string) *exec.Cmd {
-		invoked = true
-		if name != "brew" || len(args) != 2 || args[0] != "upgrade" || args[1] != "humblskills" {
-			t.Errorf("unexpected brew invocation: %s %v", name, args)
+		invocations = append(invocations, append([]string{}, args...))
+		if name != "brew" {
+			t.Errorf("unexpected runner name: %s", name)
 		}
 		return exec.CommandContext(ctx, "true")
 	}
@@ -274,8 +274,17 @@ func TestUpgrade_HomebrewManaged_RunsBrewAndVerifies(t *testing.T) {
 	if res.RunErr != nil {
 		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
 	}
-	if !invoked {
-		t.Error("expected the stubbed brew runner to be invoked")
+	// Must run `brew update` before `brew upgrade humblskills` — Homebrew
+	// throttles its own tap refresh, so skipping this step is what let
+	// `brew upgrade` silently no-op against a stale tap in production.
+	if len(invocations) != 2 {
+		t.Fatalf("brew invocations = %v, want 2 calls (update, then upgrade)", invocations)
+	}
+	if len(invocations[0]) != 1 || invocations[0][0] != "update" {
+		t.Errorf("first brew call = %v, want [update]", invocations[0])
+	}
+	if len(invocations[1]) != 2 || invocations[1][0] != "upgrade" || invocations[1][1] != "humblskills" {
+		t.Errorf("second brew call = %v, want [upgrade humblskills]", invocations[1])
 	}
 
 	var got upgradeResult
