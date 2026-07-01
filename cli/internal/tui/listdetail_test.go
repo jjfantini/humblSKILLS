@@ -13,10 +13,10 @@ type testItem struct {
 	name, filter string
 }
 
-func (t testItem) Key() string                                     { return t.name }
-func (t testItem) FilterValue() string                              { return t.filter }
-func (t testItem) Row(_ *ui.Theme, _ int, selected bool) string    { return t.name }
-func (t testItem) Detail(_ *ui.Theme, _ int) string                { return "detail:" + t.name }
+func (t testItem) Key() string                                  { return t.name }
+func (t testItem) FilterValue() string                          { return t.filter }
+func (t testItem) Row(_ *ui.Theme, _ int, selected bool) string { return t.name }
+func (t testItem) Detail(_ *ui.Theme, _ int) string             { return "detail:" + t.name }
 
 func newTestListDetail(items []Item, actions []ActionSpec) Model {
 	return NewListDetail(Config{
@@ -175,6 +175,57 @@ func TestModel_ViewMentionsTitles(t *testing.T) {
 		if !strings.Contains(v, want) {
 			t.Errorf("view missing %q:\n%s", want, v)
 		}
+	}
+}
+
+func TestModel_FilterFooterShowsEscHintAndCount(t *testing.T) {
+	m := newTestListDetail([]Item{
+		testItem{name: "alpha", filter: "alpha"},
+		testItem{name: "beta", filter: "beta"},
+	}, nil)
+	m.width, m.height = 80, 24
+	m.resize()
+
+	// Open the filter; footer should switch to filter-mode hints + a count.
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("/")})
+	mm := out.(Model)
+	v := mm.View()
+	for _, want := range []string{"clear filter", "apply", "2 matches"} {
+		if !strings.Contains(v, want) {
+			t.Errorf("filter footer missing %q:\n%s", want, v)
+		}
+	}
+
+	// Narrow it to a single match -> singular noun.
+	for _, r := range "alph" {
+		out, _ = mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		mm = out.(Model)
+	}
+	if v := mm.View(); !strings.Contains(v, "1 match") {
+		t.Errorf("expected singular '1 match':\n%s", v)
+	}
+}
+
+func TestModel_ScrollIndicator(t *testing.T) {
+	m := newTestListDetail([]Item{testItem{name: "a", filter: "a"}}, nil)
+	m.width, m.height = 80, 12
+	m.resize()
+
+	// Short content: nothing overflows, so no indicator.
+	if ind := m.scrollIndicator(m.cfg.Theme); ind != "" {
+		t.Errorf("expected no indicator for short content, got %q", ind)
+	}
+
+	// Tall content: indicator appears with a percent and a down arrow (we're
+	// at the top, so more content lies below).
+	m.preview.SetContent(strings.Repeat("line\n", 100))
+	m.preview.GotoTop()
+	ind := m.scrollIndicator(m.cfg.Theme)
+	if ind == "" {
+		t.Fatal("expected scroll indicator for overflowing content")
+	}
+	if !strings.Contains(ind, "%") || !strings.Contains(ind, "▼") {
+		t.Errorf("indicator should show percent and a down arrow: %q", ind)
 	}
 }
 
