@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -39,38 +37,6 @@ func TestDefaultDashboardTiles_Shape(t *testing.T) {
 		if !commands[want] {
 			t.Errorf("missing dashboard command %q", want)
 		}
-	}
-}
-
-func TestBuildDashboardGreeting_PopulatesFields(t *testing.T) {
-	g := BuildDashboardGreeting(5)
-	if g.Updates != 5 {
-		t.Errorf("Updates = %d", g.Updates)
-	}
-	// User & Cwd may be empty in sandboxed CI — just sanity-check types.
-	_ = g.User
-	_ = g.Cwd
-}
-
-func TestCompactPath(t *testing.T) {
-	// Use a real tempdir as the "home" so the path separators match
-	// whatever the OS natively produces. Point both HOME and
-	// USERPROFILE at it — Unix reads $HOME, Windows reads %USERPROFILE%.
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
-
-	inside := filepath.Join(home, "work", "x")
-	if got := compactPath(inside); !strings.HasPrefix(got, "~") {
-		t.Errorf("compactPath should prefix ~: %q", got)
-	}
-
-	// A path unrelated to home passes through unchanged. Use the OS's
-	// temp dir root so we get an actually-unrelated absolute path on
-	// every platform.
-	unrelated := filepath.Join(os.TempDir(), "definitely-not-home-"+filepath.Base(home))
-	if got := compactPath(unrelated); got != unrelated {
-		t.Errorf("unrelated path changed: got %q want %q", got, unrelated)
 	}
 }
 
@@ -111,6 +77,37 @@ func TestDashboardModel_QuitKeys(t *testing.T) {
 		if cmd == nil {
 			t.Errorf("key %q: expected tea.Quit cmd", k)
 		}
+	}
+}
+
+func TestDashboardModel_VimKeysNavigateViaSharedKeymap(t *testing.T) {
+	m := dashboardModel{cfg: DashboardConfig{Theme: ui.DefaultTheme(), Tiles: DefaultDashboardTiles()}}
+	m.width = 120 // 3 columns
+	m.rebuildVisible()
+
+	// j moves down a full row (cols tiles) via keys.Down ("down"/"j").
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("j")})
+	dm := out.(dashboardModel)
+	if dm.cursor == 0 {
+		t.Errorf("j should move the cursor down, got %d", dm.cursor)
+	}
+
+	// l moves right one tile (keys.Right = right/l), and must NOT launch the
+	// "list" command whose hotkey is also "l" — movement shadows it.
+	out, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("l")})
+	dm = out.(dashboardModel)
+	if dm.result.Command != "" {
+		t.Errorf("l should move right, not launch a command: %+v", dm.result)
+	}
+	if dm.cursor != 1 {
+		t.Errorf("l should move cursor right to 1, got %d", dm.cursor)
+	}
+
+	// A hotkey that doesn't collide with hjkl still launches.
+	out, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("d")})
+	dm = out.(dashboardModel)
+	if dm.result.Command != "doctor" {
+		t.Errorf("d should launch doctor, got %+v", dm.result)
 	}
 }
 
@@ -207,8 +204,8 @@ func TestDashboardModel_EnterLaunchesCursor(t *testing.T) {
 
 func TestTruncateDisplay(t *testing.T) {
 	cases := map[string]int{
-		"hello":                       10,
-		"this is a very long string":  10,
+		"hello":                      10,
+		"this is a very long string": 10,
 	}
 	for in, width := range cases {
 		got := truncateDisplay(in, width)
@@ -226,15 +223,6 @@ func TestIndentBlock_AddsLeadingSpaces(t *testing.T) {
 		if !strings.HasPrefix(line, "    ") {
 			t.Errorf("line not indented: %q", line)
 		}
-	}
-}
-
-func TestPluralDash(t *testing.T) {
-	if pluralDash(1) != "" {
-		t.Errorf("1 should not pluralize: %q", pluralDash(1))
-	}
-	if pluralDash(2) != "s" {
-		t.Errorf("2 should pluralize: %q", pluralDash(2))
 	}
 }
 

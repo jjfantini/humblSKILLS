@@ -8,6 +8,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
@@ -98,7 +99,7 @@ func runUninstall(app *App, skill string) error {
 		got, err := tui.ConfirmWithSummary(
 			theme,
 			fmt.Sprintf("Uninstall %s", skill),
-			fmt.Sprintf("Remove %d target%s?", len(entries), plural(len(entries))),
+			fmt.Sprintf("Remove %d target%s?", len(entries), textutil.Plural(len(entries))),
 			lines,
 			true,
 			app.Prompt.Interactive,

@@ -7,6 +7,7 @@
 *.test
 *.out
 /cli/humblskills
+/cli/build-registry
 /cli/dist/
 /dist/
 coverage.out

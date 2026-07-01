@@ -87,7 +87,40 @@ humblskills list
 humblskills update                    # pick which drifted skills to upgrade
 humblskills update --all --yes        # non-interactive bulk upgrade
 humblskills uninstall use-smart-skill
+humblskills export                    # snapshot installed skills to humblskills.json
+humblskills sync                      # install everything in humblskills.json
 ```
+
+### Sharing skill sets across a team
+
+`humblskills export` snapshots the skills you have installed into a
+`humblskills.json` file (override with `-o`). Commit it to a repo, and every
+teammate runs `humblskills sync` to install the same set — a single,
+version-controlled source of truth for "which skills does this project want".
+
+```sh
+humblskills init                         # scaffold an empty ./humblskills.json to fill in
+humblskills init --from-installed        # scaffold it from the skills you already have
+humblskills export -o humblskills.json   # write the skillset
+humblskills sync                         # install missing skills from ./humblskills.json
+humblskills sync path/to/set.json --force  # reinstall everything from a specific file
+humblskills sync https://example.com/humblskills.json  # sync from a hosted skillset
+humblskills sync --prune                 # also uninstall skills not in the file
+```
+
+`init` bootstraps a new skillset file (default `./humblskills.json`); it writes
+an empty set to fill in, or seeds it from your installed skills with
+`--from-installed`, and refuses to clobber an existing file unless you pass
+`--force`.
+
+`sync` accepts a local path, a `file://` URL, or an `http(s)://` URL, so a team
+can host one canonical skillset and everyone runs
+`humblskills sync https://…/humblskills.json`. It pulls the current registry version of each skill (like `install`),
+skips skills already up-to-date, and warns (without failing) about any skill in
+the file that the registry doesn't know about. Add `--prune` to make your local
+set match the file exactly — any installed skill the skillset doesn't list is
+uninstalled (you're asked to confirm unless `--yes`). Platforms/scope follow the
+same rules as `install`.
 
 Every command accepts `--json` for machine-readable output and `--yes` to
 skip confirmation prompts.

@@ -13,6 +13,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
@@ -110,6 +111,9 @@ func newRootCmd() *cobra.Command {
 		newUpgradeCmd(app),
 		newListCmd(app),
 		newSearchCmd(app),
+		newInitCmd(app),
+		newExportCmd(app),
+		newSyncCmd(app),
 		newProfileCmd(app),
 		newEvalCmd(app),
 	)
@@ -149,7 +153,7 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 	}
 
 	cfg := Config{
-		RegistryURL: firstNonEmpty(g.registry, os.Getenv("HUMBLSKILLS_REGISTRY"), registry.DefaultURL),
+		RegistryURL: textutil.FirstNonEmpty(g.registry, os.Getenv("HUMBLSKILLS_REGISTRY"), registry.DefaultURL),
 		JSON:        g.json,
 		NoColor:     g.noColor,
 		Verbose:     g.verbose,
@@ -158,19 +162,19 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 		Fullscreen:  g.fullscreen,
 	}
 
-	cacheDir, err := resolveCacheDir(firstNonEmpty(g.cacheDir, os.Getenv("HUMBLSKILLS_CACHE_DIR")))
+	cacheDir, err := resolveCacheDir(textutil.FirstNonEmpty(g.cacheDir, os.Getenv("HUMBLSKILLS_CACHE_DIR")))
 	if err != nil {
 		return err
 	}
 	cfg.CacheDir = cacheDir
 
-	manifestPath, err := resolveManifestPath(firstNonEmpty(g.manifest, os.Getenv("HUMBLSKILLS_MANIFEST")))
+	manifestPath, err := resolveManifestPath(textutil.FirstNonEmpty(g.manifest, os.Getenv("HUMBLSKILLS_MANIFEST")))
 	if err != nil {
 		return err
 	}
 	cfg.ManifestPath = manifestPath
 
-	profilePath, err := resolveProfilePath(firstNonEmpty(g.profile, os.Getenv("HUMBLSKILLS_PROFILE")))
+	profilePath, err := resolveProfilePath(textutil.FirstNonEmpty(g.profile, os.Getenv("HUMBLSKILLS_PROFILE")))
 	if err != nil {
 		return err
 	}
@@ -208,13 +212,4 @@ func resolveProfilePath(override string) (string, error) {
 		return override, nil
 	}
 	return profile.DefaultPath()
-}
-
-func firstNonEmpty(vs ...string) string {
-	for _, v := range vs {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
 }
