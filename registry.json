@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-01T00:12:42Z",
+  "generated_at": "2026-07-01T00:57:25Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "develop",
-    "sha": "d128f8697cfd1fb54bb91a5edb0afecc7328cd45"
+    "ref": "cursor/fix-brew-upgrade-stale-tap-2f10",
+    "sha": "2eabf9e24b0e22ae05e651f13a5886c64625b2b3"
   },
   "skills": [
     {
