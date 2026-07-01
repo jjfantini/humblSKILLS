@@ -27,6 +27,8 @@ humblskills list
 humblskills update                    # pick which drifted skills to upgrade
 humblskills update --all --yes        # non-interactive bulk upgrade
 humblskills uninstall use-smart-skill
+humblskills init --from-installed      # scaffold a shareable humblskills.json
+humblskills sync                       # install everything a skillset lists
 ```
 
 Use `install --global` when you want one canonical copy in
@@ -50,4 +52,5 @@ Use these in scripts and CI.
 
 - [Registry & skill format](../using_humblskills/registry_and_format.md)
 - [Preserving user content](../using_humblskills/preserving_user_content.md)
+- [Sharing skillsets](../using_humblskills/sharing_skillsets.md)
 - [Eval quickstart](../eval/quickstart.md)

@@ -24,6 +24,7 @@ nav:
   - Using humblskills:
     - Registry & skill format: using_humblskills/registry_and_format.md
     - Preserving user content: using_humblskills/preserving_user_content.md
+    - Sharing skillsets: using_humblskills/sharing_skillsets.md
   - Eval:
     - Overview: eval/index.md
     - Quickstart: eval/quickstart.md

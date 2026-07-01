@@ -13,5 +13,6 @@ humblSKILLS is a **skill registry** plus a single-binary Go CLI, **`humblskills`
 - [Quickstart](getting_started/quickstart.md) - dashboard (`start`), `doctor`, `search`, `install`, `update`
 - [Eval](eval/index.md) - benchmark skills and inspect compound smart-skill runs
 - [Preserving user content](using_humblskills/preserving_user_content.md) - `metadata.preserve` in `SKILL.md`
+- [Sharing skillsets](using_humblskills/sharing_skillsets.md) - `init`, `export`, `sync`, `sync --prune`
 
 Documentation is hosted on [GitHub Pages](https://jjfantini.github.io/humblSKILLS/); the live site is **published from `main`** so it stays aligned with released, installable `humblskills` builds. Source lives in the [humblSKILLS repo](https://github.com/jjfantini/humblSKILLS).
