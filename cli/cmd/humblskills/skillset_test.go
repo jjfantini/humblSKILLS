@@ -11,6 +11,106 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
 )
 
+func TestInit_WritesEmptyScaffold(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	out := filepath.Join(s.Root, "humblskills.json")
+
+	res := runCLIWithStdoutCapture(t,
+		"init", out,
+		"--manifest", s.ManifestPath,
+		"--yes",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("init: %v\n%s", res.RunErr, res.Err)
+	}
+	set, err := skillset.Load(out)
+	if err != nil {
+		t.Fatalf("load scaffolded skillset: %v", err)
+	}
+	if len(set.Skills) != 0 {
+		t.Errorf("expected empty skillset, got %+v", set.Skills)
+	}
+	if set.SchemaVersion != skillset.SchemaVersion {
+		t.Errorf("schema = %d, want %d", set.SchemaVersion, skillset.SchemaVersion)
+	}
+}
+
+func TestInit_FromInstalled_SeedsFromManifest(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	_ = installFoo(t, s) // foo 1.0.0 installed
+	out := filepath.Join(s.Root, "humblskills.json")
+
+	res := runCLIWithStdoutCapture(t,
+		"init", out,
+		"--from-installed",
+		"--manifest", s.ManifestPath,
+		"--yes",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("init --from-installed: %v\n%s", res.RunErr, res.Err)
+	}
+	set, err := skillset.Load(out)
+	if err != nil {
+		t.Fatalf("load skillset: %v", err)
+	}
+	if len(set.Skills) != 1 || set.Skills[0].Name != "foo" {
+		t.Fatalf("unexpected skillset: %+v", set.Skills)
+	}
+	if set.Skills[0].Version != "1.0.0" {
+		t.Errorf("foo version = %q, want 1.0.0", set.Skills[0].Version)
+	}
+}
+
+func TestInit_RefusesToClobberWithoutForce(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	out := filepath.Join(s.Root, "humblskills.json")
+	if err := os.WriteFile(out, []byte(`{"schema_version":1,"skills":[{"name":"keep"}]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	res := runCLIWithStdoutCapture(t,
+		"init", out,
+		"--manifest", s.ManifestPath,
+		"--yes",
+	)
+	if res.RunErr == nil {
+		t.Fatal("expected error when file already exists without --force")
+	}
+	// The original file must be untouched.
+	set, err := skillset.Load(out)
+	if err != nil {
+		t.Fatalf("load existing skillset: %v", err)
+	}
+	if len(set.Skills) != 1 || set.Skills[0].Name != "keep" {
+		t.Errorf("existing file was modified: %+v", set.Skills)
+	}
+}
+
+func TestInit_ForceOverwrites(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	out := filepath.Join(s.Root, "humblskills.json")
+	if err := os.WriteFile(out, []byte(`{"schema_version":1,"skills":[{"name":"stale"}]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	res := runCLIWithStdoutCapture(t,
+		"init", out,
+		"--force",
+		"--manifest", s.ManifestPath,
+		"--yes",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("init --force: %v\n%s", res.RunErr, res.Err)
+	}
+	set, err := skillset.Load(out)
+	if err != nil {
+		t.Fatalf("load skillset: %v", err)
+	}
+	if len(set.Skills) != 0 {
+		t.Errorf("expected --force to overwrite with an empty set, got %+v", set.Skills)
+	}
+}
+
 func TestExport_WritesSkillset(t *testing.T) {
 	s := testutil.NewSandbox(t)
 	_ = installFoo(t, s) // foo 1.0.0 installed

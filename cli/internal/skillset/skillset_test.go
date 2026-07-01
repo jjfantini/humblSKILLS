@@ -3,6 +3,7 @@ package skillset
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -58,6 +59,24 @@ func TestLoad_DefaultsSchemaZero(t *testing.T) {
 	}
 	if got.SchemaVersion != SchemaVersion || len(got.Skills) != 1 {
 		t.Errorf("unexpected: %+v", got)
+	}
+}
+
+func TestNew_EmptySavesAsArrayNotNull(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "humblskills.json")
+	if err := Save(path, New()); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "null") {
+		t.Errorf("empty skillset should serialize skills as [], got:\n%s", data)
+	}
+	if !strings.Contains(string(data), `"skills": []`) {
+		t.Errorf(`expected "skills": [] in output, got:\n%s`, data)
 	}
 }
 

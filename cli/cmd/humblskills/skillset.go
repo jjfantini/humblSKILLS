@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"sort"
 
 	"github.com/spf13/cobra"
@@ -12,6 +14,73 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/skillset"
 )
+
+// --- init -------------------------------------------------------------------
+
+func newInitCmd(app *App) *cobra.Command {
+	var fromInstalled bool
+	var force bool
+	cmd := &cobra.Command{
+		Use:   "init [file]",
+		Short: "Scaffold a new skillset file to share with your team",
+		Long: "init writes a starter skillset file (default: ./humblskills.json) that " +
+			"you commit to a repo so teammates can run 'humblskills sync' to land the " +
+			"same set. By default it writes an empty skillset for you to fill in; pass " +
+			"--from-installed to seed it from the skills you already have installed. " +
+			"It refuses to overwrite an existing file unless you pass --force.",
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			path := skillset.DefaultFilename
+			if len(args) == 1 {
+				path = args[0]
+			}
+			return runInit(app, path, fromInstalled, force)
+		},
+	}
+	cmd.Flags().BoolVar(&fromInstalled, "from-installed", false, "seed the skillset from your currently installed skills")
+	cmd.Flags().BoolVar(&force, "force", false, "overwrite an existing skillset file")
+	return cmd
+}
+
+func runInit(app *App, path string, fromInstalled, force bool) error {
+	if !force {
+		if _, err := os.Stat(path); err == nil {
+			return fmt.Errorf("%s already exists (use --force to overwrite, or edit it directly)", path)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("stat %s: %w", path, err)
+		}
+	}
+
+	set := skillset.New()
+	if fromInstalled {
+		m, err := manifest.Load(app.Config.ManifestPath)
+		if err != nil {
+			return err
+		}
+		for _, name := range uniqueSkillsFromManifest(m) {
+			version := ""
+			if insts := m.FindAll(name); len(insts) > 0 {
+				version = insts[0].Version
+			}
+			set.Add(name, version)
+		}
+		set.Sort()
+	}
+
+	if app.Config.JSON {
+		return app.UI.JSON(set)
+	}
+	if err := skillset.Save(path, set); err != nil {
+		return err
+	}
+	app.UI.Success("created %s with %d skill%s", path, len(set.Skills), plural(len(set.Skills)))
+	if len(set.Skills) == 0 {
+		app.UI.Detail("find skills with 'humblskills search <q>', add their names under \"skills\", then run 'humblskills sync'")
+	} else {
+		app.UI.Detail("commit it and run 'humblskills sync' on another machine to install the same set")
+	}
+	return nil
+}
 
 // --- export -----------------------------------------------------------------
 

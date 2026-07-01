@@ -35,9 +35,11 @@ type Set struct {
 	Skills        []Skill `json:"skills"`
 }
 
-// New returns an empty, current-schema Set.
+// New returns an empty, current-schema Set. Skills is a non-nil empty slice so
+// an unmodified Set serializes as "skills": [] (an editable scaffold) rather
+// than "skills": null.
 func New() *Set {
-	return &Set{SchemaVersion: SchemaVersion}
+	return &Set{SchemaVersion: SchemaVersion, Skills: []Skill{}}
 }
 
 // Add records a skill, de-duplicating by name (last version wins). Blank names
