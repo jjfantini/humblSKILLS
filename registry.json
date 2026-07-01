@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-01T03:20:46Z",
+  "generated_at": "2026-07-01T04:36:21Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "develop",
-    "sha": "3d0af4b161975be7b41ee8ee9891f125befa67c2"
+    "ref": "cursor/test-backfill-runner-eval-start-edb2",
+    "sha": "d38124ad315229ee8cc89fb99b5913049b0f06db"
   },
   "skills": [
     {
