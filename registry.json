@@ -1,16 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-01T03:21:02Z",
+  "generated_at": "2026-07-01T03:22:41Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "develop",
-    "sha": "694b22c2ce4ab0f4d3ebb8c9f8c3900ca02ee053"
+    "ref": "cursor/feat-skill-categories-edb2",
+    "sha": "8656ea062ee179ab5bf29aa7b01d1a20dcb3b935"
   },
   "skills": [
     {
       "name": "analyze-ml-system-design",
-      "version": "2.0.2",
+      "version": "2.0.3",
       "description": "Drive an ML system design from an ambiguous prompt to a production-minded solution with a 6-step framework (problem framing, high-level design, data and features, modeling, inference and evaluation, deep dives). Use for an ML system design interview or any \"design X\" ML prompt - recommendation systems, fraud or bot detection, content moderation, ranking, search, personalization - or whenever the core problem is choosing data, features, a model, and an evaluation strategy. For infra or non-ML system design (URL shortener, chat, rate limiter, file sync), use analyze-system-design instead.",
+      "category": "development",
       "tags": [
         "ml-system-design",
         "interviews",
@@ -29,12 +30,13 @@
         "references/patterns.md"
       ],
       "path": "skills/analyze-ml-system-design",
-      "dir_sha": "b672f905bdce5ccd03fdf7c7fcabeafe2ea4f0c3e083fb942af9c334455a9760"
+      "dir_sha": "97b246ae86501e304ed32e21ea32d0c38ea50015f545b35a9619509a3ceaa6b3"
     },
     {
       "name": "analyze-system-design",
-      "version": "2.0.2",
+      "version": "2.0.3",
       "description": "Drive a system design interview from a blank prompt to a simple, complete, defensible design using a 6-step framework (requirements, core entities, API, optional data flow, high-level design, deep dives). Use it for system design interviews, \"design X system\" prompts, high-level design and architecture sketches, deep dives, scaling and data-modeling questions, and choosing technologies (Redis, Kafka, Cassandra, DynamoDB, Postgres). For ML-centric problems (recommendations, fraud or bot detection, ranking, content moderation) use analyze-ml-system-design instead.",
+      "category": "development",
       "tags": [
         "system-design",
         "interviews",
@@ -53,12 +55,13 @@
         "references/patterns.md"
       ],
       "path": "skills/analyze-system-design",
-      "dir_sha": "d0f17c1655b7a1b7946d61f5d4588aee24c3c73b407a78bdd2a9ffb95dba504c"
+      "dir_sha": "083508d595d0e7c728de83c5c4db8a4efa9ba60df7654eaf1231c6075313a47f"
     },
     {
       "name": "create-scroll-animation",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "description": "Generates a production-grade React/Next.js scroll-driven canvas hero from an MP4. Extracts frames via FFmpeg, batch-converts to WebP, emits a single .tsx that scrubs frames against scroll progress using Framer Motion's useScroll + useMotionValueEvent. Mobile-first, LCP target under 1.2s, JS budget under 100KB. Trigger on \"scroll-stop build\", \"scroll animation website\", \"scroll-driven video\", \"Apple-style scroll animation\", \"video on scroll\", or when the user provides an MP4 and asks for a scroll-scrubbed React hero. Do NOT use for HTML-only sites (use scroll-stop-builder), two-frame transitions (use create-video-transition), or non-scroll canvas animations.\n",
+      "category": "design",
       "tags": [
         "scroll",
         "canvas",
@@ -84,12 +87,13 @@
         "references/patterns.md"
       ],
       "path": "skills/create-scroll-animation",
-      "dir_sha": "bee7053d358d3901c6189b4b074a494e77905835815edc52a32eeab92cc0fb30"
+      "dir_sha": "c2e5e970ab28a557c920a105b4414b10a871fd9e7d711e76a58af013a489f665"
     },
     {
       "name": "create-video-transition",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "description": "Generates the prompts needed to produce a video transition between two frames: Prompt A (start image), Prompt B (end image), and Prompt C (video transition, decomposed into exact 2-second blocks). Detects which prompts to produce based on whether the user uploaded a start image, an end image, both, or neither. Prompt C interpolates $VIDEO_LENGTH, $VIDEO_ASPECT_RATIO, $VIDEO_AUDIO, $VIDEO_FPS. Delivers an HTML page with tabbed A/B/C copy buttons and a settings modal for live variable swaps. Trigger when the user says \"video transition prompt\", \"start frame to end frame\", \"animate between these images\", \"transition video from image to image\", or uploads a reference image and asks for a transition. Do NOT use for standalone image prompts (use scroll-stop-prompter) or for writing Runway/Kling UI copy.\n",
+      "category": "design",
       "tags": [
         "video",
         "prompt",
@@ -111,12 +115,13 @@
         "references/patterns.md"
       ],
       "path": "skills/create-video-transition",
-      "dir_sha": "7d773cff062e373fb31ccd558dcb50d1461239cb6a366e3f1ae5568a466231da"
+      "dir_sha": "43be9c82a06e2e6f1c31c7636e12523ca257729cbef821b01146062fb9d733af"
     },
     {
       "name": "smart-claude-init",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "description": "Interview the user relentlessly, one question at a time with a recommended answer for each, to produce a clean iterated CLAUDE.md for a new project. Detects code vs non-code projects and fills a standard 8-section template (project intent, architecture, engineering preferences, code quality, testing, performance, bug protocol, task management and core principles). Use when the user says \"init CLAUDE.md\", \"set up CLAUDE.md\", \"grill me about my project\", \"smart-claude-init\", or wants a guided CLAUDE.md for a new repo. Do NOT use to mechanically document an existing codebase (use the built-in init skill), or to edit an already-good CLAUDE.md.\n",
+      "category": "meta",
       "tags": [
         "claude-md",
         "onboarding",
@@ -137,12 +142,13 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-claude-init",
-      "dir_sha": "cb6a5fa0c3cff0dde4224f5480d7d340f4ede01cfd0380ff1a80bd69523e4199"
+      "dir_sha": "06bac19a4c0b4e0fb7998e3d3ed1ec2c347af54c57ea699d6b114a8e2eaa5149"
     },
     {
       "name": "smart-frontend-design",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "description": "Create distinctive, production-grade frontend interfaces with a synthesized design system and one style-defining intake question. Use when the user asks to build or redesign web components, pages, apps, dashboards, landing pages, UI flows, React/Vue/HTML/CSS interfaces, or \"make this look better\". Avoids generic AI aesthetics by discovering the existing frontend style before coding. Do NOT use for backend-only work, copy-only edits, or pure design critique where no frontend implementation is requested.\n",
+      "category": "design",
       "tags": [
         "frontend",
         "design",
@@ -165,12 +171,13 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-frontend-design",
-      "dir_sha": "e1950fe0bdd73effaef6432673bcbd86965322e88004fecb89a088d0e4164271"
+      "dir_sha": "4ce3280e2df5909cad0dd440040bd1b194aafff4e87bffb47d8a781072d4a002"
     },
     {
       "name": "use-smart-commit",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "description": "Inspect the working tree, group pending changes into atomic related buckets, and author one conventional commit per bucket. Every message covers what changed, why, and the impact (what it resolves or unblocks). Use when the user says \"commit\", \"commit my changes\", \"make a commit\", \"stage and commit\", or after finishing a unit of work and wanting to land it. Do NOT use for squashing existing history, rebasing, force-pushing, or writing PR descriptions.\n",
+      "category": "development",
       "tags": [
         "git",
         "commits",
@@ -191,12 +198,13 @@
         "references/patterns.md"
       ],
       "path": "skills/use-smart-commit",
-      "dir_sha": "e13f043316274e8a440e8cff2bea34cdf669151c19edc45221d8dbb2b9873614"
+      "dir_sha": "0c09d32fa688ff19bbe1e8741c8c3f877b6953dbcdb45c2a3e1796f51784c780"
     },
     {
       "name": "use-smart-humanize-text",
-      "version": "2.0.2",
+      "version": "2.0.3",
       "description": "Strip AI-generated writing patterns from text to make it sound authentically human. Use when writing or editing any content that must not read as AI-generated - outreach, blog posts, applications, social posts, emails, marketing copy. Detects and fixes AI vocabulary, structural tells, soulless tone, filler, hedging, and formatting artifacts. Based on Wikipedia's \"Signs of AI writing\" guide and associated research.\n",
+      "category": "writing",
       "platforms": [
         "claude-code",
         "cursor",
@@ -210,12 +218,13 @@
         "references/patterns.md"
       ],
       "path": "skills/use-smart-humanize-text",
-      "dir_sha": "fe52b548bc7effa69d4075c3e7d66e2a440c1cb499c0b361deebee726c469830"
+      "dir_sha": "b723272cce54353fd0e789fc9abcc1e1659806fb473339ccdfd3fec74273e0ad"
     },
     {
       "name": "use-smart-skill",
-      "version": "1.1.2",
+      "version": "1.1.3",
       "description": "Scaffold production-grade humblSKILLS with progressive disclosure, self-learning memory (patterns/decisions/session log), and lint tooling. Use when creating a new humblSKILL (also known as a smart skill), scaffolding a SKILL.md, migrating a flat skill to a smart skill, refactoring a skill that exceeds ~300 lines, or adding memory/patterns tracking to an existing skill. Do NOT use for editing skill content after scaffold - use the skill directly. Uses CCCCC layering internally (Core/Context/Category/Concept/Command).\n",
+      "category": "meta",
       "tags": [
         "meta",
         "skill-authoring",
@@ -236,12 +245,13 @@
         "references/patterns.md"
       ],
       "path": "skills/use-smart-skill",
-      "dir_sha": "2e03a387029903a75f018970113d516cba566c4d68a5a1c51b03c2dc2a322a5a"
+      "dir_sha": "1708175cdcdc77ef239039701d540b3a6d91de66687ffc34e48b9e9e96868fa5"
     },
     {
       "name": "use-upload-thing",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "description": "Drive the UploadThing REST API end-to-end from the shell: authenticate with an API key, upload files (v7 prepareUpload + ingest PUT), download by key or URL, and list, delete, rename, set ACLs, or read usage. Use when the user wants to upload/download/manage files on UploadThing, mentions UploadThing, ufs.sh, prepareUpload, an sk_live key, or \"put this file on UploadThing\". Also guides first-time API-key setup. Do NOT use for building an app's File Router / React upload components (that is the TS SDK), or for non-UploadThing storage (S3, GCS).\n",
+      "category": "development",
       "tags": [
         "uploadthing",
         "file-upload",
@@ -263,12 +273,13 @@
         "references/patterns.md"
       ],
       "path": "skills/use-upload-thing",
-      "dir_sha": "797402522983d5d2347fd3865af85dbfc45cd2aa05bb75fc8c120eabd8575801"
+      "dir_sha": "ed7031de6c8d28a9dd007b25f2ae45e04ca5f4a7cdaee03ce6a1feac8c40d25f"
     },
     {
       "name": "use-worktree-flow",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "description": "Run a worktree-first development workflow from intent gathering through feature PR, develop merge, main merge, release PR, brew verification, and cleanup. Use when the user says \"worktree flow\", \"start a feature\", \"ship this feature\", \"PR into develop\", \"full dev workflow\", or wants a feature isolated from parallel agents. Do NOT use for atomic commit authoring (use use-smart-commit) or merge-conflict repair.\n",
+      "category": "development",
       "tags": [
         "git",
         "worktree",
@@ -290,7 +301,7 @@
         "references/patterns.md"
       ],
       "path": "skills/use-worktree-flow",
-      "dir_sha": "9e6216a4d41cf260872b9317382c15be095f168075e4ebdf8657674cf252c3a8"
+      "dir_sha": "84263c6f16ebbbedc1c4dcef930728004dfff8afe43297c775ef9e9017f80928"
     }
   ]
 }
