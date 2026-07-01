@@ -28,6 +28,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/scenarios"
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/workspace"
 	"github.com/jjfantini/humblSKILLS/cli/internal/fsutil"
+	"github.com/jjfantini/humblSKILLS/cli/internal/jsonutil"
 )
 
 // Options controls one full eval invocation.
@@ -409,7 +410,7 @@ func (h *Harness) runSession(
 	}
 
 	// Persist timing / transcript / metrics sidecars.
-	_ = writeJSON(filepath.Join(sessDir, "timing.json"), map[string]any{
+	_ = jsonutil.WriteFile(filepath.Join(sessDir, "timing.json"), map[string]any{
 		"total_tokens":      res.TotalTokens,
 		"prompt_tokens":     res.PromptTokens,
 		"completion_tokens": res.CompletionTokens,
@@ -419,7 +420,7 @@ func (h *Harness) runSession(
 	if len(res.Transcript) > 0 {
 		_ = os.WriteFile(filepath.Join(sessDir, "transcript.txt"), res.Transcript, 0o644)
 	}
-	_ = writeJSON(filepath.Join(sessDir, "metrics.json"), map[string]any{
+	_ = jsonutil.WriteFile(filepath.Join(sessDir, "metrics.json"), map[string]any{
 		"tool_calls":      res.ToolCalls,
 		"brain_reads":     brain.ReadsFromBrain(res.Transcript),
 		"output_files":    res.OutputFiles,
@@ -431,7 +432,7 @@ func (h *Harness) runSession(
 		snapAfter = filepath.Join(sessDir, "brain-snapshot-after")
 		_ = brain.Snapshot(skillPath, snapAfter)
 		if g, err := brain.ComputeGrowth(snapBefore, snapAfter); err == nil {
-			_ = writeJSON(filepath.Join(sessDir, "growth.json"), g)
+			_ = jsonutil.WriteFile(filepath.Join(sessDir, "growth.json"), g)
 		}
 	}
 
@@ -605,21 +606,5 @@ func totalToolCalls(m map[string]int) int {
 		n += v
 	}
 	return n
-}
-
-func writeJSON(path string, v any) error {
-	data, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return err
-	}
-	data = append(data, '\n')
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, path)
 }
 
