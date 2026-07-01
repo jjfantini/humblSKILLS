@@ -34,17 +34,89 @@ func TestProgressModel_ApplyEventLifecycle(t *testing.T) {
 	if m.current == nil || m.current.skill != "foo" {
 		t.Errorf("current = %+v", m.current)
 	}
-	// TargetDone → done incremented, outcome recorded.
+	// TargetDone → done incremented, outcome + path/version/store recorded.
 	m.applyEvent(install.Event{
-		Phase:    install.PhaseTargetDone,
-		Skill:    "foo", Platform: "claude-code", Scope: "user",
-		Outcome:  install.OutcomeInstalled,
+		Phase: install.PhaseTargetDone,
+		Skill: "foo", Platform: "claude-code", Scope: "user",
+		Outcome:   install.OutcomeInstalled,
+		Path:      "/home/u/.claude/skills/foo",
+		Version:   "1.2.3",
+		StorePath: "/home/u/.humblskills/skills/foo",
 	})
 	if m.done != 1 {
 		t.Errorf("done = %d", m.done)
 	}
 	if m.items[0].outcome != install.OutcomeInstalled {
 		t.Errorf("outcome not recorded: %+v", m.items[0])
+	}
+	if m.items[0].path != "/home/u/.claude/skills/foo" {
+		t.Errorf("path not recorded: %+v", m.items[0])
+	}
+	if m.items[0].version != "1.2.3" {
+		t.Errorf("version not recorded: %+v", m.items[0])
+	}
+	if m.items[0].storePath != "/home/u/.humblskills/skills/foo" {
+		t.Errorf("storePath not recorded: %+v", m.items[0])
+	}
+}
+
+func TestProgressModel_RenderSummary_GroupsBySkillAndShowsStorePath(t *testing.T) {
+	m := newTestProgress(t)
+	m.width = 100
+	m.running = false
+	m.err = nil
+	m.applyEvent(install.Event{Phase: install.PhaseRunStart, Total: 3})
+	m.applyEvent(install.Event{
+		Phase: install.PhaseTargetDone, Skill: "foo", Platform: "claude-code", Scope: "user",
+		Outcome: install.OutcomeInstalled, Path: "/home/u/.claude/skills/foo",
+		Version: "1.0.0", StorePath: "/home/u/.humblskills/skills/foo",
+	})
+	m.applyEvent(install.Event{
+		Phase: install.PhaseTargetDone, Skill: "foo", Platform: "cursor", Scope: "user",
+		Outcome: install.OutcomeInstalled, Path: "/home/u/.cursor/skills/foo",
+		Version: "1.0.0", StorePath: "/home/u/.humblskills/skills/foo",
+	})
+	m.applyEvent(install.Event{
+		Phase: install.PhaseTargetDone, Skill: "bar", Platform: "codex", Scope: "user",
+		Outcome: install.OutcomeSkipped, Path: "/home/u/.agents/skills/bar",
+		Version: "2.0.0", StorePath: "/home/u/.humblskills/skills/bar",
+	})
+
+	groups := m.groupedBySkill()
+	if len(groups) != 2 {
+		t.Fatalf("groups = %d, want 2: %+v", len(groups), groups)
+	}
+	if groups[0].skill != "foo" || len(groups[0].entries) != 2 {
+		t.Errorf("foo group malformed: %+v", groups[0])
+	}
+	if groups[0].version != "1.0.0" || groups[0].storePath != "/home/u/.humblskills/skills/foo" {
+		t.Errorf("foo group metadata wrong: %+v", groups[0])
+	}
+	if groups[1].skill != "bar" || len(groups[1].entries) != 1 {
+		t.Errorf("bar group malformed: %+v", groups[1])
+	}
+
+	view := m.View()
+	for _, want := range []string{
+		"foo", "v1.0.0", "/home/u/.humblskills/skills/foo",
+		"claude-code/user", "/home/u/.claude/skills/foo",
+		"cursor/user", "/home/u/.cursor/skills/foo",
+		"bar", "v2.0.0", "/home/u/.humblskills/skills/bar",
+	} {
+		if !strings.Contains(view, want) {
+			t.Errorf("summary view missing %q:\n%s", want, view)
+		}
+	}
+}
+
+func TestProgressModel_RenderSummary_EmptyWhenNothingInstalled(t *testing.T) {
+	m := newTestProgress(t)
+	m.width = 80
+	m.running = false
+	m.err = nil
+	view := m.View()
+	if !strings.Contains(view, "nothing to do") {
+		t.Errorf("expected empty-summary message, got:\n%s", view)
 	}
 }
 
@@ -67,7 +139,7 @@ func TestProgressModel_ErrorPhaseCapturesErr(t *testing.T) {
 	m.applyEvent(install.Event{
 		Phase: install.PhaseError,
 		Skill: "foo", Platform: "x", Scope: "user",
-		Err:   boom,
+		Err: boom,
 	})
 	if m.items[0].errored != true {
 		t.Error("expected errored=true")
@@ -146,6 +218,40 @@ func TestSubscribe_ReadsEventThenDone(t *testing.T) {
 	}
 	if done.Err == nil || done.Err.Error() != "final" {
 		t.Errorf("err = %v", done.Err)
+	}
+}
+
+func TestProgressModel_DoneMsg_DoesNotAutoQuit(t *testing.T) {
+	// Regression: ProgressDoneMsg used to return tea.Quit unconditionally,
+	// tearing the screen down the instant the engine finished — before the
+	// user could read the result. It must now stay on screen until an
+	// explicit keypress (see TestProgressModel_KeyMsgAfterDoneQuits).
+	m := newTestProgress(t)
+	m.running = true
+	out, cmd := m.Update(ProgressDoneMsg{Err: nil})
+	updated, ok := out.(ProgressModel)
+	if !ok {
+		t.Fatalf("Update returned %T, want ProgressModel", out)
+	}
+	if updated.running {
+		t.Error("running should flip to false on ProgressDoneMsg")
+	}
+	if cmd != nil {
+		t.Error("ProgressDoneMsg must not auto-quit — the screen should wait for a keypress")
+	}
+}
+
+func TestProgressModel_DoneMsg_WithError_DoesNotAutoQuit(t *testing.T) {
+	m := newTestProgress(t)
+	m.running = true
+	boom := errors.New("boom")
+	out, cmd := m.Update(ProgressDoneMsg{Err: boom})
+	updated := out.(ProgressModel)
+	if updated.err == nil || updated.err.Error() != "boom" {
+		t.Errorf("err = %v", updated.err)
+	}
+	if cmd != nil {
+		t.Error("ProgressDoneMsg must not auto-quit even on error")
 	}
 }
 
