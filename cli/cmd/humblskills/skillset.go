@@ -221,7 +221,7 @@ func pruneToSkillset(app *App, set *skillset.Set) ([]install.TargetResult, error
 		ok, err := tui.ConfirmWithSummary(
 			theme,
 			"Prune skills not in the skillset",
-			fmt.Sprintf("Uninstall %d skill%s not listed in the skillset?", len(extra), plural(len(extra))),
+			fmt.Sprintf("Uninstall %d skill%s not listed in the skillset?", len(extra), textutil.Plural(len(extra))),
 			lines,
 			false,
 			app.Prompt.Interactive,
