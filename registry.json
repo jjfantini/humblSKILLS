@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-01T03:01:25Z",
+  "generated_at": "2026-07-01T03:18:02Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "cursor/profile-relocate-tui-fixes-6e26",
-    "sha": "dd1caceb11ed4cf8fe6811cf9c110d71983ac52c"
+    "sha": "4ac342668a99f4cd19d9397669bf334c55ec7d4e"
   },
   "skills": [
     {
