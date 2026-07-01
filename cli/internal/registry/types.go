@@ -25,6 +25,7 @@ type Skill struct {
 	Name        string   `json:"name"`
 	Version     string   `json:"version"`
 	Description string   `json:"description"`
+	Category    string   `json:"category,omitempty"`
 	Tags        []string `json:"tags,omitempty"`
 	Platforms   []string `json:"platforms,omitempty"`
 	Requires    []string `json:"requires,omitempty"`
