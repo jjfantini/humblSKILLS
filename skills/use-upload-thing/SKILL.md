@@ -12,10 +12,12 @@ license: MIT
 compatibility: "Requires bash, curl, jq, and network access to api.uploadthing.com. Needs an UploadThing API key via UPLOADTHING_API_KEY (or UPLOADTHING_TOKEN), or run scripts/auth.sh --save."
 metadata:
   author: jjfantini
-  version: "1.0.1"
+  version: "1.0.2"
   tags: [uploadthing, file-upload, storage, rest-api, ufs, humblskill]
   platforms: [claude-code, cursor, codex]
   preserve:
+    - references/raw/
+    - references/wiki/
     - references/decisions.md
     - references/log.md
     - references/patterns.md

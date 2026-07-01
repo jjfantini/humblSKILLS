@@ -10,9 +10,11 @@ description: >
 license: MIT
 metadata:
   author: jjfantini
-  version: 2.0.1
+  version: 2.0.2
   platforms: [claude-code, cursor, codex]
   preserve:
+    - references/raw/
+    - references/wiki/
     - references/decisions.md
     - references/log.md
     - references/patterns.md
