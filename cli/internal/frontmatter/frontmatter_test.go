@@ -13,6 +13,7 @@ license: MIT
 metadata:
   author: jjfantini
   version: 1.2.3
+  category: development
   requires:
     - bar
   platforms: [claude-code]
@@ -35,6 +36,9 @@ Hello.
 	}
 	if fm.Metadata.Author != "jjfantini" {
 		t.Errorf("metadata.author: got %q", fm.Metadata.Author)
+	}
+	if fm.Category() != "development" {
+		t.Errorf("category accessor: got %q", fm.Category())
 	}
 	if fm.Version() != "1.2.3" {
 		t.Errorf("version accessor: got %q", fm.Version())
