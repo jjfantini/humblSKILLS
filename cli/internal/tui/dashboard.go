@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sahilm/fuzzy"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
@@ -458,8 +459,8 @@ func RenderStatusMeta(theme *ui.Theme, status DashboardStatus) string {
 	}
 	sep := theme.Crumb.Render(" · ")
 	return dot.Render("●") + " " + theme.Detail.Render(label) +
-		sep + theme.Detail.Render(fmt.Sprintf("%d platform%s", status.Platforms, pluralDash(status.Platforms))) +
-		sep + theme.Detail.Render(fmt.Sprintf("%d skill%s", status.Skills, pluralDash(status.Skills)))
+		sep + theme.Detail.Render(fmt.Sprintf("%d platform%s", status.Platforms, textutil.Plural(status.Platforms))) +
+		sep + theme.Detail.Render(fmt.Sprintf("%d skill%s", status.Skills, textutil.Plural(status.Skills)))
 }
 
 // bodyWidth is the usable width between left/right margins. Every body
@@ -666,11 +667,4 @@ func truncateDisplay(s string, width int) string {
 		runes = runes[:len(runes)-1]
 	}
 	return string(runes) + "…"
-}
-
-func pluralDash(n int) string {
-	if n == 1 {
-		return ""
-	}
-	return "s"
 }

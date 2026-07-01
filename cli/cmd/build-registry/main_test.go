@@ -227,15 +227,6 @@ func TestMarshalStable_NoHTMLEscape(t *testing.T) {
 	}
 }
 
-func TestFirstNonEmpty(t *testing.T) {
-	if got := firstNonEmpty("", "b"); got != "b" {
-		t.Errorf("got %q", got)
-	}
-	if got := firstNonEmpty(); got != "" {
-		t.Errorf("got %q", got)
-	}
-}
-
 func TestSemanticDiff_IgnoresSourceAndGeneratedAt(t *testing.T) {
 	a := []byte(`{"schema_version":1,"generated_at":"t1","source":{"repo":"x","ref":"main","sha":"a"},"skills":[]}`)
 	b := []byte(`{"schema_version":1,"generated_at":"t2","source":{"repo":"x","ref":"main","sha":"b"},"skills":[]}`)

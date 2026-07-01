@@ -19,6 +19,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
@@ -362,7 +363,7 @@ func runDoctorTUI(app *App, r doctorReport) (bool, error) {
 			parts = append(parts, "registry error")
 		}
 		if r.Updates.Count > 0 {
-			parts = append(parts, fmt.Sprintf("%d update%s", r.Updates.Count, plural(r.Updates.Count)))
+			parts = append(parts, fmt.Sprintf("%d update%s", r.Updates.Count, textutil.Plural(r.Updates.Count)))
 		}
 		return strings.Join(parts, " · ")
 	}
@@ -608,7 +609,7 @@ func (i evalItem) Detail(th *ui.Theme, width int) string {
 	if i.e.Workspace.Exists {
 		sb.WriteString(kvRow(th, "size",
 			th.KVValue.Render(fmt.Sprintf("%d iteration%s · %s",
-				i.e.Workspace.IterationCount, plural(i.e.Workspace.IterationCount),
+				i.e.Workspace.IterationCount, textutil.Plural(i.e.Workspace.IterationCount),
 				workspace.HumanSize(i.e.Workspace.SizeBytes)))))
 	}
 	sb.WriteString(kvRow(th, "default", th.KVValue.Render(nonEmptyOrDash(i.e.DefaultRunner))))
@@ -622,7 +623,7 @@ func (i evalItem) Detail(th *ui.Theme, width int) string {
 			status = th.Error.Render("missing")
 		}
 		sb.WriteString(fmt.Sprintf("  %s %s  %s  %s\n",
-			dot, th.Name.Render(padRight(r.Name, 14)), status, th.Detail.Render(firstNonEmptyStr(r.Version, r.Reason))))
+			dot, th.Name.Render(padRight(r.Name, 14)), status, th.Detail.Render(textutil.FirstNonBlank(r.Version, r.Reason))))
 		if !r.Available && r.Fix != "" {
 			sb.WriteString("    " + th.Detail.Render("fix: "+r.Fix) + "\n")
 		}
@@ -765,7 +766,7 @@ func printDoctorStatic(app *App, r doctorReport) {
 	if _, err := os.Stat(r.Manifest.Path); err == nil {
 		app.UI.Info("  %s %s",
 			th.Name.Render(r.Manifest.Path),
-			th.Detail.Render(fmt.Sprintf("(%d install%s)", r.Manifest.Installs, plural(r.Manifest.Installs))),
+			th.Detail.Render(fmt.Sprintf("(%d install%s)", r.Manifest.Installs, textutil.Plural(r.Manifest.Installs))),
 		)
 	} else {
 		app.UI.Detail("  %s (not yet created)", r.Manifest.Path)
@@ -776,7 +777,7 @@ func printDoctorStatic(app *App, r doctorReport) {
 	if r.Registry.Error != "" {
 		app.UI.Error("registry unreachable: %s", r.Registry.Error)
 	} else {
-		app.UI.Success("%d skill%s available (via %s)", r.Registry.Skills, plural(r.Registry.Skills), r.Registry.Source)
+		app.UI.Success("%d skill%s available (via %s)", r.Registry.Skills, textutil.Plural(r.Registry.Skills), r.Registry.Source)
 		if r.Registry.Cached {
 			app.UI.Detail("  cache fetched %s ago", r.Registry.Age.Round(time.Second))
 		}
@@ -787,7 +788,7 @@ func printDoctorStatic(app *App, r doctorReport) {
 
 	if r.Updates.Count > 0 {
 		app.UI.Section("Updates")
-		app.UI.Warn("%d skill%s can be updated — run 'humblskills update'", r.Updates.Count, plural(r.Updates.Count))
+		app.UI.Warn("%d skill%s can be updated — run 'humblskills update'", r.Updates.Count, textutil.Plural(r.Updates.Count))
 		for _, name := range r.Updates.Skills {
 			app.UI.Detail("  • %s", name)
 		}
@@ -848,11 +849,4 @@ func printEvalStatic(app *App, e evalReport) {
 	} else {
 		app.UI.Detail("  default runner: %s", e.DefaultRunner)
 	}
-}
-
-func plural(n int) string {
-	if n == 1 {
-		return ""
-	}
-	return "s"
 }

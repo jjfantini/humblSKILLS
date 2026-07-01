@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
@@ -89,18 +90,18 @@ type Result struct {
 
 // Model is the shared two-pane bubbletea model.
 type Model struct {
-	cfg      Config
-	items    []Item // filtered view (equal to cfg.Items when filter is empty)
-	cursor   int
-	width    int
-	height   int
-	preview  viewport.Model
-	filter   textinput.Model
-	filtOn   bool
-	result   Result
-	keys     Keys
-	actions  map[string]ActionSpec // keyed by ActionSpec.Key
-	done     bool
+	cfg     Config
+	items   []Item // filtered view (equal to cfg.Items when filter is empty)
+	cursor  int
+	width   int
+	height  int
+	preview viewport.Model
+	filter  textinput.Model
+	filtOn  bool
+	result  Result
+	keys    Keys
+	actions map[string]ActionSpec // keyed by ActionSpec.Key
+	done    bool
 }
 
 // NewListDetail builds a Model ready for Run.
@@ -462,7 +463,7 @@ func (m Model) renderLeft(width int) string {
 	}
 
 	if len(m.items) == 0 {
-		empty := "  " + th.Detail.Render(firstNonEmpty(m.cfg.EmptyMsg, "— no items —"))
+		empty := "  " + th.Detail.Render(textutil.FirstNonEmpty(m.cfg.EmptyMsg, "— no items —"))
 		return pad(title) + "\n\n" + pad(empty)
 	}
 
@@ -590,13 +591,4 @@ func padLeft(s string, width int) string {
 		return s
 	}
 	return s + strings.Repeat(" ", width-w)
-}
-
-func firstNonEmpty(vs ...string) string {
-	for _, v := range vs {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
 }
