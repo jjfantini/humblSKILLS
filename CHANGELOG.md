@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.22.0](https://github.com/jjfantini/humblSKILLS/compare/v2.21.0...v2.22.0) (2026-07-01)
+
+
+### Features
+
+* **doctor:** humanize adapter match reasons and explain rw/ro badges ([3094468](https://github.com/jjfantini/humblSKILLS/commit/3094468d7392cd25eb71c6f5308e6b49983047bf))
+* **list:** surface available updates in list output ([912ff21](https://github.com/jjfantini/humblSKILLS/commit/912ff21e9a2ea27cdaa4e0b67e089d2b02c45013))
+* **skillset:** add init to scaffold a skillset file ([b3e0fe0](https://github.com/jjfantini/humblSKILLS/commit/b3e0fe00b66e572a4b945b3976f61f64e7ed7512))
+* **skillset:** add sync --prune and a dashboard sync tile ([20cda04](https://github.com/jjfantini/humblSKILLS/commit/20cda04694ae75ead59b53b7b2cb7af57657f557))
+* **skillset:** export and sync shareable skill sets ([e440e8a](https://github.com/jjfantini/humblSKILLS/commit/e440e8aa48d471074749749185b68c62950b818b))
+* **skillset:** sync from file:// and http(s):// URLs ([1bdc2a2](https://github.com/jjfantini/humblSKILLS/commit/1bdc2a2f3d3a2b8f77cdbb23aa52badf2bda461e))
+* **tui:** add ? help overlay to the two-pane list model ([1ced12c](https://github.com/jjfantini/humblSKILLS/commit/1ced12cfb7738a83d758b990ad9238741e4e139e))
+
+
+### Bug Fixes
+
+* **eval:** remove test for removed firstNonEmptyStr helper ([11ac99b](https://github.com/jjfantini/humblSKILLS/commit/11ac99b9dcefdec4efe6c5d8468e7fb7ed7b7303))
+* **skillset:** use textutil.Plural after merge with develop ([f94ec17](https://github.com/jjfantini/humblSKILLS/commit/f94ec17b7e8fffe727c124e3d4c4d3690c59b707))
+* **skillset:** use textutil.Plural in init scaffold success message ([9741f66](https://github.com/jjfantini/humblSKILLS/commit/9741f6663d80f0186d66dcacf1eb06a6b69d9796))
+* **skillset:** use textutil.Plural in prune confirmation prompt ([180ff94](https://github.com/jjfantini/humblSKILLS/commit/180ff941db7e2821c978679eb53cc3146a38c4b3))
+* **tui:** footer overflow, filter-mode hints, and detail scroll indicator ([e79a812](https://github.com/jjfantini/humblSKILLS/commit/e79a812258c76c0426bd3c8f0b6bb13b8f834581))
+* **tui:** use shared clamp helper in eval config modal after keymap merge ([2a30288](https://github.com/jjfantini/humblSKILLS/commit/2a3028826cf56afa12ac9790d79d2b421a37c9e8))
+* **tui:** use textutil.FirstNonEmpty after merge with develop ([a3df123](https://github.com/jjfantini/humblSKILLS/commit/a3df1232fb818785728d398162890ec50af7c02a))
+
 ## [2.21.0](https://github.com/jjfantini/humblSKILLS/compare/v2.20.0...v2.21.0) (2026-07-01)
 
 
