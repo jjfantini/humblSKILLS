@@ -50,12 +50,12 @@ func (a adapterItem) Detail(th *ui.Theme, width int) string {
 		th.Success.Render("detected"),
 		th.Error.Render("missing"))))
 	if a.a.Reason != "" {
-		sb.WriteString(kvRow(th, "matched on", th.KVValue.Render(a.a.Reason)))
+		sb.WriteString(kvRow(th, "reason", th.KVValue.Render(a.a.Reason)))
 	}
 
 	if len(a.a.Targets) > 0 {
 		sb.WriteString("\n")
-		sb.WriteString(th.SectionTitle.Render("PATHS"))
+		sb.WriteString(th.SectionTitle.Render("PATHS") + "  " + th.Detail.Render(rwLegend))
 		sb.WriteString("\n")
 		for i, t := range a.a.Targets {
 			if i > 0 {
@@ -318,6 +318,10 @@ func kvRow(th *ui.Theme, key, value string) string {
 	return "  " + label + strings.Repeat(" ", pad) + value + "\n"
 }
 
+// rwLegend explains the pills rendered by pathRow so users don't have to guess
+// what rw/ro mean.
+const rwLegend = "rw = writable · ro = read-only"
+
 // pathRow formats one target as `scope  [rw]  path`, matching the PATHS stack
 // in the design's detail pane.
 func pathRow(th *ui.Theme, t targetReport) string {
@@ -356,6 +360,7 @@ func printDoctorStatic(app *App, r doctorReport) {
 
 	app.UI.Section("Adapters")
 	anyDetected := false
+	legendShown := false
 	for _, a := range r.Adapters {
 		if a.Detected {
 			anyDetected = true
@@ -368,7 +373,12 @@ func printDoctorStatic(app *App, r doctorReport) {
 		}
 		fmt.Fprintf(app.UI.Out(), "  %s %s  %s\n", dot, th.DetailTitle.Render(a.Name), badge)
 		if a.Reason != "" {
-			fmt.Fprintf(app.UI.Out(), "    %s %s\n", th.KVKey.Render("matched on"), th.KVValue.Render(a.Reason))
+			fmt.Fprintf(app.UI.Out(), "    %s %s\n", th.KVKey.Render("reason"), th.KVValue.Render(a.Reason))
+		}
+		if len(a.Targets) > 0 && !legendShown {
+			// Explain the rw/ro pills once, the first time paths appear.
+			fmt.Fprintf(app.UI.Out(), "    %s\n", th.Detail.Render(rwLegend))
+			legendShown = true
 		}
 		for _, t := range a.Targets {
 			fmt.Fprintln(app.UI.Out(), "    "+pathRow(th, t))

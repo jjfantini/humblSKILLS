@@ -31,19 +31,19 @@ func evalRules(d DetectRules) (bool, string) {
 	case len(d.AllOf) > 0:
 		for _, r := range d.AllOf {
 			if !evalRule(r) {
-				return false, "all_of failed at: " + describeRule(r)
+				return false, describeMiss(r)
 			}
 		}
-		return true, "all_of rules matched"
+		return true, "all checks passed"
 	case len(d.AnyOf) > 0:
 		for _, r := range d.AnyOf {
 			if evalRule(r) {
-				return true, "matched: " + describeRule(r)
+				return true, describeMatch(r)
 			}
 		}
-		return false, "no any_of rule matched"
+		return false, "no matching paths or env vars found"
 	default:
-		return false, "no detect rules declared"
+		return false, "no detection rules configured"
 	}
 }
 
@@ -62,16 +62,33 @@ func evalRule(r DetectRule) bool {
 	return false
 }
 
-func describeRule(r DetectRule) string {
+// describeMatch phrases why a rule matched, in plain language suitable for the
+// doctor "reason" row (e.g. "found ~/.claude", "$CURSOR_TRACE_ID is set").
+func describeMatch(r DetectRule) string {
 	switch {
 	case r.PathExists != "" && r.Env != "":
-		return fmt.Sprintf("path_exists=%s env=%s", r.PathExists, r.Env)
+		return fmt.Sprintf("found %s or $%s set", r.PathExists, r.Env)
 	case r.PathExists != "":
-		return "path_exists=" + r.PathExists
+		return "found " + r.PathExists
 	case r.Env != "":
-		return "env=" + r.Env
+		return "$" + r.Env + " is set"
 	default:
-		return "<empty rule>"
+		return "matched an empty rule"
+	}
+}
+
+// describeMiss phrases why a rule did not match, mirroring describeMatch (e.g.
+// "~/.cursor not found", "$CURSOR_TRACE_ID not set").
+func describeMiss(r DetectRule) string {
+	switch {
+	case r.PathExists != "" && r.Env != "":
+		return fmt.Sprintf("%s not found and $%s not set", r.PathExists, r.Env)
+	case r.PathExists != "":
+		return r.PathExists + " not found"
+	case r.Env != "":
+		return "$" + r.Env + " not set"
+	default:
+		return "empty detection rule"
 	}
 }
 
