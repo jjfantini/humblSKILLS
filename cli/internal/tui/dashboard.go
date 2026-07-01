@@ -6,6 +6,7 @@ import (
 	"os/user"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -177,29 +178,41 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m dashboardModel) updateGrid(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	k := msg.String()
-	switch k {
-	case "ctrl+c", "q", "esc":
+	// Shared motions come from the canonical keymap so the dashboard honours
+	// the same arrow+vim bindings as every other TUI. Note hjkl are movement
+	// here (via Up/Down/Left/Right), so tiles whose hotkey collides with them
+	// stay shadowed — matching prior behaviour.
+	keys := DefaultKeys()
+	switch {
+	case key.Matches(msg, keys.Quit), key.Matches(msg, keys.Back):
 		m.result = DashboardResult{Quit: true}
 		m.done = true
 		return m, tea.Quit
-	case "/":
+	case key.Matches(msg, keys.Filter):
 		m.searchOn = true
 		m.query = ""
 		m.rebuildVisible()
 		return m, nil
-	case "up", "k":
+	case key.Matches(msg, keys.Up):
 		m = m.moveCursor(-m.cols())
 		return m, nil
-	case "down", "j":
+	case key.Matches(msg, keys.Down):
 		m = m.moveCursor(m.cols())
 		return m, nil
-	case "left", "h":
+	case key.Matches(msg, keys.Left):
 		m = m.moveCursor(-1)
 		return m, nil
-	case "right", "l":
+	case key.Matches(msg, keys.Right):
 		m = m.moveCursor(1)
 		return m, nil
+	case key.Matches(msg, keys.Enter):
+		return m.launchCursor()
+	}
+
+	// Keys outside the shared vocabulary (grid paging, tab cycling, per-tile
+	// hotkeys) stay literal.
+	k := msg.String()
+	switch k {
 	case "tab":
 		m = m.moveCursor(1)
 		return m, nil
@@ -216,10 +229,7 @@ func (m dashboardModel) updateGrid(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.vp.ViewDown()
 		}
 		return m, nil
-	case "enter":
-		return m.launchCursor()
 	default:
-		// Hotkey letter match.
 		if len(k) == 1 {
 			for _, t := range m.cfg.Tiles {
 				if t.Hotkey == k {

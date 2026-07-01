@@ -113,6 +113,32 @@ func TestInstallModal_GlobalFanoutCommitsGlobalResult(t *testing.T) {
 	}
 }
 
+func TestInstallModal_VimKeysAndQuitViaSharedKeymap(t *testing.T) {
+	m := newTestModal(nil, nil)
+	// j moves the cursor down within the platforms group.
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("j")})
+	m = out.(installModalModel)
+	if m.cursor != 1 {
+		t.Errorf("j should move cursor to 1, got %d", m.cursor)
+	}
+	// k moves it back up.
+	out, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("k")})
+	m = out.(installModalModel)
+	if m.cursor != 0 {
+		t.Errorf("k should move cursor back to 0, got %d", m.cursor)
+	}
+	// esc quits the modal.
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	if cmd == nil {
+		t.Error("esc should quit the modal")
+	}
+	// q also quits.
+	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("q")})
+	if cmd == nil {
+		t.Error("q should quit the modal")
+	}
+}
+
 func TestInstallModal_TabKeptAsSilentAdvance(t *testing.T) {
 	m := newTestModal(nil, nil)
 	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
