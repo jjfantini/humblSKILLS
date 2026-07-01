@@ -12,6 +12,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
@@ -259,7 +260,7 @@ func (u updatePlanItem) FilterValue() string {
 }
 func (u updatePlanItem) NaturalWidth(th *ui.Theme) int {
 	ver := u.p.FromVersion + " → " + u.p.ToVersion
-	badge := tui.Badge(th, tui.BadgeRO, fmt.Sprintf("%d target%s", len(u.p.Targets), plural(len(u.p.Targets))))
+	badge := tui.Badge(th, tui.BadgeRO, fmt.Sprintf("%d target%s", len(u.p.Targets), textutil.Plural(len(u.p.Targets))))
 	// 1 (arrow) + 1 (space) + skill + 2 (gap) + version + 2 (gap) + badge.
 	return 1 + 1 + lipgloss.Width(u.p.Skill) + 2 + lipgloss.Width(ver) + 2 + lipgloss.Width(badge)
 }
@@ -267,7 +268,7 @@ func (u updatePlanItem) Row(th *ui.Theme, width int, selected bool) string {
 	arrow := th.DotWarn.Render("↑")
 	name := rowName(th, u.p.Skill, selected, true)
 	ver := th.Version.Render(u.p.FromVersion + " → " + u.p.ToVersion)
-	badge := tui.Badge(th, tui.BadgeRO, fmt.Sprintf("%d target%s", len(u.p.Targets), plural(len(u.p.Targets))))
+	badge := tui.Badge(th, tui.BadgeRO, fmt.Sprintf("%d target%s", len(u.p.Targets), textutil.Plural(len(u.p.Targets))))
 	return rowWithTrailingBadge(arrow+" "+name+"  "+ver, badge, width)
 }
 func (u updatePlanItem) Detail(th *ui.Theme, width int) string {
@@ -303,10 +304,10 @@ func printUpdateCheck(app *App, plans []install.UpdatePlan) error {
 		app.UI.Info("all skills are up-to-date")
 		return nil
 	}
-	app.UI.Info("%d skill%s can be updated:", len(plans), plural(len(plans)))
+	app.UI.Info("%d skill%s can be updated:", len(plans), textutil.Plural(len(plans)))
 	for _, p := range plans {
 		app.UI.Detail("  %s  %s → %s  (%d target%s)",
-			p.Skill, p.FromVersion, p.ToVersion, len(p.Targets), plural(len(p.Targets)))
+			p.Skill, p.FromVersion, p.ToVersion, len(p.Targets), textutil.Plural(len(p.Targets)))
 	}
 	return nil
 }

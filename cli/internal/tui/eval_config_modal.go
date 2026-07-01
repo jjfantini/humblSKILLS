@@ -119,9 +119,9 @@ func (m evalConfigModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.group = cfgGroup((int(m.group) + 5) % 6)
 			m.cursor = m.cursorDefault()
 		case "up", "k":
-			m.cursor = clampInt(m.cursor-1, 0, m.groupLen()-1)
+			m.cursor = clamp(m.cursor-1, 0, m.groupLen()-1)
 		case "down", "j":
-			m.cursor = clampInt(m.cursor+1, 0, m.groupLen()-1)
+			m.cursor = clamp(m.cursor+1, 0, m.groupLen()-1)
 		case " ":
 			m.toggleCurrent()
 		case "enter":
@@ -420,16 +420,6 @@ func indexOfInt(xs []int, v, fallback int) int {
 		}
 	}
 	return fallback
-}
-
-func clampInt(v, lo, hi int) int {
-	if v < lo {
-		return lo
-	}
-	if v > hi {
-		return hi
-	}
-	return v
 }
 
 func groupLabel(g cfgGroup) string {
