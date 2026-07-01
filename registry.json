@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-01T15:39:05Z",
+  "generated_at": "2026-07-01T15:39:54Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "work/pr162",
-    "sha": "2a3028826cf56afa12ac9790d79d2b421a37c9e8"
+    "ref": "cursor/refactor-tui-keymatches-edb2",
+    "sha": "612813d6a59c81cfd29a36075d3479f4c0ae5ff5"
   },
   "skills": [
     {
