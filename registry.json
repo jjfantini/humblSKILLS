@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-01T05:20:25Z",
+  "generated_at": "2026-07-01T15:42:34Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "work/pr163",
-    "sha": "9f4bd7eb9bc4b9989b61f031442c4a0d8399add8"
+    "ref": "cursor/feat-skillset-sync-prune-edb2",
+    "sha": "180ff941db7e2821c978679eb53cc3146a38c4b3"
   },
   "skills": [
     {
