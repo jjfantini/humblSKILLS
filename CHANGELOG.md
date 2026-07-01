@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.20.0](https://github.com/jjfantini/humblSKILLS/compare/v2.19.4...v2.20.0) (2026-07-01)
+
+
+### Features
+
+* **tui:** add status screens with configurable auto-return countdown ([310a511](https://github.com/jjfantini/humblSKILLS/commit/310a5112f93337aad2922092a60668d9baeb8709))
+
+
+### Bug Fixes
+
+* **profile:** relocate profile.json into ~/.humblskills, migrate legacy config.json ([30c1b8e](https://github.com/jjfantini/humblSKILLS/commit/30c1b8eb92a69303a7c7f80342334caaf15df171))
+* **tui:** stop the alt-screen flash with an async loading spinner ([97607ec](https://github.com/jjfantini/humblSKILLS/commit/97607ecd43b9fe1abbcd364dd310f7eb1a8565af))
+
+## [2.19.4](https://github.com/jjfantini/humblSKILLS/compare/v2.19.3...v2.19.4) (2026-07-01)
+
+
+### Bug Fixes
+
+* **skills:** preserve wiki/ and raw/ content across updates ([b3f2d27](https://github.com/jjfantini/humblSKILLS/commit/b3f2d27a3dd2e5f4ea46840fdaa399cb03582b4a))
+* **skills:** preserve wiki/ and raw/ content across updates ([bd047a6](https://github.com/jjfantini/humblSKILLS/commit/bd047a6c21166114be073cc97223934915382aa3))
+
 ## [2.19.3](https://github.com/jjfantini/humblSKILLS/compare/v2.19.2...v2.19.3) (2026-07-01)
 
 

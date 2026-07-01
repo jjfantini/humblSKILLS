@@ -10,6 +10,7 @@ import (
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
@@ -171,10 +172,10 @@ func renderListTable(app *App, installs []manifest.Installation, avail map[strin
 		})
 	fmt.Fprintln(app.UI.Out(), tbl.Render())
 	fmt.Fprintln(app.UI.Out(), "  "+th.Crumb.Render(fmt.Sprintf(
-		"%d install%s total", len(installs), plural(len(installs)))))
+		"%d install%s total", len(installs), textutil.Plural(len(installs)))))
 	if outdated > 0 {
-		app.UI.Warn("%d install%s can be updated — run 'humblskills update'",
-			outdated, plural(outdated))
+		app.UI.Warn("%d install%s can be updated - run 'humblskills update'",
+			outdated, textutil.Plural(outdated))
 	}
 }
 

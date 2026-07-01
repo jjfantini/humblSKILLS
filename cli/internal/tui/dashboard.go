@@ -2,8 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"os"
-	"os/user"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -11,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sahilm/fuzzy"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
@@ -32,16 +31,6 @@ type DashboardTile struct {
 	Aliases []string // additional fuzzy-search keywords
 }
 
-// DashboardGreeting is retained for API compatibility but is no longer
-// rendered in the dashboard body — the top header already shows the status
-// line, so a duplicate greeting row was redundant noise.
-type DashboardGreeting struct {
-	User     string
-	Updates  int
-	Cwd      string
-	LastScan string
-}
-
 // DashboardStatus feeds the header's right-anchored summary
 // (● healthy · N platforms · M skills). This is also what every sub-screen
 // echoes in its own header so the layout is consistent across screens.
@@ -53,11 +42,10 @@ type DashboardStatus struct {
 
 // DashboardConfig bundles everything RunDashboard needs.
 type DashboardConfig struct {
-	Theme    *ui.Theme
-	Version  string
-	Greeting DashboardGreeting
-	Status   DashboardStatus
-	Tiles    []DashboardTile
+	Theme   *ui.Theme
+	Version string
+	Status  DashboardStatus
+	Tiles   []DashboardTile
 }
 
 // RunDashboard opens the full-screen launcher (bubbletea alt-screen) and
@@ -98,31 +86,6 @@ func DefaultDashboardTiles() []DashboardTile {
 		{Command: "version", Label: "version", Hotkey: "V", Desc: "show build info", Sub: "version · commit", Aliases: []string{"about", "ver"}},
 		{Command: "upgrade", Label: "upgrade", Hotkey: "U", Desc: "upgrade the humblskills CLI itself", Sub: "github releases · checksum verified", Aliases: []string{"self-update"}},
 	}
-}
-
-// BuildDashboardGreeting fills the defaults the dashboard banner needs.
-// Kept for API compatibility — callers may still pass this, but it isn't
-// rendered. (See DashboardGreeting.)
-func BuildDashboardGreeting(updates int) DashboardGreeting {
-	g := DashboardGreeting{Updates: updates}
-	if u, err := user.Current(); err == nil && u.Username != "" {
-		g.User = u.Username
-	}
-	if cwd, err := os.Getwd(); err == nil {
-		g.Cwd = compactPath(cwd)
-	}
-	return g
-}
-
-func compactPath(p string) string {
-	home, err := os.UserHomeDir()
-	if err != nil || home == "" {
-		return p
-	}
-	if strings.HasPrefix(p, home) {
-		return "~" + strings.TrimPrefix(p, home)
-	}
-	return p
 }
 
 // dashboardModel is the bubbletea model for the launcher.
@@ -458,8 +421,8 @@ func RenderStatusMeta(theme *ui.Theme, status DashboardStatus) string {
 	}
 	sep := theme.Crumb.Render(" · ")
 	return dot.Render("●") + " " + theme.Detail.Render(label) +
-		sep + theme.Detail.Render(fmt.Sprintf("%d platform%s", status.Platforms, pluralDash(status.Platforms))) +
-		sep + theme.Detail.Render(fmt.Sprintf("%d skill%s", status.Skills, pluralDash(status.Skills)))
+		sep + theme.Detail.Render(fmt.Sprintf("%d platform%s", status.Platforms, textutil.Plural(status.Platforms))) +
+		sep + theme.Detail.Render(fmt.Sprintf("%d skill%s", status.Skills, textutil.Plural(status.Skills)))
 }
 
 // bodyWidth is the usable width between left/right margins. Every body
@@ -666,11 +629,4 @@ func truncateDisplay(s string, width int) string {
 		runes = runes[:len(runes)-1]
 	}
 	return string(runes) + "…"
-}
-
-func pluralDash(n int) string {
-	if n == 1 {
-		return ""
-	}
-	return "s"
 }
