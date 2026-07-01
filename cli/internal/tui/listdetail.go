@@ -628,8 +628,8 @@ func (m Model) renderHelp() string {
 		groups = append(groups, helpGroup{title: "ACTIONS", rows: rows})
 	}
 
-	backKey := firstNonEmpty(m.cfg.BackKey, "q")
-	backLabel := firstNonEmpty(m.cfg.BackLabel, "quit")
+	backKey := textutil.FirstNonEmpty(m.cfg.BackKey, "q")
+	backLabel := textutil.FirstNonEmpty(m.cfg.BackLabel, "quit")
 	groups = append(groups, helpGroup{title: "GENERAL", rows: []helpRow{
 		{"?", "toggle this help"},
 		{backKey + " / esc", backLabel},
