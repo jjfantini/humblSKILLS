@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-01T03:22:41Z",
+  "generated_at": "2026-07-01T13:44:42Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "cursor/feat-skill-categories-edb2",
-    "sha": "8656ea062ee179ab5bf29aa7b01d1a20dcb3b935"
+    "sha": "b4f515f2878e0b4d31caa54eaaa23057bf66c268"
   },
   "skills": [
     {
