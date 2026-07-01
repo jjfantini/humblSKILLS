@@ -227,15 +227,6 @@ func knownProviders() []string {
 	return out
 }
 
-func firstNonEmptyStr(vs ...string) string {
-	for _, v := range vs {
-		if strings.TrimSpace(v) != "" {
-			return v
-		}
-	}
-	return ""
-}
-
 func abbreviate(s string, max int) string {
 	s = strings.ReplaceAll(s, "\n", " ")
 	if len(s) > max {

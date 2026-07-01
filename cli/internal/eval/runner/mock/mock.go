@@ -9,7 +9,6 @@ package mock
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner"
+	"github.com/jjfantini/humblSKILLS/cli/internal/jsonutil"
 )
 
 // Runner is the mock backend.
@@ -103,7 +103,7 @@ func (r *Runner) Execute(ctx context.Context, req runner.Request) (*runner.Resul
 		"tool_calls":  toolCalls,
 		"brain_reads": brainReads,
 	}
-	_ = writeJSON(filepath.Join(req.OutputDir, "metrics.json"), metrics)
+	_ = jsonutil.WriteFile(filepath.Join(req.OutputDir, "metrics.json"), metrics)
 
 	duration := time.Since(start)
 	if duration < 5*time.Millisecond {
@@ -130,11 +130,3 @@ func oneLine(s string, max int) string {
 	return s
 }
 
-func writeJSON(path string, v any) error {
-	data, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return err
-	}
-	data = append(data, '\n')
-	return os.WriteFile(path, data, 0o644)
-}

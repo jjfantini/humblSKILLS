@@ -19,6 +19,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/workspace"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
@@ -286,7 +287,7 @@ func runEvalRunners(app *App) error {
 		if r.Check.Available {
 			status = "ready"
 		}
-		app.UI.Info("  %-16s %s  %s", r.Name, status, firstNonEmptyStr(r.Check.Version, r.Check.Reason))
+		app.UI.Info("  %-16s %s  %s", r.Name, status, textutil.FirstNonBlank(r.Check.Version, r.Check.Reason))
 		if !r.Check.Available && r.Check.Fix != "" {
 			app.UI.Detail("    fix: %s", r.Check.Fix)
 		}

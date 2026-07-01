@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
@@ -17,11 +18,20 @@ import (
 )
 
 func newSearchCmd(app *App) *cobra.Command {
-	return &cobra.Command{
+	var category string
+	cmd := &cobra.Command{
 		Use:   "search [query]",
 		Short: "Search the registry by name, description, or tag",
-		Args:  cobra.MaximumNArgs(1),
+		Long: "search matches a query against each skill's name, description, and " +
+			"tags. Narrow to one category with --category (see " +
+			"'humblskills search --category=' for the list of valid values).",
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			category = strings.ToLower(strings.TrimSpace(category))
+			if category != "" && !frontmatter.IsKnownCategory(category) {
+				return fmt.Errorf("unknown --category %q (must be one of %s)", category, strings.Join(frontmatter.Categories, ", "))
+			}
+
 			reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
 			if err != nil {
 				return err
@@ -33,6 +43,9 @@ func newSearchCmd(app *App) *cobra.Command {
 
 			var hits []registry.Skill
 			for _, s := range reg.Skills {
+				if category != "" && s.Category != category {
+					continue
+				}
 				if query == "" || matches(s, query) {
 					hits = append(hits, s)
 				}
@@ -41,9 +54,10 @@ func newSearchCmd(app *App) *cobra.Command {
 
 			if app.Config.JSON {
 				return app.UI.JSON(struct {
-					Query   string           `json:"query,omitempty"`
-					Results []registry.Skill `json:"results"`
-				}{query, hits})
+					Query    string           `json:"query,omitempty"`
+					Category string           `json:"category,omitempty"`
+					Results  []registry.Skill `json:"results"`
+				}{query, category, hits})
 			}
 			if len(hits) == 0 {
 				app.UI.Warn("no skills matched %q", query)
@@ -61,6 +75,8 @@ func newSearchCmd(app *App) *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().StringVar(&category, "category", "", "restrict results to one category ("+strings.Join(frontmatter.Categories, ", ")+")")
+	return cmd
 }
 
 func matches(s registry.Skill, q string) bool {
@@ -148,6 +164,9 @@ func renderSearchResults(theme *ui.Theme, hits []registry.Skill, query string) s
 			for _, line := range strings.Split(wrapped, "\n") {
 				sb.WriteString("    " + line + "\n")
 			}
+		}
+		if s.Category != "" {
+			sb.WriteString("    " + theme.Label.Render("category ") + theme.Category.Render(s.Category) + "\n")
 		}
 		if len(s.Tags) > 0 {
 			chips := make([]string, 0, len(s.Tags))
