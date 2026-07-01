@@ -19,7 +19,7 @@ func mkFM(name, version string, mutate ...func(*Frontmatter)) Frontmatter {
 	fm := Frontmatter{
 		Name:        name,
 		Description: "desc",
-		Metadata:    Metadata{Version: version},
+		Metadata:    Metadata{Version: version, Category: "development"},
 	}
 	for _, m := range mutate {
 		m(&fm)
@@ -75,6 +75,8 @@ func TestValidate_VersionFromLegacyTopLevel(t *testing.T) {
 name: foo
 description: d
 version: 0.2.0
+metadata:
+  category: development
 ---
 body`)
 	fm, _, err := Parse(src)
@@ -113,6 +115,37 @@ func TestValidate_DepVersionSatisfied(t *testing.T) {
 	err := fm.Validate("foo", ctxWith(map[string]string{"bar": "0.3.1"}))
 	if err != nil {
 		t.Fatalf("unexpected: %v", err)
+	}
+}
+
+func TestValidate_CategoryMissing(t *testing.T) {
+	fm := mkFM("foo", "0.1.0", func(f *Frontmatter) {
+		f.Metadata.Category = ""
+	})
+	err := fm.Validate("foo", ctxWith(nil))
+	if err == nil || !strings.Contains(err.Error(), "category is required") {
+		t.Fatalf("expected missing-category error, got %v", err)
+	}
+}
+
+func TestValidate_CategoryUnknown(t *testing.T) {
+	fm := mkFM("foo", "0.1.0", func(f *Frontmatter) {
+		f.Metadata.Category = "astrology"
+	})
+	err := fm.Validate("foo", ctxWith(nil))
+	if err == nil || !strings.Contains(err.Error(), `unknown category "astrology"`) {
+		t.Fatalf("expected unknown-category error, got %v", err)
+	}
+}
+
+func TestValidate_CategoryEveryKnownValueAccepted(t *testing.T) {
+	for _, c := range Categories {
+		fm := mkFM("foo", "0.1.0", func(f *Frontmatter) {
+			f.Metadata.Category = c
+		})
+		if err := fm.Validate("foo", ctxWith(nil)); err != nil {
+			t.Errorf("category %q should validate: %v", c, err)
+		}
 	}
 }
 
