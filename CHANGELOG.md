@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.23.0](https://github.com/jjfantini/humblSKILLS/compare/v2.22.0...v2.23.0) (2026-07-01)
+
+
+### Features
+
+* **ui:** add Printer.CaptureWriters for capturing sub-command output ([f5c8c88](https://github.com/jjfantini/humblSKILLS/commit/f5c8c880857aca6fac8f9abece8f23760ed81e9d))
+
+
+### Bug Fixes
+
+* **start:** stop swallowing dashboard sub-command output and errors ([bce60c3](https://github.com/jjfantini/humblSKILLS/commit/bce60c39891ab7dd11dbd74d41f9a496d635e534))
+* **tui:** make progress and status done-screens scrollable ([05986ea](https://github.com/jjfantini/humblSKILLS/commit/05986ea703c88c968bc69a11da4b9273e3cb1098))
+* **tui:** stop swallowing dashboard status/error messages, make done-screens scrollable ([68e4d85](https://github.com/jjfantini/humblSKILLS/commit/68e4d856b2971e766cc3ae3e39383e9a1d4d6fc5))
+
 ## [2.22.0](https://github.com/jjfantini/humblSKILLS/compare/v2.21.0...v2.22.0) (2026-07-01)
 
 
