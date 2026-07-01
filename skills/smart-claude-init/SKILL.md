@@ -15,9 +15,9 @@ compatibility: Requires bash and POSIX utilities (grep, sed) plus python3 for sc
 allowed-tools: "Bash(bash:*) Read Write Edit Glob Grep"
 metadata:
   author: jjfantini
-  version: "0.1.0"
+  version: "0.1.1"
   tags: [claude-md, onboarding, interview, project-setup, humblskill]
-  platforms: [claude-code, cursor]
+  platforms: [claude-code, cursor, codex]
   preserve:
     - references/decisions.md
     - references/log.md
