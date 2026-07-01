@@ -60,7 +60,7 @@ func NewSandbox(t testing.TB) *Sandbox {
 
 	s.CacheDir = filepath.Join(s.XDGCacheHome, "humblskills")
 	s.ManifestPath = filepath.Join(s.XDGStateHome, "humblskills", "manifest.json")
-	s.ProfilePath = filepath.Join(s.XDGConfigHome, "humblskills", "config.json")
+	s.ProfilePath = filepath.Join(s.Home, ".humblskills", "profile.json")
 	s.SecretsPath = filepath.Join(s.XDGConfigHome, "humblskills", "secrets.json")
 
 	setenv(t, "HOME", s.Home)

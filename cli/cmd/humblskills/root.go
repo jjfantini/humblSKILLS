@@ -90,7 +90,7 @@ func newRootCmd() *cobra.Command {
 	f.StringVar(&g.registry, "registry", "", "registry URL (or file:// path). Defaults to the hosted registry; env: HUMBLSKILLS_REGISTRY")
 	f.StringVar(&g.cacheDir, "cache-dir", "", "cache directory (env: HUMBLSKILLS_CACHE_DIR; default: XDG_CACHE_HOME/humblskills)")
 	f.StringVar(&g.manifest, "manifest", "", "install manifest path (env: HUMBLSKILLS_MANIFEST; default: XDG_STATE_HOME/humblskills/manifest.json)")
-	f.StringVar(&g.profile, "profile", "", "profile config path (env: HUMBLSKILLS_PROFILE; default: XDG_CONFIG_HOME/humblskills/config.json)")
+	f.StringVar(&g.profile, "profile", "", "profile config path (env: HUMBLSKILLS_PROFILE; default: ~/.humblskills/profile.json)")
 	f.BoolVar(&g.json, "json", false, "emit machine-readable JSON")
 	f.BoolVar(&g.noColor, "no-color", false, "disable ANSI colour output")
 	f.BoolVarP(&g.verbose, "verbose", "v", false, "print extra detail")

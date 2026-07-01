@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/adrg/xdg"
 )
@@ -30,12 +31,26 @@ const (
 	ScopeAdapterDefault = "adapter-default"
 )
 
+// DefaultStatusAutoReturnSeconds is how long a completed status/progress
+// screen (registry refresh, install, update) stays on screen before
+// auto-returning to the dashboard when StatusAutoReturnSeconds is unset.
+const DefaultStatusAutoReturnSeconds = 5
+
 // Profile is the full on-disk document.
 type Profile struct {
 	SchemaVersion    int          `json:"schema_version"`
 	DefaultPlatforms []string     `json:"default_platforms,omitempty"`
 	DefaultScope     string       `json:"default_scope,omitempty"`
 	Eval             *EvalProfile `json:"eval,omitempty"`
+
+	// StatusAutoReturnSeconds controls how long a completed status screen
+	// (registry refresh, install, update) waits before automatically
+	// dismissing itself and returning to the dashboard. nil (unset) means
+	// the built-in default (DefaultStatusAutoReturnSeconds); 0 disables
+	// the timer entirely (manual dismiss only, via enter/q/esc); any other
+	// positive value is the number of seconds to wait. Only success
+	// screens auto-return - a failed run always waits for the user.
+	StatusAutoReturnSeconds *int `json:"status_auto_return_seconds,omitempty"`
 }
 
 // EvalProfile captures eval-specific defaults. Secrets (API keys) do NOT
@@ -51,17 +66,56 @@ type EvalProfile struct {
 	IncludeBlindComparator bool   `json:"include_blind_comparator,omitempty"`
 }
 
-// DefaultPath resolves the profile path using XDG_CONFIG_HOME (falling back
-// to ~/.humblskills/config.json if XDG resolution fails).
+// legacyProfilePath is the pre-relocation profile location: XDG_CONFIG_HOME
+// (~/Library/Application Support/humblskills/config.json on macOS,
+// ~/.config/humblskills/config.json on Linux). DefaultPath migrates a file
+// found there into the new ~/.humblskills/profile.json location so every
+// humblskills file - skills, manifest fallback, and now the profile - lives
+// together instead of fanning out across OS-specific config directories.
+func legacyProfilePath() (string, error) {
+	return xdg.SearchConfigFile("humblskills/config.json")
+}
+
+// DefaultPath resolves the profile path to ~/.humblskills/profile.json,
+// alongside the canonical skill store (~/.humblskills/skills). If a legacy
+// profile from the old XDG-config location exists and nothing has been
+// written to the new location yet, it's moved (not copied) into place so
+// there's exactly one profile file on disk afterward.
 func DefaultPath() (string, error) {
-	if p, err := xdg.ConfigFile("humblskills/config.json"); err == nil {
-		return p, nil
-	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("resolve profile path: %w", err)
 	}
-	return filepath.Join(home, ".humblskills", "config.json"), nil
+	newPath := filepath.Join(home, ".humblskills", "profile.json")
+
+	if _, err := os.Stat(newPath); err == nil {
+		return newPath, nil
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		return "", fmt.Errorf("resolve profile path: %w", err)
+	}
+
+	if legacy, err := legacyProfilePath(); err == nil {
+		_ = migrateLegacyProfile(legacy, newPath)
+	}
+	return newPath, nil
+}
+
+// migrateLegacyProfile moves the file at legacy to newPath: write first,
+// then remove the source, and only once the write has succeeded. Copy-then-
+// delete (not os.Rename) because the two paths can be on different
+// filesystems - e.g. macOS's Application Support volume vs $HOME.
+func migrateLegacyProfile(legacy, newPath string) error {
+	data, err := os.ReadFile(legacy)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(newPath), 0o755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(newPath, data, 0o644); err != nil {
+		return err
+	}
+	return os.Remove(legacy)
 }
 
 // Load reads the profile at path. If the file doesn't exist, returns an
@@ -156,4 +210,19 @@ func (p *Profile) ResolvedScope() string {
 		return ScopeGlobal
 	}
 	return p.DefaultScope
+}
+
+// StatusAutoReturnDuration resolves StatusAutoReturnSeconds to a
+// time.Duration: nil -> the built-in default, 0 -> disabled (zero
+// duration means "wait for the user", never an instant auto-dismiss),
+// N>0 -> N seconds. Negative values are treated as disabled too, since
+// there's no sane "negative seconds" reading.
+func (p *Profile) StatusAutoReturnDuration() time.Duration {
+	if p == nil || p.StatusAutoReturnSeconds == nil {
+		return DefaultStatusAutoReturnSeconds * time.Second
+	}
+	if *p.StatusAutoReturnSeconds <= 0 {
+		return 0
+	}
+	return time.Duration(*p.StatusAutoReturnSeconds) * time.Second
 }
