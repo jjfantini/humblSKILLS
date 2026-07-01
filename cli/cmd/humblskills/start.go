@@ -10,6 +10,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/skillset"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
@@ -86,7 +87,7 @@ func runStart(app *App) error {
 // breadcrumb. Falls back to Title-case of the command itself.
 func crumbLabel(cmd string) string {
 	switch cmd {
-	case "install", "list", "update", "upgrade", "search", "uninstall", "profile", "eval", "doctor", "registry", "version":
+	case "install", "list", "update", "upgrade", "search", "uninstall", "sync", "profile", "eval", "doctor", "registry", "version":
 		return strings.ToUpper(cmd[:1]) + cmd[1:]
 	}
 	return cmd
@@ -116,6 +117,8 @@ func dispatchDashboardCommand(app *App, cmd string) error {
 		return runSearchTUI(app, hits, true)
 	case "uninstall":
 		return runUninstallPicker(app, true)
+	case "sync":
+		return runSync(app, skillset.DefaultFilename, installFlags{}, false)
 	case "profile":
 		return runProfileEditor(app)
 	case "eval":
