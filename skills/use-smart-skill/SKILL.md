@@ -14,10 +14,12 @@ compatibility: Requires bash, POSIX utilities (awk, sed, find, grep), python3, w
 allowed-tools: "Bash(bash:*) Bash(sh:*) Read Write Edit Glob Grep"
 metadata:
   author: jjfantini
-  version: 1.1.1
+  version: 1.1.2
   tags: [meta, skill-authoring, smart-skill, scaffolding, humblskill]
   platforms: [claude-code, cursor, codex]
   preserve:
+    - references/raw/
+    - references/wiki/
     - references/decisions.md
     - references/log.md
     - references/patterns.md

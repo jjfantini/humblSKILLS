@@ -15,10 +15,12 @@ compatibility: Requires bash and POSIX utilities (grep, sed) plus python3 for sc
 allowed-tools: "Bash(bash:*) Read Write Edit Glob Grep"
 metadata:
   author: jjfantini
-  version: "0.1.1"
+  version: "0.1.2"
   tags: [claude-md, onboarding, interview, project-setup, humblskill]
   platforms: [claude-code, cursor, codex]
   preserve:
+    - references/raw/
+    - references/wiki/
     - references/decisions.md
     - references/log.md
     - references/patterns.md
