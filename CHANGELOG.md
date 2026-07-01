@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.19.4](https://github.com/jjfantini/humblSKILLS/compare/v2.19.3...v2.19.4) (2026-07-01)
+
+
+### Bug Fixes
+
+* **skills:** preserve wiki/ and raw/ content across updates ([b3f2d27](https://github.com/jjfantini/humblSKILLS/commit/b3f2d27a3dd2e5f4ea46840fdaa399cb03582b4a))
+* **skills:** preserve wiki/ and raw/ content across updates ([bd047a6](https://github.com/jjfantini/humblSKILLS/commit/bd047a6c21166114be073cc97223934915382aa3))
+
 ## [2.19.3](https://github.com/jjfantini/humblSKILLS/compare/v2.19.2...v2.19.3) (2026-07-01)
 
 
