@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.25.0](https://github.com/jjfantini/humblSKILLS/compare/v2.24.0...v2.25.0) (2026-07-21)
+
+
+### Features
+
+* **registry:** persist registry URL in profile, store token in OS keychain ([7610936](https://github.com/jjfantini/humblSKILLS/commit/7610936cdb5ee7a28d1ec57c5cd2d810075de7a8))
+
 ## [2.24.0](https://github.com/jjfantini/humblSKILLS/compare/v2.23.0...v2.24.0) (2026-07-21)
 
 
