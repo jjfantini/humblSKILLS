@@ -54,23 +54,29 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 
 	type preload struct {
 		adapters []adapters.Adapter
-		reg      *registry.Registry
+		loaded   []registrySkills
+		merged   *registry.Registry
 	}
 	pre, err := tui.RunWithLoadingIf(useTUI, app.UI.Theme(), "loading adapters + registry…", func() (preload, error) {
 		adapterList, err := app.Adapters()
 		if err != nil {
 			return preload{}, fmt.Errorf("load adapters: %w", err)
 		}
-		reg, _, err := app.registryFetcher().Load()
-		if err != nil {
-			return preload{}, fmt.Errorf("load registry: %w", err)
+		loaded := app.loadRegistries()
+		merged := mergedRegistry(loaded)
+		if len(merged.Skills) == 0 {
+			for _, rs := range loaded {
+				if rs.Err != nil {
+					return preload{}, fmt.Errorf("load registry %q: %w", rs.Name, rs.Err)
+				}
+			}
 		}
-		return preload{adapters: adapterList, reg: reg}, nil
+		return preload{adapters: adapterList, loaded: loaded, merged: merged}, nil
 	})
 	if err != nil {
 		return err
 	}
-	adapterList, reg := pre.adapters, pre.reg
+	adapterList, loaded, reg := pre.adapters, pre.loaded, pre.merged
 
 	if skill == "" {
 		skill, err = pickSkill(app, reg, fromDashboard)
@@ -80,6 +86,13 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 			}
 			return err
 		}
+	}
+
+	// Resolve which registry actually holds the chosen skill so we plan and
+	// fetch against that registry's document (Source) and token.
+	target, ok := findRegistryForSkill(loaded, skill)
+	if !ok {
+		return fmt.Errorf("skill %q not found in any configured registry", skill)
 	}
 
 	p, err := profile.Load(app.Config.ProfilePath)
@@ -124,12 +137,12 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 		return fmt.Errorf("no platforms selected — run 'humblskills doctor' to see what's detected")
 	}
 
-	plan, err := install.Plan(reg, skill)
+	plan, err := install.Plan(target.Reg, skill)
 	if err != nil {
 		return err
 	}
 
-	engine := app.installEngine()
+	engine := app.installEngineForToken(target.Token)
 
 	if !useTUI {
 		app.UI.Detail("plan:")
@@ -144,7 +157,7 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 
 	var res install.Result
 	run := func(sink install.EventSink) error {
-		r, err := engine.Execute(reg, plan, install.ExecuteOpts{
+		r, err := engine.Execute(target.Reg, plan, install.ExecuteOpts{
 			Adapters:  adapterList,
 			Platforms: selected,
 			Scope:     scope,

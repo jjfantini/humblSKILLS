@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -32,17 +31,33 @@ func newSearchCmd(app *App) *cobra.Command {
 				return fmt.Errorf("unknown --category %q (must be one of %s)", category, strings.Join(frontmatter.Categories, ", "))
 			}
 
-			reg, _, err := app.registryFetcher().Load()
-			if err != nil {
-				return err
+			loaded := app.loadRegistries()
+			all, loadErrs := aggregateSkills(loaded)
+			// A failed registry is reported but doesn't abort the others; only
+			// error out if every registry failed and nothing loaded.
+			if len(all) == 0 && len(loadErrs) > 0 {
+				for _, rs := range loaded {
+					if rs.Err != nil {
+						return fmt.Errorf("registry %q: %w", rs.Name, rs.Err)
+					}
+				}
+			}
+			if !app.Config.JSON {
+				for _, rs := range loaded {
+					if rs.Err != nil {
+						app.UI.Warn("registry %q unavailable: %v", rs.Name, rs.Err)
+					}
+				}
 			}
 			query := ""
 			if len(args) == 1 {
 				query = strings.ToLower(args[0])
 			}
 
+			// all is already sorted by (registry, name); filtering preserves
+			// that grouped order.
 			var hits []registry.Skill
-			for _, s := range reg.Skills {
+			for _, s := range all {
 				if category != "" && s.Category != category {
 					continue
 				}
@@ -50,7 +65,6 @@ func newSearchCmd(app *App) *cobra.Command {
 					hits = append(hits, s)
 				}
 			}
-			sort.Slice(hits, func(i, j int) bool { return hits[i].Name < hits[j].Name })
 
 			if app.Config.JSON {
 				return app.UI.JSON(struct {
@@ -150,7 +164,28 @@ func renderSearchResults(theme *ui.Theme, hits []registry.Skill, query string) s
 	sb.WriteString(theme.Count.Render(summary))
 	sb.WriteString("\n\n")
 
+	// Group hits under a "── <registry> ──" header when they span more than
+	// one registry (hits are already sorted by registry then name).
+	grouped := false
+	{
+		seen := map[string]struct{}{}
+		for _, s := range hits {
+			seen[s.Registry] = struct{}{}
+		}
+		grouped = len(seen) > 1
+	}
+	lastReg := ""
+	headerShown := false
+
 	for i, s := range hits {
+		if grouped && (!headerShown || s.Registry != lastReg) {
+			if headerShown {
+				sb.WriteString("\n")
+			}
+			sb.WriteString("  " + theme.SectionTitle.Render("── "+registryDisplayName(s.Registry)+" ──") + "\n\n")
+			lastReg = s.Registry
+			headerShown = true
+		}
 		left := theme.Bullet.Render("▌ ") + highlightName(s.Name, query, theme.Name, theme.Hit)
 		right := theme.Version.Render("v" + s.Version)
 		pad := inner - lipgloss.Width(left) - lipgloss.Width(right)
