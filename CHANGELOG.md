@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.24.0](https://github.com/jjfantini/humblSKILLS/compare/v2.23.0...v2.24.0) (2026-07-21)
+
+
+### Features
+
+* **registry:** support auth token for private registries ([2dc8363](https://github.com/jjfantini/humblSKILLS/commit/2dc83638361800712411623efc9724af63208b9a))
+
 ## [2.23.0](https://github.com/jjfantini/humblSKILLS/compare/v2.22.0...v2.23.0) (2026-07-01)
 
 
