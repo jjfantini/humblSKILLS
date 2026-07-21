@@ -32,4 +32,9 @@ type Skill struct {
 	Preserve    []string `json:"preserve,omitempty"`
 	Path        string   `json:"path"`
 	DirSHA      string   `json:"dir_sha"`
+	// Registry is the source-registry name, stamped at load time when skills
+	// from multiple registries are aggregated. It is never written to a
+	// registry.json on disk (build-registry leaves it empty), so it does not
+	// affect generation or the --check semantic diff.
+	Registry string `json:"registry,omitempty"`
 }

@@ -123,6 +123,24 @@ export HUMBLSKILLS_TOKEN=<github token with read access>
 humblskills search
 ```
 
+### Multiple registries at once
+
+Register several registries and `search`/`browse` show them **together, grouped by
+registry** (each skill tagged with its source). Each registry keeps its own token.
+
+```sh
+humblskills registry add public https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/registry.json
+humblskills registry add work   https://raw.githubusercontent.com/<org>/<private-repo>/main/registry.json
+humblskills registry login --name work    # token for the private one (keychain)
+humblskills registry list                  # show configured registries + token state
+humblskills search                         # grouped: "── public ──" then "── work ──"
+humblskills install <skill>                # resolves to whichever registry has it
+humblskills registry remove work           # drop it (and its stored token)
+```
+
+When no named registries are configured, everything falls back to the single registry
+above (`--registry`/`HUMBLSKILLS_REGISTRY`/`profile set registry`/hosted default).
+
 ### Sharing skill sets across a team
 
 `humblskills export` snapshots the skills you have installed into a

@@ -44,8 +44,12 @@ type Profile struct {
 	// Registry, when set, is the default registry URL (or file:// path) used
 	// when neither --registry nor HUMBLSKILLS_REGISTRY is provided. Empty means
 	// the built-in hosted default.
-	Registry string       `json:"registry,omitempty"`
-	Eval     *EvalProfile `json:"eval,omitempty"`
+	Registry string `json:"registry,omitempty"`
+	// Registries is the set of named registries shown together in aggregated
+	// views (search, list, browse, doctor). When empty, those views fall back
+	// to the single resolved registry (flag/env/Registry/hosted default).
+	Registries []NamedRegistry `json:"registries,omitempty"`
+	Eval       *EvalProfile    `json:"eval,omitempty"`
 
 	// StatusAutoReturnSeconds controls how long a completed status screen
 	// (registry refresh, install, update) waits before automatically
@@ -55,6 +59,44 @@ type Profile struct {
 	// positive value is the number of seconds to wait. Only success
 	// screens auto-return - a failed run always waits for the user.
 	StatusAutoReturnSeconds *int `json:"status_auto_return_seconds,omitempty"`
+}
+
+// NamedRegistry is one entry in the multi-registry set (Profile.Registries).
+type NamedRegistry struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+// FindRegistry returns the named registry and true if present.
+func (p *Profile) FindRegistry(name string) (NamedRegistry, bool) {
+	for _, r := range p.Registries {
+		if r.Name == name {
+			return r, true
+		}
+	}
+	return NamedRegistry{}, false
+}
+
+// SetRegistry adds a named registry, or updates its URL if the name exists.
+func (p *Profile) SetRegistry(name, url string) {
+	for i := range p.Registries {
+		if p.Registries[i].Name == name {
+			p.Registries[i].URL = url
+			return
+		}
+	}
+	p.Registries = append(p.Registries, NamedRegistry{Name: name, URL: url})
+}
+
+// RemoveRegistry drops a named registry by name; reports whether it existed.
+func (p *Profile) RemoveRegistry(name string) bool {
+	for i := range p.Registries {
+		if p.Registries[i].Name == name {
+			p.Registries = append(p.Registries[:i], p.Registries[i+1:]...)
+			return true
+		}
+	}
+	return false
 }
 
 // EvalProfile captures eval-specific defaults. Secrets (API keys) do NOT

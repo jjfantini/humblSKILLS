@@ -101,6 +101,9 @@ func (s skillItem) Detail(th *ui.Theme, width int) string {
 		sb.WriteString(desc + "\n\n")
 	}
 
+	if s.s.Registry != "" {
+		sb.WriteString(kvRow(th, "registry", th.KVValue.Render(s.s.Registry)))
+	}
 	if s.s.Category != "" {
 		sb.WriteString(kvRow(th, "category", th.Category.Render(s.s.Category)))
 	}
@@ -201,9 +204,78 @@ func buildSkillItems(skills []registry.Skill, m *manifest.Manifest) []skillItem 
 		items = append(items, it)
 	}
 	sort.SliceStable(items, func(i, j int) bool {
+		// Group by source registry (empty registry — single-registry views —
+		// all collapse into one group), then by skill name within a group.
+		if items[i].s.Registry != items[j].s.Registry {
+			return items[i].s.Registry < items[j].s.Registry
+		}
 		return items[i].s.Name < items[j].s.Name
 	})
 	return items
+}
+
+// registryHeaderItem is a non-selectable section-header row rendered above each
+// registry's skills when more than one registry is shown.
+type registryHeaderItem struct{ name string }
+
+func (h registryHeaderItem) IsHeader() bool      { return true }
+func (h registryHeaderItem) Key() string         { return "__header__:" + h.name }
+func (h registryHeaderItem) FilterValue() string { return "" }
+func (h registryHeaderItem) NaturalWidth(th *ui.Theme) int {
+	return lipgloss.Width(h.render(th))
+}
+func (h registryHeaderItem) render(th *ui.Theme) string {
+	return th.SectionTitle.Render("── " + h.name + " ──")
+}
+func (h registryHeaderItem) Row(th *ui.Theme, width int, _ bool) string {
+	return h.render(th)
+}
+func (h registryHeaderItem) Detail(th *ui.Theme, width int) string { return "" }
+
+// interleaveRegistryHeaders turns a (registry, name)-sorted item list into a
+// tui.Item slice with a "── <registry> ──" header before each registry's
+// block. When only one registry is present, no headers are added.
+func interleaveRegistryHeaders(skills []skillItem, grouped bool) []tui.Item {
+	items := make([]tui.Item, 0, len(skills)+4)
+	last := ""
+	first := true
+	for _, s := range skills {
+		if grouped && (first || s.s.Registry != last) {
+			items = append(items, registryHeaderItem{name: registryDisplayName(s.s.Registry)})
+			last = s.s.Registry
+			first = false
+		}
+		items = append(items, s)
+	}
+	return items
+}
+
+func registryDisplayName(name string) string {
+	if name == "" {
+		return "default"
+	}
+	return name
+}
+
+// countSkills counts the non-header items (real skills) in a tui.Item list.
+func countSkills(items []tui.Item) int {
+	n := 0
+	for _, it := range items {
+		if h, ok := it.(tui.HeaderItem); ok && h.IsHeader() {
+			continue
+		}
+		n++
+	}
+	return n
+}
+
+// distinctRegistries counts the distinct source-registry names across skills.
+func distinctRegistries(skills []skillItem) int {
+	seen := map[string]struct{}{}
+	for _, s := range skills {
+		seen[s.s.Registry] = struct{}{}
+	}
+	return len(seen)
 }
 
 // runSkillBrowser opens the shared two-pane picker over skills and routes the
@@ -217,10 +289,7 @@ func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBr
 		app.UI.Info(emptyMsg)
 		return "", "", nil
 	}
-	items := make([]tui.Item, 0, len(skills))
-	for _, s := range skills {
-		items = append(items, s)
-	}
+	items := interleaveRegistryHeaders(skills, distinctRegistries(skills) > 1)
 
 	var actions []tui.ActionSpec
 	switch mode {
@@ -247,7 +316,8 @@ func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBr
 		}
 	}
 	localMeta := func(items []tui.Item, _ int) string {
-		parts := []string{fmt.Sprintf("%d skill%s", len(items), textutil.Plural(len(items)))}
+		n := countSkills(items)
+		parts := []string{fmt.Sprintf("%d skill%s", n, textutil.Plural(n))}
 		if installedCount > 0 {
 			parts = append(parts, fmt.Sprintf("%d installed", installedCount))
 		}

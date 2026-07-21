@@ -47,6 +47,20 @@ type SizedItem interface {
 	NaturalWidth(theme *ui.Theme) int
 }
 
+// HeaderItem marks a non-selectable section-header row (e.g. a "── group ──"
+// divider). Header rows are rendered in place but skipped during navigation and
+// never returned as a Result. While a filter is active, headers are hidden and
+// the list collapses to a flat matched view.
+type HeaderItem interface {
+	Item
+	IsHeader() bool
+}
+
+func isHeader(it Item) bool {
+	h, ok := it.(HeaderItem)
+	return ok && h.IsHeader()
+}
+
 // ActionSpec binds a key to a caller-named action. Pressing Key while an item
 // is highlighted exits the model with Result{Action, Item}.
 type ActionSpec struct {
@@ -138,7 +152,38 @@ func NewListDetail(cfg Config) Model {
 		keys:    DefaultKeys(),
 		actions: acts,
 	}
+	m.cursor = m.firstSelectable()
 	return m
+}
+
+// firstSelectable returns the index of the first non-header item, or 0.
+func (m Model) firstSelectable() int {
+	for i := range m.items {
+		if !isHeader(m.items[i]) {
+			return i
+		}
+	}
+	return 0
+}
+
+// nextSelectable / prevSelectable return the next non-header index in the given
+// direction, or -1 if there is none.
+func (m Model) nextSelectable(from int) int {
+	for i := from + 1; i < len(m.items); i++ {
+		if !isHeader(m.items[i]) {
+			return i
+		}
+	}
+	return -1
+}
+
+func (m Model) prevSelectable(from int) int {
+	for i := from - 1; i >= 0; i-- {
+		if !isHeader(m.items[i]) {
+			return i
+		}
+	}
+	return -1
 }
 
 // Selected returns the terminal state after the model exits.
@@ -220,14 +265,14 @@ func (m Model) updateNav(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.done = true
 		return m, tea.Quit
 	case key.Matches(msg, m.keys.Up):
-		if m.cursor > 0 {
-			m.cursor--
+		if n := m.prevSelectable(m.cursor); n >= 0 {
+			m.cursor = n
 			m.refreshPreview()
 		}
 		return m, nil
 	case key.Matches(msg, m.keys.Down):
-		if m.cursor < len(m.items)-1 {
-			m.cursor++
+		if n := m.nextSelectable(m.cursor); n >= 0 {
+			m.cursor = n
 			m.refreshPreview()
 		}
 		return m, nil
@@ -296,6 +341,9 @@ func (m Model) exitWith(action string) (tea.Model, tea.Cmd) {
 	var it Item
 	if len(m.items) > 0 && m.cursor < len(m.items) {
 		it = m.items[m.cursor]
+	}
+	if isHeader(it) { // never surface a header row as a selection
+		it = nil
 	}
 	m.result = Result{Action: action, Item: it}
 	m.done = true
@@ -389,20 +437,22 @@ func (m *Model) applyFilter() {
 	} else {
 		out := make([]Item, 0, len(m.cfg.Items))
 		for _, it := range m.cfg.Items {
+			// Headers are group dividers, not matches — hide them while
+			// filtering so the list collapses to a flat matched view.
+			if isHeader(it) {
+				continue
+			}
 			if strings.Contains(strings.ToLower(it.FilterValue()), q) {
 				out = append(out, it)
 			}
 		}
 		m.items = out
 	}
-	if m.cursor >= len(m.items) {
+	// Keep the cursor in range and off any header row.
+	if len(m.items) == 0 {
 		m.cursor = 0
-		if len(m.items) > 0 {
-			m.cursor = len(m.items) - 1
-			if m.cursor < 0 {
-				m.cursor = 0
-			}
-		}
+	} else if m.cursor >= len(m.items) || isHeader(m.items[m.cursor]) {
+		m.cursor = m.firstSelectable()
 	}
 }
 

@@ -236,7 +236,17 @@ const RegistryTokenEnvVar = "HUMBLSKILLS_TOKEN"
 // registryTokenKey is the keyring account and secrets-file key for the token.
 const registryTokenKey = "registry-token"
 
-// GetRegistryToken resolves the registry auth token, preferring the
+// registryAccount is the keyring account / secrets-file key for a registry
+// token. The empty name is the default (single-registry) token; a named
+// registry gets "registry-token-<name>".
+func registryAccount(name string) string {
+	if name == "" {
+		return registryTokenKey
+	}
+	return registryTokenKey + "-" + name
+}
+
+// GetRegistryToken resolves the default registry token, preferring the
 // environment, then the OS keyring, then the 0600 secrets file. Returns
 // ("", SourceAbsent) when unset.
 func GetRegistryToken() (string, Source) {
@@ -248,19 +258,37 @@ func getRegistryToken(filePath string) (string, Source) {
 	if v := strings.TrimSpace(os.Getenv(RegistryTokenEnvVar)); v != "" {
 		return v, SourceEnv
 	}
-	if v, err := keyring.Get(Service, registryTokenKey); err == nil && v != "" {
+	return getKeyedToken(filePath, registryAccount(""))
+}
+
+// GetRegistryTokenFor resolves a named registry's token: its own keyring/file
+// entry first, then the default token (env > keyring > file) as a fallback, so a
+// single stored token can cover registries without a dedicated one.
+func GetRegistryTokenFor(name string) (string, Source) {
+	if name == "" {
+		return GetRegistryToken()
+	}
+	path, _ := defaultFilePath()
+	if v, src := getKeyedToken(path, registryAccount(name)); src != SourceAbsent {
+		return v, src
+	}
+	return GetRegistryToken()
+}
+
+func getKeyedToken(filePath, account string) (string, Source) {
+	if v, err := keyring.Get(Service, account); err == nil && v != "" {
 		return v, SourceKeyring
 	}
 	if filePath != "" {
-		if v, ok := readFile(filePath, registryTokenKey); ok {
+		if v, ok := readFile(filePath, account); ok {
 			return v, SourceFile
 		}
 	}
 	return "", SourceAbsent
 }
 
-// SetRegistryToken stores the registry token, preferring the OS keyring and
-// falling back to the 0600 secrets file when the keyring is unavailable.
+// SetRegistryToken stores the default registry token, preferring the OS keyring
+// and falling back to the 0600 secrets file when the keyring is unavailable.
 func SetRegistryToken(value string) (Source, error) {
 	path, err := defaultFilePath()
 	if err != nil {
@@ -270,23 +298,35 @@ func SetRegistryToken(value string) (Source, error) {
 }
 
 func setRegistryToken(filePath, value string) (Source, error) {
+	return setKeyedToken(filePath, registryAccount(""), value)
+}
+
+// SetRegistryTokenFor stores a named registry's token.
+func SetRegistryTokenFor(name, value string) (Source, error) {
+	path, err := defaultFilePath()
+	if err != nil {
+		return SourceAbsent, err
+	}
+	return setKeyedToken(path, registryAccount(name), value)
+}
+
+func setKeyedToken(filePath, account, value string) (Source, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return SourceAbsent, errors.New("refusing to store empty token")
 	}
-	if err := keyring.Set(Service, registryTokenKey, value); err == nil {
+	if err := keyring.Set(Service, account, value); err == nil {
 		// Drop any stale file copy so file/keyring precedence can't disagree.
-		_ = writeFileSecret(filePath, registryTokenKey, "")
+		_ = writeFileSecret(filePath, account, "")
 		return SourceKeyring, nil
 	}
-	if err := writeFileSecret(filePath, registryTokenKey, value); err != nil {
+	if err := writeFileSecret(filePath, account, value); err != nil {
 		return SourceAbsent, fmt.Errorf("keyring unavailable and file fallback failed: %w", err)
 	}
 	return SourceFile, nil
 }
 
-// DeleteRegistryToken removes the stored registry token from both the keyring
-// and the secrets file.
+// DeleteRegistryToken removes the default registry token from keyring + file.
 func DeleteRegistryToken() error {
 	path, err := defaultFilePath()
 	if err != nil {
@@ -296,8 +336,21 @@ func DeleteRegistryToken() error {
 }
 
 func deleteRegistryToken(filePath string) error {
-	_ = keyring.Delete(Service, registryTokenKey)
-	return writeFileSecret(filePath, registryTokenKey, "")
+	return deleteKeyedToken(filePath, registryAccount(""))
+}
+
+// DeleteRegistryTokenFor removes a named registry's token.
+func DeleteRegistryTokenFor(name string) error {
+	path, err := defaultFilePath()
+	if err != nil {
+		return err
+	}
+	return deleteKeyedToken(path, registryAccount(name))
+}
+
+func deleteKeyedToken(filePath, account string) error {
+	_ = keyring.Delete(Service, account)
+	return writeFileSecret(filePath, account, "")
 }
 
 // KeyringAvailable reports whether the OS keyring appears reachable. Used by
