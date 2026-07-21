@@ -38,10 +38,14 @@ const DefaultStatusAutoReturnSeconds = 5
 
 // Profile is the full on-disk document.
 type Profile struct {
-	SchemaVersion    int          `json:"schema_version"`
-	DefaultPlatforms []string     `json:"default_platforms,omitempty"`
-	DefaultScope     string       `json:"default_scope,omitempty"`
-	Eval             *EvalProfile `json:"eval,omitempty"`
+	SchemaVersion    int      `json:"schema_version"`
+	DefaultPlatforms []string `json:"default_platforms,omitempty"`
+	DefaultScope     string   `json:"default_scope,omitempty"`
+	// Registry, when set, is the default registry URL (or file:// path) used
+	// when neither --registry nor HUMBLSKILLS_REGISTRY is provided. Empty means
+	// the built-in hosted default.
+	Registry string       `json:"registry,omitempty"`
+	Eval     *EvalProfile `json:"eval,omitempty"`
 
 	// StatusAutoReturnSeconds controls how long a completed status screen
 	// (registry refresh, install, update) waits before automatically

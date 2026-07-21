@@ -14,6 +14,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
 	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
@@ -42,9 +43,10 @@ type NavContext struct {
 // Config captures every flag/env-resolved setting used by subcommands.
 type Config struct {
 	RegistryURL string
-	// RegistryToken, when set, is sent as a Bearer token on registry.json and
-	// skill-tarball fetches so a private registry (e.g. a private GitHub repo)
-	// can be read. Empty means unauthenticated (the public default).
+	// RegistryToken holds ONLY the --token flag value. The effective token is
+	// resolved lazily by (*App).registryToken(): flag > HUMBLSKILLS_TOKEN env >
+	// OS keyring > secrets file. Resolving lazily keeps commands that never
+	// fetch (list, profile, doctor) from touching the keychain.
 	RegistryToken string
 	CacheDir      string
 	ManifestPath  string
@@ -159,9 +161,24 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 			len(res.Loaded), res.Path, len(res.Kept))
 	}
 
+	profilePath, err := resolveProfilePath(textutil.FirstNonEmpty(g.profile, os.Getenv("HUMBLSKILLS_PROFILE")))
+	if err != nil {
+		return err
+	}
+
+	// Load the profile up front (best-effort) so a persisted registry URL can
+	// act as a fallback below. A missing profile yields an empty one, so a read
+	// error here is non-fatal — commands that need the profile load it and
+	// surface real errors themselves.
+	var profileRegistry string
+	if p, perr := profile.Load(profilePath); perr == nil && p != nil {
+		profileRegistry = p.Registry
+	}
+
 	cfg := Config{
-		RegistryURL:   textutil.FirstNonEmpty(g.registry, os.Getenv("HUMBLSKILLS_REGISTRY"), registry.DefaultURL),
-		RegistryToken: textutil.FirstNonEmpty(g.token, os.Getenv("HUMBLSKILLS_TOKEN")),
+		RegistryURL:   textutil.FirstNonEmpty(g.registry, os.Getenv("HUMBLSKILLS_REGISTRY"), profileRegistry, registry.DefaultURL),
+		RegistryToken: g.token, // flag only; env/keyring/file resolved in registryToken()
+		ProfilePath:   profilePath,
 		JSON:          g.json,
 		NoColor:       g.noColor,
 		Verbose:       g.verbose,
@@ -182,16 +199,22 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 	}
 	cfg.ManifestPath = manifestPath
 
-	profilePath, err := resolveProfilePath(textutil.FirstNonEmpty(g.profile, os.Getenv("HUMBLSKILLS_PROFILE")))
-	if err != nil {
-		return err
-	}
-	cfg.ProfilePath = profilePath
-
 	app.Config = cfg
 	app.Adapters = adapters.Load
 
 	return nil
+}
+
+// registryToken resolves the effective registry auth token, in precedence
+// order: the --token flag > HUMBLSKILLS_TOKEN env > OS keyring > secrets file.
+// It is called only when a fetcher/engine is actually built, so commands that
+// never fetch don't touch the keychain.
+func (a *App) registryToken() string {
+	if a.Config.RegistryToken != "" {
+		return a.Config.RegistryToken
+	}
+	tok, _ := secrets.GetRegistryToken()
+	return tok
 }
 
 // registryFetcher builds a registry Fetcher using the resolved registry URL,
@@ -199,7 +222,7 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 // token wired into every command that reads the registry.
 func (a *App) registryFetcher() *registry.Fetcher {
 	f := registry.NewFetcher(a.Config.RegistryURL, a.Config.CacheDir)
-	f.Token = a.Config.RegistryToken
+	f.Token = a.registryToken()
 	return f
 }
 
@@ -208,7 +231,7 @@ func (a *App) registryFetcher() *registry.Fetcher {
 // registry's backing repo.
 func (a *App) installEngine() *install.Engine {
 	e := install.NewEngine(a.Config.CacheDir, a.Config.ManifestPath)
-	e.Fetcher.Token = a.Config.RegistryToken
+	e.Fetcher.Token = a.registryToken()
 	return e
 }
 

@@ -222,6 +222,84 @@ func writeFileSecret(path, provider, value string) error {
 
 func keyringAccount(provider string) string { return provider + "-api-key" }
 
+// --- registry auth token ----------------------------------------------------
+//
+// The registry token authenticates fetches from a private skill registry. It is
+// deliberately NOT an LLM Provider (so it stays out of Providers(), doctor's
+// provider list, and the eval key prompts) but reuses the same
+// env > keyring > file resolution and the same on-disk secrets file.
+
+// RegistryTokenEnvVar is the environment variable checked first when resolving
+// the registry auth token.
+const RegistryTokenEnvVar = "HUMBLSKILLS_TOKEN"
+
+// registryTokenKey is the keyring account and secrets-file key for the token.
+const registryTokenKey = "registry-token"
+
+// GetRegistryToken resolves the registry auth token, preferring the
+// environment, then the OS keyring, then the 0600 secrets file. Returns
+// ("", SourceAbsent) when unset.
+func GetRegistryToken() (string, Source) {
+	path, _ := defaultFilePath()
+	return getRegistryToken(path)
+}
+
+func getRegistryToken(filePath string) (string, Source) {
+	if v := strings.TrimSpace(os.Getenv(RegistryTokenEnvVar)); v != "" {
+		return v, SourceEnv
+	}
+	if v, err := keyring.Get(Service, registryTokenKey); err == nil && v != "" {
+		return v, SourceKeyring
+	}
+	if filePath != "" {
+		if v, ok := readFile(filePath, registryTokenKey); ok {
+			return v, SourceFile
+		}
+	}
+	return "", SourceAbsent
+}
+
+// SetRegistryToken stores the registry token, preferring the OS keyring and
+// falling back to the 0600 secrets file when the keyring is unavailable.
+func SetRegistryToken(value string) (Source, error) {
+	path, err := defaultFilePath()
+	if err != nil {
+		return SourceAbsent, err
+	}
+	return setRegistryToken(path, value)
+}
+
+func setRegistryToken(filePath, value string) (Source, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return SourceAbsent, errors.New("refusing to store empty token")
+	}
+	if err := keyring.Set(Service, registryTokenKey, value); err == nil {
+		// Drop any stale file copy so file/keyring precedence can't disagree.
+		_ = writeFileSecret(filePath, registryTokenKey, "")
+		return SourceKeyring, nil
+	}
+	if err := writeFileSecret(filePath, registryTokenKey, value); err != nil {
+		return SourceAbsent, fmt.Errorf("keyring unavailable and file fallback failed: %w", err)
+	}
+	return SourceFile, nil
+}
+
+// DeleteRegistryToken removes the stored registry token from both the keyring
+// and the secrets file.
+func DeleteRegistryToken() error {
+	path, err := defaultFilePath()
+	if err != nil {
+		return err
+	}
+	return deleteRegistryToken(path)
+}
+
+func deleteRegistryToken(filePath string) error {
+	_ = keyring.Delete(Service, registryTokenKey)
+	return writeFileSecret(filePath, registryTokenKey, "")
+}
+
 // KeyringAvailable reports whether the OS keyring appears reachable. Used by
 // doctor to surface a helpful hint when secrets will land in the file.
 func KeyringAvailable() bool {
