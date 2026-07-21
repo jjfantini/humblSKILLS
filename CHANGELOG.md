@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.26.0](https://github.com/jjfantini/humblSKILLS/compare/v2.25.0...v2.26.0) (2026-07-21)
+
+
+### Features
+
+* **registry:** multi-registry support with grouped-by-registry views ([c130288](https://github.com/jjfantini/humblSKILLS/commit/c1302883be9542a3ee2b31b4d7227729e72a6d95))
+
 ## [2.25.0](https://github.com/jjfantini/humblSKILLS/compare/v2.24.0...v2.25.0) (2026-07-21)
 
 
