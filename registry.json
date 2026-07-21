@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-01T21:03:29Z",
+  "generated_at": "2026-07-21T16:14:12Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "main",
-    "sha": "84126b8f19927acce029dd88790581d130e0cc5b"
+    "ref": "feat/registry-token-auth",
+    "sha": "d360aa239e35b6c1e0c486ced40fc239b9ab2508"
   },
   "skills": [
     {
