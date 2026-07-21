@@ -68,7 +68,7 @@ func runList(app *App, fromDashboard bool) error {
 // registry is read from the local cache only (never fetched); if no cached
 // registry is available the map is nil and callers show no drift.
 func availableUpdates(app *App, m *manifest.Manifest) map[string]string {
-	reg, ok := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).LoadCached()
+	reg, ok := app.registryFetcher().LoadCached()
 	if !ok || reg == nil {
 		return nil
 	}
@@ -185,7 +185,7 @@ func renderListTable(app *App, installs []manifest.Installation, avail map[strin
 func runListTUI(app *App, m *manifest.Manifest, fromDashboard bool) error {
 	// Pull the registry to know whether each installed skill has drifted. If
 	// the registry is unreachable, fall back to the manifest versions.
-	reg, _, _ := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+	reg, _, _ := app.registryFetcher().Load()
 
 	// Build a "virtual" registry view of only the skills we have installed,
 	// preferring the registry version when available so `outdated` can render.

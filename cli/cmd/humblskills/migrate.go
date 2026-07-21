@@ -12,7 +12,6 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
@@ -72,7 +71,7 @@ func runMigrate(app *App, sourcePlatform string, f migrateFlags) error {
 		return err
 	}
 
-	reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+	reg, _, err := app.registryFetcher().Load()
 	if err != nil {
 		return fmt.Errorf("load registry: %w", err)
 	}
@@ -96,7 +95,7 @@ func runMigrate(app *App, sourcePlatform string, f migrateFlags) error {
 		return fmt.Errorf("no platforms selected - run 'humblskills doctor' to see what's detected")
 	}
 
-	engine := install.NewEngine(app.Config.CacheDir, app.Config.ManifestPath)
+	engine := app.installEngine()
 	useTUI := tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
 	result := migrateResult{Skipped: skipped}
 	var aggregate install.Result

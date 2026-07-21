@@ -32,7 +32,7 @@ func newSearchCmd(app *App) *cobra.Command {
 				return fmt.Errorf("unknown --category %q (must be one of %s)", category, strings.Join(frontmatter.Categories, ", "))
 			}
 
-			reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+			reg, _, err := app.registryFetcher().Load()
 			if err != nil {
 				return err
 			}

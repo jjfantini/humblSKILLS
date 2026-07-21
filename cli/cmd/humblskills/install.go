@@ -61,7 +61,7 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 		if err != nil {
 			return preload{}, fmt.Errorf("load adapters: %w", err)
 		}
-		reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+		reg, _, err := app.registryFetcher().Load()
 		if err != nil {
 			return preload{}, fmt.Errorf("load registry: %w", err)
 		}
@@ -129,7 +129,7 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 		return err
 	}
 
-	engine := install.NewEngine(app.Config.CacheDir, app.Config.ManifestPath)
+	engine := app.installEngine()
 
 	if !useTUI {
 		app.UI.Detail("plan:")

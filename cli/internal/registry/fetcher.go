@@ -34,6 +34,10 @@ type Fetcher struct {
 	TTL      time.Duration
 	HTTP     *http.Client
 	Now      func() time.Time
+	// Token, when non-empty, is sent as a Bearer Authorization header on the
+	// HTTP registry fetch so a private registry can be read. Ignored for
+	// file:// URLs and bare paths.
+	Token string
 }
 
 // NewFetcher returns a Fetcher with sensible defaults. cacheDir should be the
@@ -172,6 +176,9 @@ func (f *Fetcher) fetchAndCache() (*Registry, error) {
 		return nil, fmt.Errorf("build request: %w", err)
 	}
 	req.Header.Set("User-Agent", "humblskills-cli")
+	if f.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+f.Token)
+	}
 
 	resp, err := f.HTTP.Do(req)
 	if err != nil {
@@ -207,8 +214,8 @@ func (f *Fetcher) loadLocal() (*Registry, error) {
 	return parseRegistry(data)
 }
 
-func (f *Fetcher) bodyPath() string  { return filepath.Join(f.CacheDir, "registry.json") }
-func (f *Fetcher) metaPath() string  { return filepath.Join(f.CacheDir, "registry.meta.json") }
+func (f *Fetcher) bodyPath() string { return filepath.Join(f.CacheDir, "registry.json") }
+func (f *Fetcher) metaPath() string { return filepath.Join(f.CacheDir, "registry.meta.json") }
 func (f *Fetcher) writeCache(body []byte) error {
 	if err := os.MkdirAll(f.CacheDir, 0o755); err != nil {
 		return err

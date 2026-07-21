@@ -133,7 +133,7 @@ func buildDoctorReport(app *App) (doctorReport, error) {
 		}
 	}
 
-	f := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir)
+	f := app.registryFetcher()
 	// No spinner here - the caller (runDoctor) already wraps this whole
 	// function in one loading/spinner screen, so a second nested spinner
 	// would just fight it for the terminal.

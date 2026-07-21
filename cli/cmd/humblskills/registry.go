@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
@@ -40,7 +39,7 @@ func newRegistryRefreshCmd(app *App) *cobra.Command {
 }
 
 func runRegistryRefresh(app *App) error {
-	f := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir)
+	f := app.registryFetcher()
 
 	refresh := func() (refreshResult, error) {
 		r, o, err := f.Refresh()
