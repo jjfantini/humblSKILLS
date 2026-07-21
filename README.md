@@ -93,18 +93,34 @@ humblskills sync                      # install everything in humblskills.json
 
 ### Private registries
 
-Point the CLI at any registry with `--registry` (or `HUMBLSKILLS_REGISTRY`). When
-that registry is backed by a **private** GitHub repo, pass a token so both the
-`registry.json` fetch and each skill download are authenticated — supply it with
-`--token` or the `HUMBLSKILLS_TOKEN` env var (a GitHub PAT or token with read
-access to the repo). The token is sent as a `Bearer` Authorization header on
-those requests; it's ignored for `file://` registries and the public default.
+Point the CLI at any registry, and — when it's backed by a **private** GitHub repo —
+give it a token (a GitHub PAT with read access). The token authenticates both the
+`registry.json` fetch and each skill download, sent as a `Bearer` header; it's ignored
+for `file://` registries and the public default.
+
+**Durable, no env vars (recommended).** Persist the registry URL in your profile and
+store the token in your OS keychain once — then plain `humblskills` commands just work:
+
+```sh
+humblskills profile set registry https://raw.githubusercontent.com/<owner>/<repo>/main/registry.json
+humblskills registry login          # prompts for the token (masked); stored in the OS keychain
+humblskills search                  # uses the saved registry + token automatically
+humblskills install <skill>
+humblskills registry logout         # remove the stored token
+```
+
+`registry login` also accepts the token via `--token <t>` or piped stdin
+(`echo "$TOK" | humblskills registry login`), and falls back to a `0600` file if no
+keychain is available.
+
+**Or ad-hoc / CI**, via flags or env vars (highest precedence, in this order:
+`--token` → `HUMBLSKILLS_TOKEN` → keychain → file; and `--registry` → `HUMBLSKILLS_REGISTRY`
+→ profile → hosted default):
 
 ```sh
 export HUMBLSKILLS_REGISTRY=https://raw.githubusercontent.com/<owner>/<repo>/main/registry.json
 export HUMBLSKILLS_TOKEN=<github token with read access>
 humblskills search
-humblskills install <skill>
 ```
 
 ### Sharing skill sets across a team

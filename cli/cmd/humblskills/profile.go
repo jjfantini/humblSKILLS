@@ -47,7 +47,7 @@ func newProfileSetCmd(app *App) *cobra.Command {
 	return &cobra.Command{
 		Use: "set <key> <value>",
 		Short: "Set a profile value. Keys: platforms (csv), scope (global|user|project|adapter-default), " +
-			"status_auto_return_seconds (seconds, or default|off).",
+			"registry (URL/file:// path, or \"\" to clear), status_auto_return_seconds (seconds, or default|off).",
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runProfileSet(app, args[0], args[1])
@@ -142,6 +142,8 @@ func runProfileShow(app *App) error {
 		th.KVValue.Render(formatPlatforms(p.DefaultPlatforms)))
 	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("scope")+"        "+
 		th.KVValue.Render(formatScope(p.DefaultScope)))
+	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("registry")+"     "+
+		th.KVValue.Render(formatRegistry(p.Registry)))
 	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("auto-return")+"  "+
 		th.KVValue.Render(formatAutoReturn(p.StatusAutoReturnSeconds)))
 	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("path")+"         "+
@@ -178,6 +180,12 @@ func runProfileSet(app *App, key, value string) error {
 			return fmt.Errorf("invalid scope %q — valid: global, user, project, adapter-default, \"\"", value)
 		}
 		p.DefaultScope = value
+	case "registry":
+		reg := strings.TrimSpace(value)
+		if reg != "" && !isPlausibleRegistry(reg) {
+			return fmt.Errorf("invalid registry %q — expected an http(s):// URL, a file:// URL, or a filesystem path", value)
+		}
+		p.Registry = reg
 	case "status_auto_return_seconds":
 		seconds, err := parseStatusAutoReturnSeconds(value)
 		if err != nil {
@@ -185,7 +193,7 @@ func runProfileSet(app *App, key, value string) error {
 		}
 		p.StatusAutoReturnSeconds = seconds
 	default:
-		return fmt.Errorf("unknown key %q — valid keys: platforms, scope, status_auto_return_seconds", key)
+		return fmt.Errorf("unknown key %q — valid keys: platforms, scope, registry, status_auto_return_seconds", key)
 	}
 
 	if err := profile.Save(app.Config.ProfilePath, p); err != nil {
@@ -283,6 +291,25 @@ func formatAutoReturn(seconds *int) string {
 	default:
 		return fmt.Sprintf("%ds", *seconds)
 	}
+}
+
+// formatRegistry renders Profile.Registry for `profile show`.
+func formatRegistry(s string) string {
+	if strings.TrimSpace(s) == "" {
+		return "(hosted default)"
+	}
+	return s
+}
+
+// isPlausibleRegistry does a light sanity check on a registry value: an
+// http(s):// or file:// URL, or something path-like. It intentionally stays
+// lenient — the fetcher does the real interpretation.
+func isPlausibleRegistry(s string) bool {
+	return strings.HasPrefix(s, "http://") ||
+		strings.HasPrefix(s, "https://") ||
+		strings.HasPrefix(s, "file://") ||
+		strings.Contains(s, "/") ||
+		strings.HasSuffix(s, ".json")
 }
 
 func formatScope(s string) string {
