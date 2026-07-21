@@ -44,7 +44,7 @@ func runUninstallPicker(app *App, fromDashboard bool) error {
 		return nil
 	}
 
-	reg, _, _ := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+	reg, _, _ := app.registryFetcher().Load()
 
 	installedNames := uniqueSkillsFromManifest(m)
 	skills := make([]registry.Skill, 0, len(installedNames))
@@ -114,7 +114,7 @@ func runUninstall(app *App, skill string) error {
 		return nil
 	}
 
-	engine := install.NewEngine(app.Config.CacheDir, app.Config.ManifestPath)
+	engine := app.installEngine()
 	res, err := engine.Uninstall(skill)
 	if err != nil {
 		return err

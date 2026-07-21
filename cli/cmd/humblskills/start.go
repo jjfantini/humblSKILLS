@@ -160,7 +160,7 @@ func dispatchDashboardCommand(app *App, cmd string) error {
 		return runUpgrade(app, upgradeFlags{})
 	case "search":
 		hits, err := tui.RunWithLoading(app.UI.Theme(), "loading registry…", func() ([]registry.Skill, error) {
-			reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+			reg, _, err := app.registryFetcher().Load()
 			if err != nil {
 				return nil, err
 			}
@@ -219,7 +219,7 @@ func buildDashboardSummary(app *App) dashboardSummary {
 		}
 	}
 
-	reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+	reg, _, err := app.registryFetcher().Load()
 	if err == nil && reg != nil {
 		s.drifted = len(install.PlanUpdates(reg, m, nil))
 	}

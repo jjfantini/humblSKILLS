@@ -11,7 +11,6 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/skillset"
 	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
@@ -185,7 +184,7 @@ func runSync(app *App, path string, f installFlags, prune bool) error {
 	if err != nil {
 		return fmt.Errorf("load adapters: %w", err)
 	}
-	reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+	reg, _, err := app.registryFetcher().Load()
 	if err != nil {
 		return fmt.Errorf("load registry: %w", err)
 	}
@@ -206,7 +205,7 @@ func runSync(app *App, path string, f installFlags, prune bool) error {
 		return fmt.Errorf("no platforms selected — run 'humblskills doctor' to see what's detected")
 	}
 
-	engine := install.NewEngine(app.Config.CacheDir, app.Config.ManifestPath)
+	engine := app.installEngine()
 	var aggregate install.Result
 	var missing []string
 
@@ -307,7 +306,7 @@ func pruneToSkillset(app *App, set *skillset.Set) ([]install.TargetResult, error
 		}
 	}
 
-	engine := install.NewEngine(app.Config.CacheDir, app.Config.ManifestPath)
+	engine := app.installEngine()
 	var pruned []install.TargetResult
 	for _, name := range extra {
 		res, err := engine.Uninstall(name)

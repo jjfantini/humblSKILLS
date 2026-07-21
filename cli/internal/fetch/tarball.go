@@ -24,6 +24,9 @@ const DefaultHTTPTimeout = 60 * time.Second
 type Fetcher struct {
 	CacheDir string
 	HTTP     *http.Client
+	// Token, when non-empty, is sent as a Bearer Authorization header so skill
+	// content can be pulled from a private repo's codeload endpoint.
+	Token string
 }
 
 // NewFetcher returns a Fetcher with sensible defaults. cacheDir should be the
@@ -62,6 +65,9 @@ func (f *Fetcher) Fetch(repo, sha string) (string, error) {
 		return "", fmt.Errorf("build request: %w", err)
 	}
 	req.Header.Set("User-Agent", "humblskills-cli")
+	if f.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+f.Token)
+	}
 
 	resp, err := f.HTTP.Do(req)
 	if err != nil {

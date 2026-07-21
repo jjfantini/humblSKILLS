@@ -91,6 +91,22 @@ humblskills export                    # snapshot installed skills to humblskills
 humblskills sync                      # install everything in humblskills.json
 ```
 
+### Private registries
+
+Point the CLI at any registry with `--registry` (or `HUMBLSKILLS_REGISTRY`). When
+that registry is backed by a **private** GitHub repo, pass a token so both the
+`registry.json` fetch and each skill download are authenticated — supply it with
+`--token` or the `HUMBLSKILLS_TOKEN` env var (a GitHub PAT or token with read
+access to the repo). The token is sent as a `Bearer` Authorization header on
+those requests; it's ignored for `file://` registries and the public default.
+
+```sh
+export HUMBLSKILLS_REGISTRY=https://raw.githubusercontent.com/<owner>/<repo>/main/registry.json
+export HUMBLSKILLS_TOKEN=<github token with read access>
+humblskills search
+humblskills install <skill>
+```
+
 ### Sharing skill sets across a team
 
 `humblskills export` snapshots the skills you have installed into a

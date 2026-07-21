@@ -64,7 +64,7 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 	}
 
 	reg, err := tui.RunWithLoadingIf(useTUI, app.UI.Theme(), "loading registry…", func() (*registry.Registry, error) {
-		reg, _, err := registry.NewFetcher(app.Config.RegistryURL, app.Config.CacheDir).Load()
+		reg, _, err := app.registryFetcher().Load()
 		if err != nil {
 			return nil, fmt.Errorf("load registry: %w", err)
 		}
@@ -108,7 +108,7 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 		adapterKnown[a.Name] = struct{}{}
 	}
 
-	engine := install.NewEngine(app.Config.CacheDir, app.Config.ManifestPath)
+	engine := app.installEngine()
 	var aggregate install.Result
 
 	run := func(sink install.EventSink) error {

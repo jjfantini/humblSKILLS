@@ -10,6 +10,7 @@ import (
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/env"
+	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
@@ -40,20 +41,25 @@ type NavContext struct {
 
 // Config captures every flag/env-resolved setting used by subcommands.
 type Config struct {
-	RegistryURL  string
-	CacheDir     string
-	ManifestPath string
-	ProfilePath  string
-	JSON         bool
-	NoColor      bool
-	Verbose      bool
-	Quiet        bool
-	Yes          bool
-	Fullscreen   bool
+	RegistryURL string
+	// RegistryToken, when set, is sent as a Bearer token on registry.json and
+	// skill-tarball fetches so a private registry (e.g. a private GitHub repo)
+	// can be read. Empty means unauthenticated (the public default).
+	RegistryToken string
+	CacheDir      string
+	ManifestPath  string
+	ProfilePath   string
+	JSON          bool
+	NoColor       bool
+	Verbose       bool
+	Quiet         bool
+	Yes           bool
+	Fullscreen    bool
 }
 
 type globalFlags struct {
 	registry   string
+	token      string
 	cacheDir   string
 	manifest   string
 	profile    string
@@ -89,6 +95,7 @@ func newRootCmd() *cobra.Command {
 
 	f := cmd.PersistentFlags()
 	f.StringVar(&g.registry, "registry", "", "registry URL (or file:// path). Defaults to the hosted registry; env: HUMBLSKILLS_REGISTRY")
+	f.StringVar(&g.token, "token", "", "auth token for a private registry, sent as a Bearer token on registry + skill fetches (env: HUMBLSKILLS_TOKEN)")
 	f.StringVar(&g.cacheDir, "cache-dir", "", "cache directory (env: HUMBLSKILLS_CACHE_DIR; default: XDG_CACHE_HOME/humblskills)")
 	f.StringVar(&g.manifest, "manifest", "", "install manifest path (env: HUMBLSKILLS_MANIFEST; default: XDG_STATE_HOME/humblskills/manifest.json)")
 	f.StringVar(&g.profile, "profile", "", "profile config path (env: HUMBLSKILLS_PROFILE; default: ~/.humblskills/profile.json)")
@@ -153,13 +160,14 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 	}
 
 	cfg := Config{
-		RegistryURL: textutil.FirstNonEmpty(g.registry, os.Getenv("HUMBLSKILLS_REGISTRY"), registry.DefaultURL),
-		JSON:        g.json,
-		NoColor:     g.noColor,
-		Verbose:     g.verbose,
-		Quiet:       g.quiet,
-		Yes:         g.yes,
-		Fullscreen:  g.fullscreen,
+		RegistryURL:   textutil.FirstNonEmpty(g.registry, os.Getenv("HUMBLSKILLS_REGISTRY"), registry.DefaultURL),
+		RegistryToken: textutil.FirstNonEmpty(g.token, os.Getenv("HUMBLSKILLS_TOKEN")),
+		JSON:          g.json,
+		NoColor:       g.noColor,
+		Verbose:       g.verbose,
+		Quiet:         g.quiet,
+		Yes:           g.yes,
+		Fullscreen:    g.fullscreen,
 	}
 
 	cacheDir, err := resolveCacheDir(textutil.FirstNonEmpty(g.cacheDir, os.Getenv("HUMBLSKILLS_CACHE_DIR")))
@@ -184,6 +192,24 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 	app.Adapters = adapters.Load
 
 	return nil
+}
+
+// registryFetcher builds a registry Fetcher using the resolved registry URL,
+// cache dir, and (optional) auth token. Centralising construction here keeps the
+// token wired into every command that reads the registry.
+func (a *App) registryFetcher() *registry.Fetcher {
+	f := registry.NewFetcher(a.Config.RegistryURL, a.Config.CacheDir)
+	f.Token = a.Config.RegistryToken
+	return f
+}
+
+// installEngine builds an install Engine with the (optional) auth token wired
+// into its tarball fetcher, so skill content can be pulled from a private
+// registry's backing repo.
+func (a *App) installEngine() *install.Engine {
+	e := install.NewEngine(a.Config.CacheDir, a.Config.ManifestPath)
+	e.Fetcher.Token = a.Config.RegistryToken
+	return e
 }
 
 func resolveCacheDir(override string) (string, error) {
