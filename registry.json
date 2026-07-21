@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-21T22:15:26Z",
+  "generated_at": "2026-07-21T22:17:22Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/multi-registry",
-    "sha": "b107028e88eeab05dce93882c0f192c70cc8eef2"
+    "ref": "main",
+    "sha": "c1302883be9542a3ee2b31b4d7227729e72a6d95"
   },
   "skills": [
     {
