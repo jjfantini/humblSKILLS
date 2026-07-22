@@ -197,8 +197,16 @@ func runListTUI(app *App, m *manifest.Manifest, fromDashboard bool) error {
 	// Resolve each installed skill against its ORIGIN registry (across all
 	// configured registries) so drift + metadata are correct and the browser
 	// can group installs by source registry. Unreachable registries fall back
-	// to manifest versions.
-	ix := indexLoadedRegistries(app.loadRegistries())
+	// to manifest versions. Wrapped in a loading spinner so the (possibly
+	// multi-registry, networked) load runs inside the alt-screen rather than on
+	// the exposed terminal between programs (which shows as a flash).
+	useTUI := tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
+	ix, err := tui.RunWithLoadingIf(useTUI, app.UI.Theme(), "loading registries…", func() (skillIndex, error) {
+		return indexLoadedRegistries(app.loadRegistries()), nil
+	})
+	if err != nil {
+		return err
+	}
 
 	installedSkills := uniqueSkillsFromManifest(m)
 	skills := make([]registry.Skill, 0, len(installedSkills))

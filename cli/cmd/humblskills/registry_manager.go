@@ -155,7 +155,11 @@ func runRegistryManager(app *App) error {
 				}
 			}
 		case "refresh":
-			if err := refreshAllRegistries(app); err != nil {
+			// Run inside a spinner so the network refresh happens in the
+			// alt-screen, not on the exposed terminal between list renders.
+			if _, err := tui.RunWithLoading(app.UI.Theme(), "refreshing registries…", func() (int, error) {
+				return 0, refreshAllRegistries(app)
+			}); err != nil {
 				return err
 			}
 		}
