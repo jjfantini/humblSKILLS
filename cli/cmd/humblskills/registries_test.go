@@ -35,6 +35,25 @@ func TestSkillIndex_FindAndRegistryOf(t *testing.T) {
 	}
 }
 
+func TestNormalizeRegistryURL(t *testing.T) {
+	cases := map[string]string{
+		// owner/repo shorthand → raw main registry.json
+		"happyrobot-ai/happySKILLS":        "https://raw.githubusercontent.com/happyrobot-ai/happySKILLS/main/registry.json",
+		"happyrobot-ai/happySKILLS@dev":    "https://raw.githubusercontent.com/happyrobot-ai/happySKILLS/dev/registry.json",
+		"https://github.com/o/r":           "https://raw.githubusercontent.com/o/r/main/registry.json",
+		"https://github.com/o/r/tree/next": "https://raw.githubusercontent.com/o/r/next/registry.json",
+		// already-concrete locations are untouched
+		"https://raw.githubusercontent.com/o/r/main/registry.json": "https://raw.githubusercontent.com/o/r/main/registry.json",
+		"file:///tmp/registry.json":                                "file:///tmp/registry.json",
+		"./local/registry.json":                                    "./local/registry.json",
+	}
+	for in, want := range cases {
+		if got := normalizeRegistryURL(in); got != want {
+			t.Errorf("normalizeRegistryURL(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 func TestSanitizeRegistryName(t *testing.T) {
 	cases := map[string]string{
 		"work":        "work",

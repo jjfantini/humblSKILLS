@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -12,6 +13,61 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
 	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 )
+
+// normalizeRegistryURL expands convenient shorthands into a raw registry.json
+// URL: `owner/repo` (optionally `owner/repo@branch`), a github.com repo URL
+// (optionally .../tree/<branch>). A full URL, file:// path, or anything ending
+// in .json is returned unchanged.
+func normalizeRegistryURL(in string) string {
+	s := strings.TrimSpace(in)
+	if s == "" || strings.HasPrefix(s, "file://") || strings.HasSuffix(s, ".json") {
+		return s
+	}
+	if strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://") {
+		if owner, repo, branch, ok := parseGitHubRepoURL(s); ok {
+			return rawRegistryURL(owner, repo, branch)
+		}
+		return s
+	}
+	if owner, repo, branch, ok := parseOwnerRepo(s); ok {
+		return rawRegistryURL(owner, repo, branch)
+	}
+	return s
+}
+
+func rawRegistryURL(owner, repo, branch string) string {
+	if branch == "" {
+		branch = "main"
+	}
+	return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/registry.json", owner, repo, branch)
+}
+
+func parseOwnerRepo(s string) (owner, repo, branch string, ok bool) {
+	if i := strings.Index(s, "@"); i >= 0 {
+		branch = s[i+1:]
+		s = s[:i]
+	}
+	parts := strings.Split(s, "/")
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", "", false
+	}
+	return parts[0], strings.TrimSuffix(parts[1], ".git"), branch, true
+}
+
+func parseGitHubRepoURL(s string) (owner, repo, branch string, ok bool) {
+	u, err := url.Parse(s)
+	if err != nil || u.Host != "github.com" {
+		return "", "", "", false
+	}
+	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
+	if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", "", false
+	}
+	if len(parts) >= 4 && parts[2] == "tree" {
+		branch = parts[3]
+	}
+	return parts[0], strings.TrimSuffix(parts[1], ".git"), branch, true
+}
 
 // resolvedRegistry is one registry the CLI will read, with its auth token
 // already resolved.
@@ -116,18 +172,6 @@ func (a *App) loadRegistries() []registrySkills {
 func mergedRegistry(loaded []registrySkills) *registry.Registry {
 	skills, _ := aggregateSkills(loaded)
 	return &registry.Registry{SchemaVersion: registry.SchemaVersion, Skills: skills}
-}
-
-// findRegistryForSkill returns the loaded registry that contains skillName.
-func findRegistryForSkill(loaded []registrySkills, skillName string) (registrySkills, bool) {
-	for _, rs := range loaded {
-		for _, s := range rs.Skills {
-			if s.Name == skillName {
-				return rs, true
-			}
-		}
-	}
-	return registrySkills{}, false
 }
 
 // verifyRegistryToken does one network fetch of a registry with the given token
@@ -262,6 +306,60 @@ func indexLoadedRegistries(loaded []registrySkills) skillIndex {
 		}
 	}
 	return ix
+}
+
+// completeSkillNames returns skill names (from the offline cache) matching the
+// given prefix — used for shell tab-completion of `install <skill>`.
+func (a *App) completeSkillNames(prefix string) []string {
+	ix := a.cachedSkillIndex()
+	var out []string
+	for name := range ix.global {
+		if prefix == "" || strings.HasPrefix(name, prefix) {
+			out = append(out, name)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// completeRegistryNames returns configured registry names matching prefix —
+// used for tab-completion of registry subcommands and `install --from`.
+func (a *App) completeRegistryNames(prefix string) []string {
+	p, err := profile.Load(a.Config.ProfilePath)
+	if err != nil || p == nil {
+		return nil
+	}
+	var out []string
+	for _, r := range p.Registries {
+		if prefix == "" || strings.HasPrefix(r.Name, prefix) {
+			out = append(out, r.Name)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// allRegistriesForSkill returns every loaded registry that lists skillName.
+func allRegistriesForSkill(loaded []registrySkills, skillName string) []registrySkills {
+	var out []registrySkills
+	for _, rs := range loaded {
+		for _, s := range rs.Skills {
+			if s.Name == skillName {
+				out = append(out, rs)
+				break
+			}
+		}
+	}
+	return out
+}
+
+// registryNames joins the names of the given registries for messages.
+func registryNames(rs []registrySkills) string {
+	names := make([]string, len(rs))
+	for i := range rs {
+		names[i] = rs[i].Name
+	}
+	return strings.Join(names, ", ")
 }
 
 // installEngineForToken builds an install Engine whose tarball fetcher carries
