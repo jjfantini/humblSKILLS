@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.31.1](https://github.com/jjfantini/humblSKILLS/compare/v2.31.0...v2.31.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **tui:** wrap multi-registry loads in a spinner to stop the screen flash ([18231d0](https://github.com/jjfantini/humblSKILLS/commit/18231d037068c714fc7d96e72d954e208ceee0ef))
+
 ## [2.31.0](https://github.com/jjfantini/humblSKILLS/compare/v2.30.0...v2.31.0) (2026-07-22)
 
 
