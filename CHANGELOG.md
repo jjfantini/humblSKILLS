@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.29.0](https://github.com/jjfantini/humblSKILLS/compare/v2.28.0...v2.29.0) (2026-07-22)
+
+
+### Features
+
+* **registry:** multi-registry coherence — provenance, updates, doctor, tokens ([d77d80d](https://github.com/jjfantini/humblSKILLS/commit/d77d80d66cbd7d80027b172f6af6a286c489e4b6))
+
 ## [2.28.0](https://github.com/jjfantini/humblSKILLS/compare/v2.27.0...v2.28.0) (2026-07-22)
 
 
