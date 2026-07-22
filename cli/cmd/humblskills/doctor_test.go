@@ -60,8 +60,8 @@ func TestDoctor_ReportsAdapters(t *testing.T) {
 	if !found {
 		t.Errorf("claude-code absent from doctor report")
 	}
-	if got.Registry.Skills != 1 {
-		t.Errorf("registry.skills = %d, want 1", got.Registry.Skills)
+	if len(got.Registries) != 1 || got.Registries[0].Skills != 1 {
+		t.Errorf("registries = %+v, want one with 1 skill", got.Registries)
 	}
 }
 
@@ -135,7 +135,7 @@ func TestDoctor_RegistryUnreachableSurfacedAsIssue(t *testing.T) {
 		"--json",
 	)
 	got := extractDoctorJSON(t, res.Out)
-	if got.Registry.Error == "" {
+	if len(got.Registries) == 0 || got.Registries[0].Error == "" {
 		t.Error("expected registry error on unreachable URL")
 	}
 }

@@ -146,8 +146,10 @@ interactive **registry manager** — add, rename, login, logout, remove, and ref
 one screen (falls back to `registry list` when not on a TTY).
 
 Configured registries also show up in `humblskills profile show` (under **Registries**).
-When none are configured, everything falls back to the single registry above
-(`--registry`/`HUMBLSKILLS_REGISTRY`/`profile set registry`/hosted default).
+`list` tags each installed skill with the registry it came from, `update` checks each
+skill against **its** registry, and `doctor` reports each registry's reachability, token,
+and skill count. When none are configured, everything falls back to the single registry
+above (`--registry`/`HUMBLSKILLS_REGISTRY`/`profile set registry`/hosted default).
 
 ### Sharing skill sets across a team
 

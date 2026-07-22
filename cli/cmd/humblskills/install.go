@@ -158,12 +158,13 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 	var res install.Result
 	run := func(sink install.EventSink) error {
 		r, err := engine.Execute(target.Reg, plan, install.ExecuteOpts{
-			Adapters:  adapterList,
-			Platforms: selected,
-			Scope:     scope,
-			Force:     f.force,
-			Global:    global,
-			OnEvent:   sink,
+			Adapters:     adapterList,
+			Platforms:    selected,
+			Scope:        scope,
+			Force:        f.force,
+			Global:       global,
+			OnEvent:      sink,
+			RegistryName: target.Name,
 		})
 		res = r
 		return err
