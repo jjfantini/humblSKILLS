@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.27.0](https://github.com/jjfantini/humblSKILLS/compare/v2.26.0...v2.27.0) (2026-07-22)
+
+
+### Features
+
+* **registry:** show registries in profile, rename command, interactive add ([9b2be20](https://github.com/jjfantini/humblSKILLS/commit/9b2be206ba009f71f512ad8c5cef84108d75345f))
+
 ## [2.26.0](https://github.com/jjfantini/humblSKILLS/compare/v2.25.0...v2.26.0) (2026-07-21)
 
 
