@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-22T02:05:38Z",
+  "generated_at": "2026-07-22T02:06:18Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/auth-ergonomics",
-    "sha": "75a55a355a9d8a950e351c9a0bb897086821f1e5"
+    "ref": "release-please--branches--main--components--humblskills",
+    "sha": "7d92343a4283e63fc54c434f1f12abc89d52c61e"
   },
   "skills": [
     {
