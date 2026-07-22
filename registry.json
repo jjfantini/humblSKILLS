@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-22T00:15:35Z",
+  "generated_at": "2026-07-22T00:16:17Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/registry-manager-tui",
-    "sha": "512f4caead6fa0fc04733ce435f2dad892273371"
+    "ref": "main",
+    "sha": "e688eb88082c0d7dfbb6094362ef2359ca0ab1c9"
   },
   "skills": [
     {
