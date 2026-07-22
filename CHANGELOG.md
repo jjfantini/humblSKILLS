@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.31.0](https://github.com/jjfantini/humblSKILLS/compare/v2.30.0...v2.31.0) (2026-07-22)
+
+
+### Features
+
+* **registry:** add shorthand, ambiguous-name handling, shell completions ([9dd7df4](https://github.com/jjfantini/humblSKILLS/commit/9dd7df4037a2b7a13edb81768044608dd9ef7920))
+
 ## [2.30.0](https://github.com/jjfantini/humblSKILLS/compare/v2.29.0...v2.30.0) (2026-07-22)
 
 
