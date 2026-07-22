@@ -99,6 +99,24 @@ func (p *Profile) RemoveRegistry(name string) bool {
 	return false
 }
 
+// RenameRegistry changes a registry's name in place. It errors if old doesn't
+// exist or if new is already taken.
+func (p *Profile) RenameRegistry(old, name string) error {
+	if old == name {
+		return nil
+	}
+	if _, ok := p.FindRegistry(name); ok {
+		return fmt.Errorf("a registry named %q already exists", name)
+	}
+	for i := range p.Registries {
+		if p.Registries[i].Name == old {
+			p.Registries[i].Name = name
+			return nil
+		}
+	}
+	return fmt.Errorf("no registry named %q", old)
+}
+
 // EvalProfile captures eval-specific defaults. Secrets (API keys) do NOT
 // live here - they go through cli/internal/secrets which supports env +
 // OS keyring + 0600 file fallback.
