@@ -31,7 +31,17 @@ func newSearchCmd(app *App) *cobra.Command {
 				return fmt.Errorf("unknown --category %q (must be one of %s)", category, strings.Join(frontmatter.Categories, ", "))
 			}
 
-			loaded := app.loadRegistries()
+			query := ""
+			if len(args) == 1 {
+				query = strings.ToLower(args[0])
+			}
+			// With no query on a TTY we'll open the browser; run the (possibly
+			// multi-registry, networked) load inside a spinner so it doesn't
+			// execute on the exposed terminal between programs (a visible flash).
+			willBrowse := query == "" && tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
+			loaded, _ := tui.RunWithLoadingIf(willBrowse, app.UI.Theme(), "loading registries…", func() ([]registrySkills, error) {
+				return app.loadRegistries(), nil
+			})
 			all, loadErrs := aggregateSkills(loaded)
 			// A failed registry is reported but doesn't abort the others; only
 			// error out if every registry failed and nothing loaded.
@@ -49,11 +59,6 @@ func newSearchCmd(app *App) *cobra.Command {
 					}
 				}
 			}
-			query := ""
-			if len(args) == 1 {
-				query = strings.ToLower(args[0])
-			}
-
 			// all is already sorted by (registry, name); filtering preserves
 			// that grouped order.
 			var hits []registry.Skill

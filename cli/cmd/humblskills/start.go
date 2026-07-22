@@ -159,12 +159,9 @@ func dispatchDashboardCommand(app *App, cmd string) error {
 	case "upgrade":
 		return runUpgrade(app, upgradeFlags{})
 	case "search":
-		hits, err := tui.RunWithLoading(app.UI.Theme(), "loading registry…", func() ([]registry.Skill, error) {
-			reg, _, err := app.registryFetcher().Load()
-			if err != nil {
-				return nil, err
-			}
-			return append([]registry.Skill(nil), reg.Skills...), nil
+		hits, err := tui.RunWithLoading(app.UI.Theme(), "loading registries…", func() ([]registry.Skill, error) {
+			all, _ := aggregateSkills(app.loadRegistries())
+			return all, nil
 		})
 		if err != nil {
 			return err
