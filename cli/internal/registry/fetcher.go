@@ -186,7 +186,7 @@ func (f *Fetcher) fetchAndCache() (*Registry, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("fetch %s: HTTP %d", f.URL, resp.StatusCode)
+		return nil, httpFetchError(f.URL, resp.StatusCode, f.Token != "")
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -249,6 +249,22 @@ func parseRegistry(body []byte) (*Registry, error) {
 		return nil, fmt.Errorf("unsupported registry schema_version %d (expected %d)", r.SchemaVersion, SchemaVersion)
 	}
 	return &r, nil
+}
+
+// httpFetchError turns a non-2xx status into an actionable message, mapping the
+// common private-registry auth failures to next steps instead of a bare code.
+func httpFetchError(url string, status int, hasToken bool) error {
+	switch status {
+	case 401, 403:
+		return fmt.Errorf("fetch %s: HTTP %d — registry token rejected (missing, expired, or lacks access); re-run `humblskills registry login`", url, status)
+	case 404:
+		if !hasToken {
+			return fmt.Errorf("fetch %s: HTTP %d — not found; if this is a private registry, add a token with `humblskills registry login`", url, status)
+		}
+		return fmt.Errorf("fetch %s: HTTP %d — not found; check the registry URL, or re-run `humblskills registry login` if the token is missing, expired, or lacks access", url, status)
+	default:
+		return fmt.Errorf("fetch %s: HTTP %d", url, status)
+	}
 }
 
 func isLocal(u string) bool {

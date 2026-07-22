@@ -125,8 +125,14 @@ func runRegistryManager(app *App) error {
 			if strings.TrimSpace(tok) == "" {
 				continue
 			}
-			if _, err := secrets.SetRegistryTokenFor(sel.name, tok); err != nil {
-				return err
+			msg, ok := storeAndVerifyToken(app, sel.name, tok)
+			if ok {
+				app.UI.Success("%s", msg)
+			} else {
+				// Pause so a verification failure is readable before the list
+				// re-renders over it.
+				app.UI.Warn("%s", msg)
+				_, _ = app.Prompt.Confirm("continue?", true)
 			}
 		case "logout":
 			if !hasSel {

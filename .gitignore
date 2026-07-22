@@ -54,3 +54,6 @@ Icon
 
 # humblskills eval workspaces (opt-in per-project storage)
 .eval-workspace/
+
+# Nested cli build output
+/cli/bin/
