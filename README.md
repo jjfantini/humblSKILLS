@@ -141,6 +141,10 @@ humblskills install <skill>                # resolves to whichever registry has 
 humblskills registry remove work           # drop it (and its stored token)
 ```
 
+Run bare **`humblskills registry`** (or the dashboard's **registry** tile) to open the
+interactive **registry manager** — add, rename, login, logout, remove, and refresh from
+one screen (falls back to `registry list` when not on a TTY).
+
 Configured registries also show up in `humblskills profile show` (under **Registries**).
 When none are configured, everything falls back to the single registry above
 (`--registry`/`HUMBLSKILLS_REGISTRY`/`profile set registry`/hosted default).

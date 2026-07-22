@@ -84,7 +84,7 @@ func DefaultDashboardTiles() []DashboardTile {
 		{Command: "profile", Label: "profile", Hotkey: "p", Desc: "edit install defaults (platforms, scope)", Sub: "user-wide preferences", Aliases: []string{"config", "prefs"}},
 		{Command: "eval", Label: "eval", Hotkey: "e", Desc: "benchmark skills · three-arm · longitudinal", Sub: "runners · trajectories · reports", Aliases: []string{"test", "benchmark", "evaluate"}},
 		{Command: "doctor", Label: "doctor", Hotkey: "d", Desc: "inspect platforms and environment health", Sub: "platforms · writability", Aliases: []string{"check", "status"}},
-		{Command: "registry", Label: "registry", Hotkey: "R", Desc: "refresh the local registry cache", Sub: "http · etag", Aliases: []string{"refresh", "sync"}},
+		{Command: "registry", Label: "registry", Hotkey: "R", Desc: "manage registries — add, rename, login, remove", Sub: "sources · tokens · refresh", Aliases: []string{"registries", "refresh"}},
 		{Command: "version", Label: "version", Hotkey: "V", Desc: "show build info", Sub: "version · commit", Aliases: []string{"about", "ver"}},
 		{Command: "upgrade", Label: "upgrade", Hotkey: "U", Desc: "upgrade the humblskills CLI itself", Sub: "github releases · checksum verified", Aliases: []string{"self-update"}},
 	}

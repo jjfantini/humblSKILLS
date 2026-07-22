@@ -28,6 +28,12 @@ func newRegistryCmd(app *App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "registry",
 		Short: "Manage skill registries (add/list/remove), refresh the cache, and auth",
+		Long: "Run bare to open the interactive registry manager (add / rename / login / " +
+			"logout / remove / refresh), or use a subcommand for scripting.",
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runRegistryManager(app)
+		},
 	}
 	cmd.AddCommand(
 		newRegistryRefreshCmd(app),

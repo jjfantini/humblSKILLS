@@ -181,7 +181,7 @@ func dispatchDashboardCommand(app *App, cmd string) error {
 	case "doctor":
 		return runDoctor(app)
 	case "registry":
-		return runRegistryRefresh(app)
+		return runRegistryManager(app)
 	case "version":
 		return runVersion(app)
 	}
