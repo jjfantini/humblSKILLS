@@ -129,17 +129,23 @@ Register several registries and `search`/`browse` show them **together, grouped 
 registry** (each skill tagged with its source). Each registry keeps its own token.
 
 ```sh
-humblskills registry add public https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/registry.json
-humblskills registry add work   https://raw.githubusercontent.com/<org>/<private-repo>/main/registry.json
-humblskills registry add                   # no args → prompts for name, URL, and (optional) token
-humblskills registry login --name work     # token for the private one (keychain)
-humblskills registry list                  # show configured registries + token state
-humblskills registry rename work internal  # rename (moves its stored token too)
-humblskills registry add work <new-url>    # re-add with an existing name to change its URL
-humblskills search                         # grouped: "── public ──" then "── work ──"
-humblskills install <skill>                # resolves to whichever registry has it
-humblskills registry remove work           # drop it (and its stored token)
+# Shorthand: pass owner/repo (or a github.com URL) — it expands to the raw
+# registry.json URL. owner/repo@branch selects a branch.
+humblskills registry add public    jjfantini/humblSKILLS
+humblskills registry add happyrobot happyrobot-ai/happySKILLS
+humblskills registry add                       # no args → prompts for name, URL, and (optional) token
+humblskills registry login --name happyrobot   # token for the private one; verifies it can read the registry
+humblskills registry list                      # show configured registries + token state
+humblskills registry rename happyrobot hr      # rename (moves its stored token too)
+humblskills registry add happyrobot <new-url>  # re-add with an existing name to change its URL
+humblskills search                             # grouped: "── happyrobot ──" then "── public ──"
+humblskills install <skill>                    # resolves to whichever registry has it
+humblskills install <skill> --from public      # disambiguate when a name is in several registries
+humblskills registry remove happyrobot         # drop it (and its stored token)
 ```
+
+Tab-completion (skill names, registry names, `--from`/`--name`) works after installing the
+completion script — e.g. `humblskills completion zsh` (see `humblskills completion --help`).
 
 Run bare **`humblskills registry`** (or the dashboard's **registry** tile) to open the
 interactive **registry manager** — add, rename, login, logout, remove, and refresh from

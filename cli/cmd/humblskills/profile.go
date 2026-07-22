@@ -189,9 +189,9 @@ func runProfileSet(app *App, key, value string) error {
 		}
 		p.DefaultScope = value
 	case "registry":
-		reg := strings.TrimSpace(value)
+		reg := normalizeRegistryURL(strings.TrimSpace(value))
 		if reg != "" && !isPlausibleRegistry(reg) {
-			return fmt.Errorf("invalid registry %q — expected an http(s):// URL, a file:// URL, or a filesystem path", value)
+			return fmt.Errorf("invalid registry %q — expected owner/repo, a github.com URL, an http(s):// URL, a file:// path, or a filesystem path", value)
 		}
 		p.Registry = reg
 	case "status_auto_return_seconds":

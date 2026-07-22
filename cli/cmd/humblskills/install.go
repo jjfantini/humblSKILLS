@@ -13,6 +13,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
+	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
 
 type installFlags struct {
@@ -22,6 +23,7 @@ type installFlags struct {
 	scopeSet     bool
 	force        bool
 	global       bool
+	from         string // registry name to disambiguate a skill present in several
 }
 
 func newInstallCmd(app *App) *cobra.Command {
@@ -46,6 +48,16 @@ func newInstallCmd(app *App) *cobra.Command {
 	cmd.Flags().StringVar(&f.scope, "scope", "", "install scope: global|user|project|adapter-default (default: your profile's default scope, itself global unless changed)")
 	cmd.Flags().BoolVar(&f.force, "force", false, "reinstall even if already up-to-date")
 	cmd.Flags().BoolVar(&f.global, "global", false, "alias for --scope global: install once into ~/.humblskills and symlink to the selected platforms")
+	cmd.Flags().StringVar(&f.from, "from", "", "registry to install from when a skill name exists in more than one")
+	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) != 0 {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		return app.completeSkillNames(toComplete), cobra.ShellCompDirectiveNoFileComp
+	}
+	_ = cmd.RegisterFlagCompletionFunc("from", func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return app.completeRegistryNames(toComplete), cobra.ShellCompDirectiveNoFileComp
+	})
 	return cmd
 }
 
@@ -88,11 +100,44 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 		}
 	}
 
-	// Resolve which registry actually holds the chosen skill so we plan and
-	// fetch against that registry's document (Source) and token.
-	target, ok := findRegistryForSkill(loaded, skill)
-	if !ok {
+	// Resolve which registry holds the chosen skill so we plan and fetch against
+	// that registry's document (Source) and token. When several registries list
+	// the same name, honor --from, else prompt (TUI), else ask for --from.
+	matches := allRegistriesForSkill(loaded, skill)
+	var target registrySkills
+	switch {
+	case len(matches) == 0:
 		return fmt.Errorf("skill %q not found in any configured registry", skill)
+	case len(matches) == 1:
+		target = matches[0]
+	default:
+		picked := ""
+		if f.from != "" {
+			picked = f.from
+		} else if useTUI {
+			opts := make([]ui.SelectOption, 0, len(matches))
+			for _, m := range matches {
+				opts = append(opts, ui.SelectOption{Label: m.Name + "  —  " + m.URL, Value: m.Name})
+			}
+			sel, err := app.Prompt.Select(fmt.Sprintf("%q is in %d registries — install from?", skill, len(matches)), "", opts)
+			if err != nil {
+				return err
+			}
+			picked = sel
+		} else {
+			return fmt.Errorf("skill %q exists in multiple registries (%s) — choose one with --from <registry>", skill, registryNames(matches))
+		}
+		found := false
+		for _, m := range matches {
+			if m.Name == picked {
+				target = m
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("skill %q is not in registry %q (available in: %s)", skill, picked, registryNames(matches))
+		}
 	}
 
 	p, err := profile.Load(app.Config.ProfilePath)
