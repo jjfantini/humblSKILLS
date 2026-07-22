@@ -13,9 +13,8 @@ import (
 
 // registryMgrItem adapts a configured registry to the shared list widget.
 type registryMgrItem struct {
-	name     string
-	url      string
-	tokenSrc secrets.Source
+	name string
+	url  string
 }
 
 func (r registryMgrItem) Key() string { return r.name }
@@ -28,7 +27,7 @@ func (r registryMgrItem) NaturalWidth(th *ui.Theme) int {
 
 func (r registryMgrItem) Row(th *ui.Theme, width int, selected bool) string {
 	dot := th.DotNo.Render("●")
-	if r.tokenSrc != secrets.SourceAbsent {
+	if registryHasToken(r.name) {
 		dot = th.DotOK.Render("●")
 	}
 	row := dot + " " + rowName(th, r.name, selected, true)
@@ -42,11 +41,7 @@ func (r registryMgrItem) Detail(th *ui.Theme, width int) string {
 	var sb strings.Builder
 	sb.WriteString(th.DetailTitle.Render(r.name) + "\n\n")
 	sb.WriteString(kvRow(th, "url", th.KVValue.Render(r.url)))
-	tok := "none"
-	if r.tokenSrc != secrets.SourceAbsent {
-		tok = "stored (" + string(r.tokenSrc) + ")"
-	}
-	sb.WriteString(kvRow(th, "token", th.KVValue.Render(tok)))
+	sb.WriteString(kvRow(th, "token", th.KVValue.Render(registryTokenLabel(r.name))))
 	return sb.String()
 }
 
@@ -66,8 +61,7 @@ func runRegistryManager(app *App) error {
 		}
 		items := make([]tui.Item, 0, len(p.Registries))
 		for _, r := range p.Registries {
-			_, src := secrets.GetRegistryTokenFor(r.Name)
-			items = append(items, registryMgrItem{name: r.Name, url: r.URL, tokenSrc: src})
+			items = append(items, registryMgrItem{name: r.Name, url: r.URL})
 		}
 
 		cfg := tui.Config{

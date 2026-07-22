@@ -208,12 +208,7 @@ func runRegistryList(app *App) error {
 	}
 	th := app.UI.Theme()
 	for _, r := range regs {
-		_, src := secrets.GetRegistryTokenFor(r.Name)
-		tok := "no token"
-		if src != secrets.SourceAbsent {
-			tok = "token: " + string(src)
-		}
-		fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render(r.Name)+"  "+th.KVValue.Render(r.URL)+"  ("+tok+")")
+		fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render(r.Name)+"  "+th.KVValue.Render(r.URL)+"  ("+registryTokenLabel(r.Name)+")")
 	}
 	return nil
 }

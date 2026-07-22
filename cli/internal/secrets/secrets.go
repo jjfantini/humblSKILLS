@@ -275,6 +275,15 @@ func GetRegistryTokenFor(name string) (string, Source) {
 	return GetRegistryToken()
 }
 
+// OwnRegistryTokenSource reports where a registry's DEDICATED token is stored
+// (keyring or file), or SourceAbsent if it has none of its own — ignoring the
+// env var and the default-token fallback. Used to show "own" vs "inherited".
+func OwnRegistryTokenSource(name string) Source {
+	path, _ := defaultFilePath()
+	_, src := getKeyedToken(path, registryAccount(name))
+	return src
+}
+
 func getKeyedToken(filePath, account string) (string, Source) {
 	if v, err := keyring.Get(Service, account); err == nil && v != "" {
 		return v, SourceKeyring

@@ -100,6 +100,10 @@ type ExecuteOpts struct {
 	// Callers that don't need progress (tests, --json, scripts) can leave it
 	// nil. See events.go for Phase semantics.
 	OnEvent EventSink
+	// RegistryName is the name of the registry these skills are installed from,
+	// recorded on each manifest entry for origin grouping + registry-aware
+	// updates. Empty is fine (single-registry / legacy).
+	RegistryName string
 }
 
 // Execute runs the plan: fetch each skill, verify its content hash, and place
@@ -354,9 +358,9 @@ func (e *Engine) installOne(
 				return nil, fmt.Errorf("clean store staging: %w", err)
 			}
 			defer os.RemoveAll(perStore)
-		if err := fsutil.CopyTree(staging, perStore, fsutil.Options{RejectSymlinks: true}); err != nil {
-			return nil, fmt.Errorf("copy store staging: %w", err)
-		}
+			if err := fsutil.CopyTree(staging, perStore, fsutil.Options{RejectSymlinks: true}); err != nil {
+				return nil, fmt.Errorf("copy store staging: %w", err)
+			}
 			if len(preserveList) > 0 {
 				if err := applyPreserve(preserveSource, perStore, preserveList); err != nil {
 					return nil, err
@@ -391,16 +395,17 @@ func (e *Engine) installOne(
 			return nil, fmt.Errorf("link %s -> %s: %w", pt.pending.final, storePath, err)
 		}
 		m.Upsert(manifest.Installation{
-			Skill:       skill.Name,
-			Version:     skill.Version,
-			Platform:    pt.pending.adapter.Name,
-			Scope:       pt.pending.target.Scope,
-			Path:        pt.pending.final,
-			StorePath:   storePath,
-			InstallMode: mode,
-			InstalledAt: e.Now().UTC(),
-			SourceSHA:   reg.Source.SHA,
-			RegistryRef: skill.DirSHA,
+			Skill:        skill.Name,
+			Version:      skill.Version,
+			Platform:     pt.pending.adapter.Name,
+			Scope:        pt.pending.target.Scope,
+			Path:         pt.pending.final,
+			StorePath:    storePath,
+			InstallMode:  mode,
+			InstalledAt:  e.Now().UTC(),
+			SourceSHA:    reg.Source.SHA,
+			RegistryRef:  skill.DirSHA,
+			RegistryName: opts.RegistryName,
 		})
 		results = append(results, TargetResult{
 			Skill:     skill.Name,

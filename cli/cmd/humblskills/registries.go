@@ -128,6 +128,100 @@ func findRegistryForSkill(loaded []registrySkills, skillName string) (registrySk
 	return registrySkills{}, false
 }
 
+// registryTokenLabel describes a registry's token state honestly: its own
+// stored token (keyring/file), an inherited default token, or none. A public
+// registry with no dedicated token reads "no token" rather than misleadingly
+// showing the shared default.
+func registryTokenLabel(name string) string {
+	if own := secrets.OwnRegistryTokenSource(name); own != secrets.SourceAbsent {
+		return "token: " + string(own)
+	}
+	if v, _ := secrets.GetRegistryTokenFor(name); v != "" {
+		return "token: inherited default"
+	}
+	return "no token"
+}
+
+// registryHasToken reports whether a registry will send any token (own or
+// inherited) — used for a status dot.
+func registryHasToken(name string) bool {
+	v, _ := secrets.GetRegistryTokenFor(name)
+	return v != ""
+}
+
+// skillIndex indexes skills by registry-name then skill-name, with a name-only
+// fallback (first registry seen wins). Used to resolve an installed skill
+// against its origin registry for drift/metadata.
+type skillIndex struct {
+	byReg  map[string]map[string]registry.Skill
+	global map[string]registry.Skill
+}
+
+func newSkillIndex() skillIndex {
+	return skillIndex{byReg: map[string]map[string]registry.Skill{}, global: map[string]registry.Skill{}}
+}
+
+func (ix skillIndex) add(regName string, skills []registry.Skill) {
+	m := ix.byReg[regName]
+	if m == nil {
+		m = map[string]registry.Skill{}
+		ix.byReg[regName] = m
+	}
+	for _, s := range skills {
+		m[s.Name] = s
+		if _, ok := ix.global[s.Name]; !ok {
+			ix.global[s.Name] = s
+		}
+	}
+}
+
+// find resolves a skill preferring its origin registry, then any registry.
+func (ix skillIndex) find(regName, name string) (registry.Skill, bool) {
+	if regName != "" {
+		if m, ok := ix.byReg[regName]; ok {
+			if s, ok := m[name]; ok {
+				return s, true
+			}
+		}
+	}
+	s, ok := ix.global[name]
+	return s, ok
+}
+
+// registryOf returns the name of a registry that lists the skill, or "" if
+// none. Used to attribute legacy installs (no recorded origin) to a registry.
+func (ix skillIndex) registryOf(name string) string {
+	for regName, m := range ix.byReg {
+		if _, ok := m[name]; ok {
+			return regName
+		}
+	}
+	return ""
+}
+
+// cachedSkillIndex builds a skillIndex from each registry's on-disk cache only
+// (never fetches) — for fast, offline-friendly reads like `list`.
+func (a *App) cachedSkillIndex() skillIndex {
+	ix := newSkillIndex()
+	for _, r := range a.resolvedRegistries() {
+		if reg, ok := a.fetcherForRegistry(r).LoadCached(); ok && reg != nil {
+			ix.add(r.Name, reg.Skills)
+		}
+	}
+	return ix
+}
+
+// indexLoadedRegistries builds a skillIndex from already-loaded registries.
+func indexLoadedRegistries(loaded []registrySkills) skillIndex {
+	ix := newSkillIndex()
+	for _, rs := range loaded {
+		if rs.Err == nil {
+			ix.add(rs.Name, rs.Skills)
+		}
+	}
+	return ix
+}
+
 // installEngineForToken builds an install Engine whose tarball fetcher carries
 // the given registry's token (tarballs are SHA-keyed so the shared cache dir is
 // safe across registries).

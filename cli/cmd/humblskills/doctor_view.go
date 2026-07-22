@@ -108,8 +108,9 @@ func (m manifestItem) Detail(th *ui.Theme, width int) string {
 
 type registryItem struct{ reg registryReport }
 
-func (r registryItem) Key() string         { return "registry" }
-func (r registryItem) FilterValue() string { return "registry " + r.reg.URL }
+func (r registryItem) label() string       { return registryDisplayName(r.reg.Name) }
+func (r registryItem) Key() string         { return "registry:" + r.reg.Name }
+func (r registryItem) FilterValue() string { return "registry " + r.reg.Name + " " + r.reg.URL }
 func (r registryItem) NaturalWidth(th *ui.Theme) int {
 	var badge string
 	switch {
@@ -120,7 +121,7 @@ func (r registryItem) NaturalWidth(th *ui.Theme) int {
 	default:
 		badge = tui.Badge(th, tui.BadgeDetected, fmt.Sprintf("%d skills", r.reg.Skills))
 	}
-	return rowNaturalWidth("registry", lipgloss.Width(badge))
+	return rowNaturalWidth(r.label(), lipgloss.Width(badge))
 }
 func (r registryItem) Row(th *ui.Theme, width int, selected bool) string {
 	ok := r.reg.Error == "" && len(r.reg.DepIssues) == 0
@@ -135,11 +136,11 @@ func (r registryItem) Row(th *ui.Theme, width int, selected bool) string {
 		dot = th.DotOK.Render("●")
 		badge = tui.Badge(th, tui.BadgeDetected, fmt.Sprintf("%d skills", r.reg.Skills))
 	}
-	return rowWithTrailingBadge(dot+" "+rowName(th, "registry", selected, ok), badge, width)
+	return rowWithTrailingBadge(dot+" "+rowName(th, r.label(), selected, ok), badge, width)
 }
 func (r registryItem) Detail(th *ui.Theme, width int) string {
 	var sb strings.Builder
-	sb.WriteString(th.DetailTitle.Render("registry") + "  " +
+	sb.WriteString(th.DetailTitle.Render(r.label()) + "  " +
 		th.DetailSub.Render(r.reg.URL) + "\n\n")
 	sb.WriteString(kvRow(th, "source", th.KVValue.Render(r.reg.Source)))
 	sb.WriteString(kvRow(th, "skills", th.KVValue.Render(fmt.Sprintf("%d", r.reg.Skills))))
@@ -398,17 +399,19 @@ func printDoctorStatic(app *App, r doctorReport) {
 		app.UI.Detail("  %s (not yet created)", r.Manifest.Path)
 	}
 
-	app.UI.Section("Registry")
-	app.UI.Info("  %s %s", th.Label.Render("url"), th.Name.Render(r.Registry.URL))
-	if r.Registry.Error != "" {
-		app.UI.Error("registry unreachable: %s", r.Registry.Error)
-	} else {
-		app.UI.Success("%d skill%s available (via %s)", r.Registry.Skills, textutil.Plural(r.Registry.Skills), r.Registry.Source)
-		if r.Registry.Cached {
-			app.UI.Detail("  cache fetched %s ago", r.Registry.Age.Round(time.Second))
+	app.UI.Section("Registries")
+	for _, rr := range r.Registries {
+		app.UI.Info("  %s %s  %s", th.Label.Render("•"), th.Name.Render(registryDisplayName(rr.Name)), th.Detail.Render(rr.URL))
+		if rr.Error != "" {
+			app.UI.Error("  unreachable: %s", rr.Error)
+			continue
 		}
-		for _, issue := range r.Registry.DepIssues {
-			app.UI.Warn("dep issue: %s", issue)
+		app.UI.Success("  %d skill%s available (via %s)", rr.Skills, textutil.Plural(rr.Skills), rr.Source)
+		if rr.Cached {
+			app.UI.Detail("    cache fetched %s ago", rr.Age.Round(time.Second))
+		}
+		for _, issue := range rr.DepIssues {
+			app.UI.Warn("  dep issue: %s", issue)
 		}
 	}
 

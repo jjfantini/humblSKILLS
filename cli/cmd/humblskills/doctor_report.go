@@ -11,7 +11,6 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/evalruntime"
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/workspace"
-	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
@@ -22,12 +21,12 @@ import (
 // doctor_view.go; command wiring lives in doctor.go.
 
 type doctorReport struct {
-	Adapters []adapterReport `json:"adapters"`
-	Manifest manifestReport  `json:"manifest"`
-	Registry registryReport  `json:"registry"`
-	Updates  updatesReport   `json:"updates"`
-	Eval     evalReport      `json:"eval"`
-	Issues   []string        `json:"issues,omitempty"`
+	Adapters   []adapterReport  `json:"adapters"`
+	Manifest   manifestReport   `json:"manifest"`
+	Registries []registryReport `json:"registries"`
+	Updates    updatesReport    `json:"updates"`
+	Eval       evalReport       `json:"eval"`
+	Issues     []string         `json:"issues,omitempty"`
 }
 
 // evalReport is the eval-prerequisite block: per-runner availability,
@@ -90,6 +89,7 @@ type manifestReport struct {
 }
 
 type registryReport struct {
+	Name      string        `json:"name"`
 	URL       string        `json:"url"`
 	Source    string        `json:"source"`
 	Cached    bool          `json:"cached"`
@@ -133,32 +133,49 @@ func buildDoctorReport(app *App) (doctorReport, error) {
 		}
 	}
 
-	f := app.registryFetcher()
-	// No spinner here - the caller (runDoctor) already wraps this whole
-	// function in one loading/spinner screen, so a second nested spinner
-	// would just fight it for the terminal.
-	reg, origin, rErr := f.Load()
-	rr := registryReport{URL: app.Config.RegistryURL, Source: string(origin)}
-	if rErr != nil {
-		rr.Error = rErr.Error()
-		report.Issues = append(report.Issues, fmt.Sprintf("registry: %s", rErr))
-	} else {
-		rr.Skills = len(reg.Skills)
-		for _, issue := range registry.ValidateDeps(reg) {
-			rr.DepIssues = append(rr.DepIssues, issue.Error())
+	// One report per configured registry. No spinner here - the caller
+	// (runDoctor) already wraps this whole function in one loading screen.
+	ix := newSkillIndex()
+	anyRegOK := false
+	for _, r := range app.resolvedRegistries() {
+		f := app.fetcherForRegistry(r)
+		reg, origin, rErr := f.Load()
+		rr := registryReport{Name: r.Name, URL: r.URL, Source: string(origin)}
+		if rErr != nil {
+			rr.Error = rErr.Error()
+			report.Issues = append(report.Issues, fmt.Sprintf("registry %q: %s", r.Name, rErr))
+		} else {
+			anyRegOK = true
+			rr.Skills = len(reg.Skills)
+			ix.add(r.Name, reg.Skills)
+			for _, issue := range registry.ValidateDeps(reg) {
+				rr.DepIssues = append(rr.DepIssues, issue.Error())
+			}
 		}
+		info := f.Inspect()
+		rr.Cached = info.Exists
+		rr.FetchedAt = info.FetchedAt
+		rr.Age = info.Age
+		report.Registries = append(report.Registries, rr)
 	}
-	info := f.Inspect()
-	rr.Cached = info.Exists
-	rr.FetchedAt = info.FetchedAt
-	rr.Age = info.Age
-	report.Registry = rr
 
-	if mErr == nil && rErr == nil {
-		plans := install.PlanUpdates(reg, m, nil)
-		report.Updates.Count = len(plans)
-		for _, p := range plans {
-			report.Updates.Skills = append(report.Updates.Skills, p.Skill)
+	// Update count: each installed skill checked against its ORIGIN registry.
+	if mErr == nil && anyRegOK {
+		seen := map[string]bool{}
+		for _, inst := range m.Installations {
+			if seen[inst.Skill] {
+				continue
+			}
+			origin := inst.RegistryName
+			if origin == "" {
+				origin = ix.registryOf(inst.Skill)
+			}
+			rs, ok := ix.find(origin, inst.Skill)
+			if ok && (inst.Version != rs.Version || inst.RegistryRef != rs.DirSHA) {
+				seen[inst.Skill] = true
+				report.Updates.Count++
+				report.Updates.Skills = append(report.Updates.Skills, inst.Skill)
+			}
 		}
 	}
 
@@ -248,8 +265,10 @@ func hasFailures(r doctorReport) bool {
 	if len(r.Issues) > 0 {
 		return true
 	}
-	if r.Registry.Error != "" || len(r.Registry.DepIssues) > 0 {
-		return true
+	for _, rr := range r.Registries {
+		if rr.Error != "" || len(rr.DepIssues) > 0 {
+			return true
+		}
 	}
 	// Eval: default runner must be available for CI to claim "healthy".
 	if r.Eval.DefaultRunner == "" && len(r.Eval.Runners) > 0 {

@@ -23,6 +23,14 @@ type updateFlags struct {
 	force bool
 }
 
+// regUpdatePlan records which registry (document + token + name) an update plan
+// must be fetched from, so multi-registry updates hit the right source.
+type regUpdatePlan struct {
+	reg   *registry.Registry
+	token string
+	name  string
+}
+
 func newUpdateCmd(app *App) *cobra.Command {
 	var f updateFlags
 	cmd := &cobra.Command{
@@ -63,18 +71,47 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 		return nil
 	}
 
-	reg, err := tui.RunWithLoadingIf(useTUI, app.UI.Theme(), "loading registry…", func() (*registry.Registry, error) {
-		reg, _, err := app.registryFetcher().Load()
-		if err != nil {
-			return nil, fmt.Errorf("load registry: %w", err)
-		}
-		return reg, nil
+	loaded, err := tui.RunWithLoadingIf(useTUI, app.UI.Theme(), "loading registries…", func() ([]registrySkills, error) {
+		return app.loadRegistries(), nil
 	})
 	if err != nil {
 		return err
 	}
 
-	plans := install.PlanUpdates(reg, m, only)
+	// Plan updates per ORIGIN registry so each installed skill is checked (and
+	// later fetched) against the registry it came from, with that registry's
+	// token. Legacy installs (no recorded origin) are attributed to whichever
+	// registry currently lists the skill.
+	ix := indexLoadedRegistries(loaded)
+	regByName := make(map[string]registrySkills, len(loaded))
+	for _, rs := range loaded {
+		regByName[rs.Name] = rs
+	}
+	partitions := map[string][]manifest.Installation{}
+	for _, inst := range m.Installations {
+		origin := inst.RegistryName
+		if origin == "" {
+			origin = ix.registryOf(inst.Skill)
+		}
+		if origin == "" && len(loaded) > 0 {
+			origin = loaded[0].Name
+		}
+		partitions[origin] = append(partitions[origin], inst)
+	}
+
+	bySkill := map[string]regUpdatePlan{}
+	var plans []install.UpdatePlan
+	for name, insts := range partitions {
+		rs, ok := regByName[name]
+		if !ok || rs.Reg == nil {
+			continue // registry unavailable/unknown — skip its installs
+		}
+		fm := &manifest.Manifest{SchemaVersion: m.SchemaVersion, Installations: insts}
+		for _, pl := range install.PlanUpdates(rs.Reg, fm, only) {
+			bySkill[pl.Skill] = regUpdatePlan{reg: rs.Reg, token: rs.Token, name: name}
+			plans = append(plans, pl)
+		}
+	}
 	sort.Slice(plans, func(i, j int) bool { return plans[i].Skill < plans[j].Skill })
 
 	if f.check {
@@ -108,12 +145,17 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 		adapterKnown[a.Name] = struct{}{}
 	}
 
-	engine := app.installEngine()
 	var aggregate install.Result
 
 	run := func(sink install.EventSink) error {
 		for _, plan := range selected {
-			stepPlan, err := install.Plan(reg, plan.Skill)
+			rp, ok := bySkill[plan.Skill]
+			if !ok || rp.reg == nil {
+				app.UI.Warn("skipping %s: source registry unresolved", plan.Skill)
+				continue
+			}
+			engine := app.installEngineForToken(rp.token)
+			stepPlan, err := install.Plan(rp.reg, plan.Skill)
 			if err != nil {
 				return err
 			}
@@ -149,13 +191,14 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 			for _, group := range groups {
 				plats := byGroup[group]
 				sort.Strings(plats)
-				res, err := engine.Execute(reg, stepPlan, install.ExecuteOpts{
-					Adapters:  adapters,
-					Platforms: plats,
-					Scope:     group.scope,
-					Force:     f.force,
-					Global:    group.global,
-					OnEvent:   sink,
+				res, err := engine.Execute(rp.reg, stepPlan, install.ExecuteOpts{
+					Adapters:     adapters,
+					Platforms:    plats,
+					Scope:        group.scope,
+					Force:        f.force,
+					Global:       group.global,
+					OnEvent:      sink,
+					RegistryName: rp.name,
 				})
 				if err != nil {
 					return fmt.Errorf("%s: %w", plan.Skill, err)

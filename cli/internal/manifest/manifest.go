@@ -35,6 +35,10 @@ type Installation struct {
 	InstalledAt time.Time `json:"installed_at"`
 	SourceSHA   string    `json:"source_sha"`
 	RegistryRef string    `json:"registry_ref"`
+	// RegistryName is the name of the registry this skill was installed from
+	// (empty for installs written before multi-registry support). Used to group
+	// `list` by origin and to check updates against the right registry.
+	RegistryName string `json:"registry_name,omitempty"`
 }
 
 // DefaultPath resolves the manifest path using XDG_STATE_HOME (falling back

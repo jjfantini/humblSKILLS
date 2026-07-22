@@ -94,9 +94,11 @@ func runDoctorTUI(app *App, r doctorReport) (bool, error) {
 	for _, a := range r.Adapters {
 		items = append(items, adapterItem{a: a})
 	}
+	items = append(items, manifestItem{m: r.Manifest, issue: firstIssue(r.Issues, "manifest:")})
+	for _, rr := range r.Registries {
+		items = append(items, registryItem{reg: rr})
+	}
 	items = append(items,
-		manifestItem{m: r.Manifest, issue: firstIssue(r.Issues, "manifest:")},
-		registryItem{reg: r.Registry},
 		updatesItem{u: r.Updates},
 		evalItem{e: r.Eval},
 	)
@@ -107,14 +109,20 @@ func runDoctorTUI(app *App, r doctorReport) (bool, error) {
 			detected++
 		}
 	}
+	totalSkills, regErrs := 0, 0
+	for _, rr := range r.Registries {
+		totalSkills += rr.Skills
+		if rr.Error != "" {
+			regErrs++
+		}
+	}
 	localMeta := func(_ []tui.Item, _ int) string {
 		parts := []string{
 			fmt.Sprintf("%d / %d detected", detected, len(r.Adapters)),
 		}
-		if r.Registry.Error == "" {
-			parts = append(parts, fmt.Sprintf("%d skills", r.Registry.Skills))
-		} else {
-			parts = append(parts, "registry error")
+		parts = append(parts, fmt.Sprintf("%d skills", totalSkills))
+		if regErrs > 0 {
+			parts = append(parts, fmt.Sprintf("%d registry error%s", regErrs, textutil.Plural(regErrs)))
 		}
 		if r.Updates.Count > 0 {
 			parts = append(parts, fmt.Sprintf("%d update%s", r.Updates.Count, textutil.Plural(r.Updates.Count)))

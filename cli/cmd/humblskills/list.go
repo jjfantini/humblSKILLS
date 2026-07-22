@@ -68,17 +68,12 @@ func runList(app *App, fromDashboard bool) error {
 // registry is read from the local cache only (never fetched); if no cached
 // registry is available the map is nil and callers show no drift.
 func availableUpdates(app *App, m *manifest.Manifest) map[string]string {
-	reg, ok := app.registryFetcher().LoadCached()
-	if !ok || reg == nil {
-		return nil
-	}
-	idx := make(map[string]registry.Skill, len(reg.Skills))
-	for _, s := range reg.Skills {
-		idx[s.Name] = s
-	}
+	ix := app.cachedSkillIndex()
 	out := map[string]string{}
 	for _, inst := range m.Installations {
-		rs, found := idx[inst.Skill]
+		// Compare each install against its ORIGIN registry (falling back to any),
+		// so a skill from registry A isn't mismarked against registry B.
+		rs, found := ix.find(inst.RegistryName, inst.Skill)
 		if !found {
 			continue
 		}
@@ -134,6 +129,14 @@ func renderListTable(app *App, installs []manifest.Installation, avail map[strin
 	th := app.UI.Theme()
 	app.UI.Header("list")
 
+	// Show a Registry column only when installs actually span more than one
+	// registry, so single-registry output stays uncluttered.
+	regs := map[string]struct{}{}
+	for _, inst := range installs {
+		regs[inst.RegistryName] = struct{}{}
+	}
+	showRegistry := len(regs) > 1
+
 	outdated := 0
 	rows := make([][]string, 0, len(installs))
 	for _, inst := range installs {
@@ -150,19 +153,27 @@ func renderListTable(app *App, installs []manifest.Installation, avail map[strin
 			version = th.DotWarn.Render("↑ ") + th.Version.Render("v"+inst.Version) +
 				th.Detail.Render(" → ") + th.DotWarn.Render("v"+to)
 		}
-		rows = append(rows, []string{
-			th.Name.Render(inst.Skill),
-			version,
+		row := []string{th.Name.Render(inst.Skill), version}
+		if showRegistry {
+			row = append(row, th.Category.Render(registryDisplayName(inst.RegistryName)))
+		}
+		row = append(row,
 			th.Platform.Render(inst.Platform),
 			th.Label.Render(inst.Scope),
 			th.Detail.Render(inst.Path),
 			th.Detail.Render(source),
-		})
+		)
+		rows = append(rows, row)
 	}
+	headers := []string{"Skill", "Version"}
+	if showRegistry {
+		headers = append(headers, "Registry")
+	}
+	headers = append(headers, "Platform", "Scope", "Path", "Source")
 	tbl := table.New().
 		Border(lipgloss.RoundedBorder()).
 		BorderStyle(th.RuleLine).
-		Headers("Skill", "Version", "Platform", "Scope", "Path", "Source").
+		Headers(headers...).
 		Rows(rows...).
 		StyleFunc(func(row, _ int) lipgloss.Style {
 			if row == table.HeaderRow {
@@ -183,29 +194,29 @@ func renderListTable(app *App, installs []manifest.Installation, avail map[strin
 // looks identical to search, differing only in which skills are shown and
 // which actions are wired up.
 func runListTUI(app *App, m *manifest.Manifest, fromDashboard bool) error {
-	// Pull the registry to know whether each installed skill has drifted. If
-	// the registry is unreachable, fall back to the manifest versions.
-	reg, _, _ := app.registryFetcher().Load()
+	// Resolve each installed skill against its ORIGIN registry (across all
+	// configured registries) so drift + metadata are correct and the browser
+	// can group installs by source registry. Unreachable registries fall back
+	// to manifest versions.
+	ix := indexLoadedRegistries(app.loadRegistries())
 
-	// Build a "virtual" registry view of only the skills we have installed,
-	// preferring the registry version when available so `outdated` can render.
 	installedSkills := uniqueSkillsFromManifest(m)
 	skills := make([]registry.Skill, 0, len(installedSkills))
 	for _, name := range installedSkills {
-		if s := findRegistrySkill(reg, name); s != nil {
-			skills = append(skills, *s)
-			continue
-		}
-		// Registry missing this skill — synthesise from the manifest entry so
-		// it still shows in the browser.
 		inst := m.FindAll(name)
 		if len(inst) == 0 {
 			continue
 		}
-		skills = append(skills, registry.Skill{
-			Name:    name,
-			Version: inst[0].Version,
-		})
+		regName := inst[0].RegistryName
+		sk, ok := ix.find(regName, name)
+		if !ok {
+			// No registry has it — synthesise from the manifest entry.
+			sk = registry.Skill{Name: name, Version: inst[0].Version}
+		}
+		// Tag with the true origin from the manifest so grouping reflects where
+		// it was installed from (not a fallback registry that happens to list it).
+		sk.Registry = regName
+		skills = append(skills, sk)
 	}
 
 	items := buildSkillItems(skills, m)
