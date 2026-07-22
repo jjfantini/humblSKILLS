@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.30.0](https://github.com/jjfantini/humblSKILLS/compare/v2.29.0...v2.30.0) (2026-07-22)
+
+
+### Features
+
+* **registry:** verify token on login + friendlier auth errors ([55ffd85](https://github.com/jjfantini/humblSKILLS/commit/55ffd853715aecafccc10df18493ce13e91feb52))
+
 ## [2.29.0](https://github.com/jjfantini/humblSKILLS/compare/v2.28.0...v2.29.0) (2026-07-22)
 
 
