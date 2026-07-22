@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.28.0](https://github.com/jjfantini/humblSKILLS/compare/v2.27.0...v2.28.0) (2026-07-22)
+
+
+### Features
+
+* **registry:** interactive registry manager TUI + dashboard tile ([e688eb8](https://github.com/jjfantini/humblSKILLS/commit/e688eb88082c0d7dfbb6094362ef2359ca0ab1c9))
+
 ## [2.27.0](https://github.com/jjfantini/humblSKILLS/compare/v2.26.0...v2.27.0) (2026-07-22)
 
 
