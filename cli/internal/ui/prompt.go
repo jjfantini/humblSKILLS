@@ -133,6 +133,23 @@ func (p *Prompter) Secret(title string) (string, error) {
 	return v, nil
 }
 
+// Text asks for a single line of free text. Returns ErrNonInteractive when the
+// caller isn't on a TTY. placeholder, when non-empty, is shown as ghost text.
+func (p *Prompter) Text(title, placeholder string) (string, error) {
+	if !p.Interactive {
+		return "", ErrNonInteractive
+	}
+	var v string
+	in := huh.NewInput().Title(title).Value(&v)
+	if placeholder != "" {
+		in = in.Placeholder(placeholder)
+	}
+	if err := in.WithTheme(theme()).Run(); err != nil {
+		return "", fmt.Errorf("prompt: %w", err)
+	}
+	return v, nil
+}
+
 // SelectOption is one entry shown in a Select.
 type SelectOption struct {
 	// Label is the visible text. Falls back to Value when empty.

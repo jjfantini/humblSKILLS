@@ -40,6 +40,30 @@ func TestNamedRegistries_SetFindRemove(t *testing.T) {
 	}
 }
 
+func TestNamedRegistries_Rename(t *testing.T) {
+	p := &Profile{}
+	p.SetRegistry("old", "https://a")
+	p.SetRegistry("keep", "https://b")
+
+	if err := p.RenameRegistry("old", "new"); err != nil {
+		t.Fatalf("rename: %v", err)
+	}
+	if _, ok := p.FindRegistry("new"); !ok {
+		t.Fatal("renamed registry missing under new name")
+	}
+	if _, ok := p.FindRegistry("old"); ok {
+		t.Fatal("old name still present after rename")
+	}
+	// Collision with an existing name is rejected.
+	if err := p.RenameRegistry("new", "keep"); err == nil {
+		t.Fatal("expected error renaming onto an existing name")
+	}
+	// Renaming a missing registry is rejected.
+	if err := p.RenameRegistry("missing", "x"); err == nil {
+		t.Fatal("expected error renaming a nonexistent registry")
+	}
+}
+
 func TestNamedRegistries_RoundTrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "profile.json")
 	p := &Profile{SchemaVersion: SchemaVersion}

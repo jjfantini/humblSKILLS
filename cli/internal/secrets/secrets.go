@@ -353,6 +353,26 @@ func deleteKeyedToken(filePath, account string) error {
 	return writeFileSecret(filePath, account, "")
 }
 
+// RenameRegistryToken moves a named registry's own stored token from old to
+// new. If old has no dedicated token, this is a no-op (nil).
+func RenameRegistryToken(old, name string) error {
+	if old == name {
+		return nil
+	}
+	path, err := defaultFilePath()
+	if err != nil {
+		return err
+	}
+	v, src := getKeyedToken(path, registryAccount(old))
+	if src == SourceAbsent || v == "" {
+		return nil
+	}
+	if _, err := setKeyedToken(path, registryAccount(name), v); err != nil {
+		return err
+	}
+	return deleteKeyedToken(path, registryAccount(old))
+}
+
 // KeyringAvailable reports whether the OS keyring appears reachable. Used by
 // doctor to surface a helpful hint when secrets will land in the file.
 func KeyringAvailable() bool {

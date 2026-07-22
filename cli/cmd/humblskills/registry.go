@@ -36,17 +36,38 @@ func newRegistryCmd(app *App) *cobra.Command {
 		newRegistryAddCmd(app),
 		newRegistryListCmd(app),
 		newRegistryRemoveCmd(app),
+		newRegistryRenameCmd(app),
 	)
 	return cmd
 }
 
 func newRegistryAddCmd(app *App) *cobra.Command {
 	return &cobra.Command{
-		Use:   "add <name> <url>",
+		Use:   "add [name] [url]",
 		Short: "Add (or update) a named registry shown in aggregated views",
+		Long: "Add a named registry. Pass <name> <url> directly, or run with no args " +
+			"to be prompted for the name, URL, and (optionally) an auth token.",
+		Args: cobra.MaximumNArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			switch len(args) {
+			case 0:
+				return runRegistryAddInteractive(app)
+			case 2:
+				return runRegistryAdd(app, args[0], args[1])
+			default:
+				return fmt.Errorf("provide both <name> and <url>, or no args to add interactively")
+			}
+		},
+	}
+}
+
+func newRegistryRenameCmd(app *App) *cobra.Command {
+	return &cobra.Command{
+		Use:   "rename <old> <new>",
+		Short: "Rename a registry (moves its stored token too)",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runRegistryAdd(app, args[0], args[1])
+			return runRegistryRename(app, args[0], args[1])
 		},
 	}
 }
@@ -73,21 +94,31 @@ func newRegistryRemoveCmd(app *App) *cobra.Command {
 	}
 }
 
-func runRegistryAdd(app *App, name, url string) error {
+// addRegistry validates and persists a named registry. Shared by the direct
+// and interactive add paths.
+func addRegistry(app *App, name, url string) (string, string, error) {
 	name = strings.TrimSpace(name)
 	url = strings.TrimSpace(url)
 	if name == "" {
-		return fmt.Errorf("registry name must not be empty")
+		return "", "", fmt.Errorf("registry name must not be empty")
 	}
 	if !isPlausibleRegistry(url) {
-		return fmt.Errorf("invalid registry URL %q — expected an http(s):// URL, a file:// URL, or a filesystem path", url)
+		return "", "", fmt.Errorf("invalid registry URL %q — expected an http(s):// URL, a file:// URL, or a filesystem path", url)
 	}
 	p, err := profile.Load(app.Config.ProfilePath)
 	if err != nil {
-		return err
+		return "", "", err
 	}
 	p.SetRegistry(name, url)
 	if err := profile.Save(app.Config.ProfilePath, p); err != nil {
+		return "", "", err
+	}
+	return name, url, nil
+}
+
+func runRegistryAdd(app *App, name, url string) error {
+	name, url, err := addRegistry(app, name, url)
+	if err != nil {
 		return err
 	}
 	if app.Config.JSON {
@@ -95,6 +126,67 @@ func runRegistryAdd(app *App, name, url string) error {
 	}
 	app.UI.Success("added registry %q → %s", name, url)
 	app.UI.Detail("store its token (if private) with: humblskills registry login --name %s", name)
+	return nil
+}
+
+func runRegistryAddInteractive(app *App) error {
+	name, err := app.Prompt.Text("Registry name", "e.g. work")
+	if err != nil {
+		return err
+	}
+	url, err := app.Prompt.Text("Registry URL", "https://raw.githubusercontent.com/<owner>/<repo>/main/registry.json")
+	if err != nil {
+		return err
+	}
+	name, url, err = addRegistry(app, name, url)
+	if err != nil {
+		return err
+	}
+	app.UI.Success("added registry %q → %s", name, url)
+
+	store, err := app.Prompt.Confirm("Store an auth token for this registry now? (private registries only)", false)
+	if err != nil {
+		return err
+	}
+	if store {
+		tok, err := app.Prompt.Secret("Registry auth token")
+		if err != nil {
+			return err
+		}
+		if strings.TrimSpace(tok) != "" {
+			src, err := secrets.SetRegistryTokenFor(name, tok)
+			if err != nil {
+				return err
+			}
+			app.UI.Success("stored token for %q in %s", name, src)
+		}
+	}
+	return nil
+}
+
+func runRegistryRename(app *App, old, name string) error {
+	old = strings.TrimSpace(old)
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("new registry name must not be empty")
+	}
+	p, err := profile.Load(app.Config.ProfilePath)
+	if err != nil {
+		return err
+	}
+	if err := p.RenameRegistry(old, name); err != nil {
+		return err
+	}
+	if err := profile.Save(app.Config.ProfilePath, p); err != nil {
+		return err
+	}
+	if err := secrets.RenameRegistryToken(old, name); err != nil {
+		app.UI.Warn("registry renamed, but moving its stored token failed: %v", err)
+	}
+	if app.Config.JSON {
+		return app.UI.JSON(map[string]string{"old": old, "new": name})
+	}
+	app.UI.Success("renamed registry %q → %q", old, name)
 	return nil
 }
 

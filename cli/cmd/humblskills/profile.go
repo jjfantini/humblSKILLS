@@ -10,6 +10,7 @@ import (
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
+	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
@@ -148,6 +149,19 @@ func runProfileShow(app *App) error {
 		th.KVValue.Render(formatAutoReturn(p.StatusAutoReturnSeconds)))
 	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("path")+"         "+
 		th.KVValue.Render(app.Config.ProfilePath))
+
+	if len(p.Registries) > 0 {
+		app.UI.Section("Registries")
+		for _, r := range p.Registries {
+			_, src := secrets.GetRegistryTokenFor(r.Name)
+			tok := "no token"
+			if src != secrets.SourceAbsent {
+				tok = "token: " + string(src)
+			}
+			fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render(r.Name)+"  "+
+				th.KVValue.Render(r.URL)+"  "+th.Detail.Render("("+tok+")"))
+		}
+	}
 	return nil
 }
 

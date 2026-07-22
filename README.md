@@ -131,15 +131,19 @@ registry** (each skill tagged with its source). Each registry keeps its own toke
 ```sh
 humblskills registry add public https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/registry.json
 humblskills registry add work   https://raw.githubusercontent.com/<org>/<private-repo>/main/registry.json
-humblskills registry login --name work    # token for the private one (keychain)
+humblskills registry add                   # no args → prompts for name, URL, and (optional) token
+humblskills registry login --name work     # token for the private one (keychain)
 humblskills registry list                  # show configured registries + token state
+humblskills registry rename work internal  # rename (moves its stored token too)
+humblskills registry add work <new-url>    # re-add with an existing name to change its URL
 humblskills search                         # grouped: "── public ──" then "── work ──"
 humblskills install <skill>                # resolves to whichever registry has it
 humblskills registry remove work           # drop it (and its stored token)
 ```
 
-When no named registries are configured, everything falls back to the single registry
-above (`--registry`/`HUMBLSKILLS_REGISTRY`/`profile set registry`/hosted default).
+Configured registries also show up in `humblskills profile show` (under **Registries**).
+When none are configured, everything falls back to the single registry above
+(`--registry`/`HUMBLSKILLS_REGISTRY`/`profile set registry`/hosted default).
 
 ### Sharing skill sets across a team
 
