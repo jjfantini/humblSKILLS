@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
+	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 )
 
 // resolvedRegistry is one registry the CLI will read, with its auth token
@@ -126,6 +128,46 @@ func findRegistryForSkill(loaded []registrySkills, skillName string) (registrySk
 		}
 	}
 	return registrySkills{}, false
+}
+
+// verifyRegistryToken does one network fetch of a registry with the given token
+// to confirm it authenticates, returning the visible skill count. name selects
+// which registry URL to test (its profile URL; "" uses the default registry).
+func (a *App) verifyRegistryToken(name, token string) (int, error) {
+	url := a.Config.RegistryURL
+	if name != "" {
+		if p, err := profile.Load(a.Config.ProfilePath); err == nil && p != nil {
+			if r, ok := p.FindRegistry(name); ok {
+				url = r.URL
+			}
+		}
+	}
+	f := registry.NewFetcher(url, a.registryCacheDir(name))
+	f.Token = token
+	reg, _, err := f.Refresh() // Refresh forces a network hit so the token is actually exercised
+	if err != nil {
+		return 0, err
+	}
+	return len(reg.Skills), nil
+}
+
+// storeAndVerifyToken stores a registry token then verifies it can read the
+// registry. Returns a human message and whether verification succeeded. Shared
+// by the CLI `registry login` and the manager TUI so both behave identically.
+func storeAndVerifyToken(app *App, name, token string) (string, bool) {
+	label := name
+	if label == "" {
+		label = "registry"
+	}
+	src, err := secrets.SetRegistryTokenFor(name, token)
+	if err != nil {
+		return err.Error(), false
+	}
+	n, verr := app.verifyRegistryToken(name, token)
+	if verr != nil {
+		return fmt.Sprintf("stored token for %s in %s, but verification failed: %v", label, src, verr), false
+	}
+	return fmt.Sprintf("stored token for %s in %s — verified: %d skill%s readable", label, src, n, textutil.Plural(n)), true
 }
 
 // registryTokenLabel describes a registry's token state honestly: its own

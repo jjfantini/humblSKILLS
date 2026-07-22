@@ -3,8 +3,22 @@ package registry
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
+
+// TestHTTPFetchError_ActionableMessages verifies auth failures map to guidance.
+func TestHTTPFetchError_ActionableMessages(t *testing.T) {
+	if err := httpFetchError("u", 401, true); err == nil || !strings.Contains(err.Error(), "registry login") {
+		t.Errorf("401 should mention `registry login`: %v", err)
+	}
+	if err := httpFetchError("u", 404, false); err == nil || !strings.Contains(err.Error(), "private registry") {
+		t.Errorf("404 without token should hint at a private registry: %v", err)
+	}
+	if err := httpFetchError("u", 500, false); err == nil || !strings.Contains(err.Error(), "HTTP 500") {
+		t.Errorf("other codes keep the bare status: %v", err)
+	}
+}
 
 // TestFetch_SendsBearerToken verifies that a configured Token is sent as a
 // Bearer Authorization header on the registry HTTP fetch, so a private registry

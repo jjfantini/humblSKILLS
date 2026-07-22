@@ -296,20 +296,14 @@ func runRegistryLogin(app *App, name string) error {
 		return fmt.Errorf("no token provided (use --token, pipe it on stdin, or enter it at the prompt)")
 	}
 
-	src, err := secrets.SetRegistryTokenFor(name, token)
-	if err != nil {
-		return err
-	}
+	msg, ok := storeAndVerifyToken(app, name, token)
 	if app.Config.JSON {
-		return app.UI.JSON(map[string]string{"stored": string(src), "name": name})
+		return app.UI.JSON(map[string]any{"name": name, "verified": ok, "detail": msg})
 	}
-	if name != "" {
-		app.UI.Success("stored token for registry %q in %s", name, src)
+	if ok {
+		app.UI.Success("%s", msg)
 	} else {
-		app.UI.Success("stored registry token in %s", src)
-	}
-	if src == secrets.SourceFile {
-		app.UI.Detail("OS keychain unavailable — stored in a 0600 secrets file instead")
+		app.UI.Warn("%s", msg)
 	}
 	return nil
 }

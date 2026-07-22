@@ -75,7 +75,7 @@ func (f *Fetcher) Fetch(repo, sha string) (string, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("fetch %s: HTTP %d", url, resp.StatusCode)
+		return "", httpFetchError(url, resp.StatusCode, f.Token != "")
 	}
 
 	tmp := dest + ".tmp"
@@ -224,6 +224,22 @@ func writeFile(path string, r io.Reader, mode os.FileMode) error {
 func (f *Fetcher) tarPath(owner, name, sha string) string {
 	fname := fmt.Sprintf("%s-%s-%s.tar.gz", owner, name, sha)
 	return filepath.Join(f.CacheDir, "tars", fname)
+}
+
+// httpFetchError turns a non-2xx codeload status into an actionable message,
+// mapping private-repo auth failures to next steps instead of a bare code.
+func httpFetchError(url string, status int, hasToken bool) error {
+	switch status {
+	case 401, 403:
+		return fmt.Errorf("fetch %s: HTTP %d — registry token rejected (missing, expired, or lacks access); re-run `humblskills registry login`", url, status)
+	case 404:
+		if !hasToken {
+			return fmt.Errorf("fetch %s: HTTP %d — not found; if this skill's registry is private, add a token with `humblskills registry login`", url, status)
+		}
+		return fmt.Errorf("fetch %s: HTTP %d — not found; check the registry URL, or re-run `humblskills registry login` if the token is missing, expired, or lacks access", url, status)
+	default:
+		return fmt.Errorf("fetch %s: HTTP %d", url, status)
+	}
 }
 
 func splitRepo(repo string) (owner, name string, err error) {
