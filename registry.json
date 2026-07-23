@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-22T04:11:13Z",
+  "generated_at": "2026-07-23T15:37:42Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "feat/tui-router-foundation",
-    "sha": "2ce51d7b40977a2312f5fc5ab52e8b3310a7f6d2"
+    "sha": "031315abef8f76fa4cd0548cd1b6616b3e5e2759"
   },
   "skills": [
     {
