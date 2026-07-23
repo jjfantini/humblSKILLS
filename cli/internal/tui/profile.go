@@ -233,11 +233,6 @@ func (m profileModel) toggleCurrent() profileModel {
 			m.profile.StatusAutoReturnSeconds = autoReturnSettingOpts[m.valueIdx].value
 			m.changed = true
 		}
-	case 3: // tui router
-		if m.valueIdx >= 0 && m.valueIdx < len(tuiRouterSettingOpts) {
-			m.profile.TUIRouter = tuiRouterSettingOpts[m.valueIdx].value
-			m.changed = true
-		}
 	}
 	return m
 }
@@ -271,28 +266,6 @@ var autoReturnSettingOpts = []struct {
 
 func intPtr(n int) *int { return &n }
 
-// tuiRouterSettingOpts is the picker for Profile.TUIRouter — the dashboard's
-// single-program router (no alt-screen teardown between panes). nil means
-// unset, i.e. the built-in default (on); false is the explicit opt-out.
-var tuiRouterSettingOpts = []struct {
-	label string
-	value *bool
-}{
-	{"on (default) — no flash between panes", nil},
-	{"off — one program per screen", boolPtr(false)},
-}
-
-func boolPtr(b bool) *bool { return &b }
-
-// tuiRouterCurrent maps the profile value onto a picker index: anything
-// that resolves to on (nil or true) is the first option, false the second.
-func tuiRouterCurrent(v *bool) int {
-	if v != nil && !*v {
-		return 1
-	}
-	return 0
-}
-
 // currentSelectionIndex returns the index in the right-pane options list that
 // represents the profile's current value for the focused setting. Used to
 // place the cursor on the already-selected option when the user drills in.
@@ -314,8 +287,6 @@ func (m profileModel) currentSelectionIndex() int {
 				return i
 			}
 		}
-	case 3:
-		return tuiRouterCurrent(m.profile.TUIRouter)
 	}
 	return 0
 }
@@ -338,8 +309,6 @@ func (m profileModel) valueCount() int {
 		return len(scopeSettingOpts)
 	case 2:
 		return len(autoReturnSettingOpts)
-	case 3:
-		return len(tuiRouterSettingOpts)
 	}
 	return 0
 }
@@ -363,7 +332,6 @@ var profileSettings = []profileSetting{
 	{key: "platforms", label: "default platforms", kind: settingMulti},
 	{key: "scope", label: "default scope", kind: settingRadio},
 	{key: "status_auto_return", label: "status auto-return", kind: settingRadio},
-	{key: "tui_router", label: "tui router", kind: settingRadio},
 }
 
 func (m profileModel) View() string {
@@ -492,8 +460,6 @@ func (m profileModel) renderRight(width int) string {
 		body = append(body, m.renderScopeOptions(bar, width)...)
 	case 2:
 		body = append(body, m.renderAutoReturnOptions(bar, width)...)
-	case 3:
-		body = append(body, m.renderTUIRouterOptions(bar, width)...)
 	}
 	return strings.Join(body, "\n")
 }
@@ -620,44 +586,6 @@ func (m profileModel) renderAutoReturnOptions(bar string, width int) []string {
 	return rows
 }
 
-// renderTUIRouterOptions renders the Profile.TUIRouter picker: whether the
-// interactive TUI runs every screen on one long-lived program (experimental).
-func (m profileModel) renderTUIRouterOptions(bar string, width int) []string {
-	th := m.theme
-	rows := make([]string, 0, len(tuiRouterSettingOpts)+4)
-	rows = append(rows, bar+" "+th.Detail.Render(
-		"Run every dashboard screen on one long-lived program so the "+
-			"alt-screen isn't torn down between panes — no flash when navigating. "+
-			"The HUMBLSKILLS_TUI_ROUTER env var (1/0) overrides this when set."))
-	rows = append(rows, bar)
-	rows = append(rows, bar+" "+th.SectionTitle.Render("OPTIONS"))
-	current := tuiRouterCurrent(m.profile.TUIRouter)
-	for i, opt := range tuiRouterSettingOpts {
-		cursorHere := i == m.valueIdx && m.focus == focusValue
-		isCurrent := i == current
-		marker := "( )"
-		if isCurrent {
-			marker = "(●)"
-		}
-		var styled string
-		switch {
-		case cursorHere:
-			styled = th.RowSelected.Render(marker + "  " + opt.label)
-		case isCurrent:
-			styled = th.Success.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
-		default:
-			styled = th.RowDim.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
-		}
-		prefix := bar + "   "
-		if cursorHere {
-			prefix = bar + " " + th.Bullet.Render("▸") + " "
-		}
-		rows = append(rows, prefix+styled)
-	}
-	_ = width
-	return rows
-}
-
 func (m profileModel) layoutRow(label, badge string, width int) string {
 	lw := lipgloss.Width(label)
 	bw := lipgloss.Width(badge)
@@ -690,11 +618,6 @@ func (m profileModel) settingBadge(key string) string {
 		}
 	case "status_auto_return":
 		return formatAutoReturnBadge(m.profile.StatusAutoReturnSeconds)
-	case "tui_router":
-		if tuiRouterCurrent(m.profile.TUIRouter) == 0 {
-			return "on"
-		}
-		return "off"
 	}
 	return ""
 }

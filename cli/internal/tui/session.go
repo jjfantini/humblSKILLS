@@ -23,22 +23,13 @@ import (
 // terminal, so RunGuard releases/restores the host terminal around them (a
 // flash at prompt time only, not navigation).
 
-// routerPref is the profile-backed setting (Profile.TUIRouter), wired in from
-// root setup before any command runs. nil = default (on).
-var routerPref *bool
-
-// SetRouterPreference records the profile's tui_router setting.
-func SetRouterPreference(p *bool) { routerPref = p }
-
-// RouterEnabled reports whether the single-program router is turned on:
-// HUMBLSKILLS_TUI_ROUTER ("1" on, anything else off) when set, otherwise the
-// profile's tui_router setting, otherwise on.
+// RouterEnabled reports whether the single-program router is turned on. It
+// always is, except when the HUMBLSKILLS_TUI_ROUTER env var is set to
+// something other than "1" — an undocumented emergency escape hatch in case
+// a terminal misbehaves with the long-lived alt-screen.
 func RouterEnabled() bool {
 	if v, ok := os.LookupEnv("HUMBLSKILLS_TUI_ROUTER"); ok {
 		return v == "1"
-	}
-	if routerPref != nil {
-		return *routerPref
 	}
 	return true
 }

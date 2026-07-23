@@ -173,7 +173,6 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 	var profileRegistry string
 	if p, perr := profile.Load(profilePath); perr == nil && p != nil {
 		profileRegistry = p.Registry
-		tui.SetRouterPreference(p.TUIRouter)
 	}
 
 	cfg := Config{

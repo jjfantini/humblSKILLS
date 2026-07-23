@@ -37,7 +37,6 @@ func TestSave_WritesAtomicallyAndRoundTrips(t *testing.T) {
 	in := &profile.Profile{
 		DefaultPlatforms: []string{"claude-code", "cursor"},
 		DefaultScope:     "project",
-		TUIRouter:        boolPtr(false),
 		Eval: &profile.EvalProfile{
 			Runner:                 "anthropic-api",
 			ExecutorModel:          "claude-sonnet-4-6",
@@ -69,11 +68,6 @@ func TestSave_WritesAtomicallyAndRoundTrips(t *testing.T) {
 	}
 	if out.Eval == nil || out.Eval.Runner != "anthropic-api" {
 		t.Errorf("Eval lost in round-trip: %+v", out.Eval)
-	}
-	// Explicit false must survive the trip — it's the opt-out from the
-	// default-on router, so omitempty dropping it would silently re-enable.
-	if out.TUIRouter == nil || *out.TUIRouter {
-		t.Errorf("TUIRouter = %v, want explicit false", out.TUIRouter)
 	}
 	if !out.Eval.IncludeBlindComparator {
 		t.Error("IncludeBlindComparator not round-tripped")
@@ -380,5 +374,3 @@ func TestResolvedScope(t *testing.T) {
 		}
 	}
 }
-
-func boolPtr(b bool) *bool { return &b }

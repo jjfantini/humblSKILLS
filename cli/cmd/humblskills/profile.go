@@ -47,8 +47,7 @@ func newProfileSetCmd(app *App) *cobra.Command {
 	return &cobra.Command{
 		Use: "set <key> <value>",
 		Short: "Set a profile value. Keys: platforms (csv), scope (global|user|project|adapter-default), " +
-			"registry (URL/file:// path, or \"\" to clear), status_auto_return_seconds (seconds, or default|off), " +
-			"tui_router (on|off|default — single-program dashboard TUI, on by default).",
+			"registry (URL/file:// path, or \"\" to clear), status_auto_return_seconds (seconds, or default|off).",
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runProfileSet(app, args[0], args[1])
@@ -147,8 +146,6 @@ func runProfileShow(app *App) error {
 		th.KVValue.Render(formatRegistry(p.Registry)))
 	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("auto-return")+"  "+
 		th.KVValue.Render(formatAutoReturn(p.StatusAutoReturnSeconds)))
-	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("tui-router")+"   "+
-		th.KVValue.Render(formatTUIRouter(p.TUIRouter)))
 	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("path")+"         "+
 		th.KVValue.Render(app.Config.ProfilePath))
 
@@ -203,14 +200,8 @@ func runProfileSet(app *App, key, value string) error {
 			return err
 		}
 		p.StatusAutoReturnSeconds = seconds
-	case "tui_router":
-		on, err := parseTUIRouter(value)
-		if err != nil {
-			return err
-		}
-		p.TUIRouter = on
 	default:
-		return fmt.Errorf("unknown key %q — valid keys: platforms, scope, registry, status_auto_return_seconds, tui_router", key)
+		return fmt.Errorf("unknown key %q — valid keys: platforms, scope, registry, status_auto_return_seconds", key)
 	}
 
 	if err := profile.Save(app.Config.ProfilePath, p); err != nil {
@@ -307,34 +298,6 @@ func formatAutoReturn(seconds *int) string {
 		return "disabled — wait for enter/q"
 	default:
 		return fmt.Sprintf("%ds", *seconds)
-	}
-}
-
-// parseTUIRouter parses the `profile set tui_router` value: on/off pin a
-// choice, "default"/"" resets to unset (the built-in default, on).
-func parseTUIRouter(value string) (*bool, error) {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "on", "true", "1":
-		on := true
-		return &on, nil
-	case "off", "false", "0":
-		off := false
-		return &off, nil
-	case "default", "":
-		return nil, nil
-	}
-	return nil, fmt.Errorf("invalid tui_router %q — expected on, off, or default", value)
-}
-
-// formatTUIRouter renders Profile.TUIRouter for `profile show`.
-func formatTUIRouter(v *bool) string {
-	switch {
-	case v == nil:
-		return "on (default)"
-	case *v:
-		return "on"
-	default:
-		return "off"
 	}
 }
 

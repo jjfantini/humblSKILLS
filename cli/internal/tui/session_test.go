@@ -5,26 +5,18 @@ import (
 	"testing"
 )
 
-// RouterEnabled precedence: the env var (when set) always wins — "1" on,
-// anything else off — then the profile preference, then the default (on).
-func TestRouterEnabled_Precedence(t *testing.T) {
-	restore := routerPref
-	defer SetRouterPreference(restore)
-
-	on, off := true, false
+// The router is always on except for the HUMBLSKILLS_TUI_ROUTER emergency
+// escape hatch: any value other than "1" turns it off.
+func TestRouterEnabled(t *testing.T) {
 	cases := []struct {
 		name string
 		env  *string // nil = unset
-		pref *bool   // nil = unset
 		want bool
 	}{
-		{"all unset defaults on", nil, nil, true},
-		{"pref off", nil, &off, false},
-		{"pref on", nil, &on, true},
-		{"env 1 overrides pref off", strPtr("1"), &off, true},
-		{"env 0 overrides pref on", strPtr("0"), &on, false},
-		{"env 0 overrides default", strPtr("0"), nil, false},
-		{"env empty overrides default", strPtr(""), nil, false},
+		{"unset defaults on", nil, true},
+		{"env 1 on", strPtr("1"), true},
+		{"env 0 off", strPtr("0"), false},
+		{"env empty off", strPtr(""), false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -34,7 +26,6 @@ func TestRouterEnabled_Precedence(t *testing.T) {
 			} else {
 				os.Unsetenv("HUMBLSKILLS_TUI_ROUTER")
 			}
-			SetRouterPreference(tc.pref)
 			if got := RouterEnabled(); got != tc.want {
 				t.Errorf("RouterEnabled() = %v, want %v", got, tc.want)
 			}
@@ -46,30 +37,21 @@ func TestRouterEnabled_Precedence(t *testing.T) {
 // one-shot commands never call it, so Run keeps a per-screen program and
 // their post-screen terminal output stays visible.
 func TestBeginSession_GatesRouter(t *testing.T) {
-	restorePref := routerPref
-	restoreWanted := sessionWanted
-	defer func() {
-		routerPref = restorePref
-		sessionWanted = restoreWanted
-	}()
+	restore := sessionWanted
+	defer func() { sessionWanted = restore }()
 	t.Setenv("HUMBLSKILLS_TUI_ROUTER", "")
 	os.Unsetenv("HUMBLSKILLS_TUI_ROUTER")
 
 	sessionWanted = false
-	SetRouterPreference(nil)
-	if sessionWanted {
-		t.Fatal("sessionWanted true before BeginSession")
-	}
 	BeginSession()
 	if !sessionWanted {
-		t.Error("BeginSession did not engage the router with the default-on setting")
+		t.Error("BeginSession did not engage the router")
 	}
 
-	off := false
-	SetRouterPreference(&off)
+	os.Setenv("HUMBLSKILLS_TUI_ROUTER", "0")
 	BeginSession()
 	if sessionWanted {
-		t.Error("BeginSession engaged the router despite tui_router off")
+		t.Error("BeginSession engaged the router despite the env escape hatch")
 	}
 }
 
