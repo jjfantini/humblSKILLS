@@ -21,8 +21,22 @@ import (
 // programs that can't share the host's terminal, so RunGuard releases/restores
 // the host terminal around them (a flash at prompt time only, not navigation).
 
-// RouterEnabled reports whether the single-program router is turned on.
-func RouterEnabled() bool { return os.Getenv("HUMBLSKILLS_TUI_ROUTER") == "1" }
+// routerPref is the profile-backed default (Profile.TUIRouter), wired in from
+// root setup before any command runs. The env var overrides it when set.
+var routerPref bool
+
+// SetRouterPreference records the profile's tui_router setting.
+func SetRouterPreference(on bool) { routerPref = on }
+
+// RouterEnabled reports whether the single-program router is turned on:
+// HUMBLSKILLS_TUI_ROUTER ("1" on, anything else off) when set, otherwise the
+// profile's tui_router setting, otherwise off.
+func RouterEnabled() bool {
+	if v, ok := os.LookupEnv("HUMBLSKILLS_TUI_ROUTER"); ok {
+		return v == "1"
+	}
+	return routerPref
+}
 
 // --- messages driving the host --------------------------------------------
 
