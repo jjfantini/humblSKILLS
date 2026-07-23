@@ -16,27 +16,42 @@ import (
 // interactive session and swaps the active screen model in place, so the
 // alt-screen is entered once and never torn down between panes.
 //
-// It's opt-in (HUMBLSKILLS_TUI_ROUTER=1) while it's verified in real terminals;
-// with it off, Run behaves exactly as before. Prompts (huh) are separate
-// programs that can't share the host's terminal, so RunGuard releases/restores
-// the host terminal around them (a flash at prompt time only, not navigation).
+// It's on by default for the interactive dashboard session (BeginSession),
+// and off everywhere else: one-shot commands print results to the terminal
+// after their screen exits, and a still-alive alt-screen would swallow those
+// lines. Prompts (huh) are separate programs that can't share the host's
+// terminal, so RunGuard releases/restores the host terminal around them (a
+// flash at prompt time only, not navigation).
 
-// routerPref is the profile-backed default (Profile.TUIRouter), wired in from
-// root setup before any command runs. The env var overrides it when set.
-var routerPref bool
+// routerPref is the profile-backed setting (Profile.TUIRouter), wired in from
+// root setup before any command runs. nil = default (on).
+var routerPref *bool
 
 // SetRouterPreference records the profile's tui_router setting.
-func SetRouterPreference(on bool) { routerPref = on }
+func SetRouterPreference(p *bool) { routerPref = p }
 
 // RouterEnabled reports whether the single-program router is turned on:
 // HUMBLSKILLS_TUI_ROUTER ("1" on, anything else off) when set, otherwise the
-// profile's tui_router setting, otherwise off.
+// profile's tui_router setting, otherwise on.
 func RouterEnabled() bool {
 	if v, ok := os.LookupEnv("HUMBLSKILLS_TUI_ROUTER"); ok {
 		return v == "1"
 	}
-	return routerPref
+	if routerPref != nil {
+		return *routerPref
+	}
+	return true
 }
+
+// sessionWanted is set once by BeginSession before any screen runs; Run only
+// routes through the shared session program when it's true.
+var sessionWanted bool
+
+// BeginSession opts the current process into the single-program router (if
+// enabled). Call it from long-lived interactive entry points — the dashboard
+// loop — before the first screen. One-shot commands never call it, so they
+// keep a per-screen program and their post-screen output stays visible.
+func BeginSession() { sessionWanted = RouterEnabled() }
 
 // --- messages driving the host --------------------------------------------
 

@@ -30,9 +30,10 @@ func ShouldUseTUI(jsonMode, quiet, yes bool) bool {
 // (alt-screen + mouse cell motion). It blocks until the model finishes and
 // returns the last rendered model so callers can extract results.
 func Run(m tea.Model) (tea.Model, error) {
-	// Opt-in single-program router: run every screen on one long-lived program
-	// so the alt-screen isn't torn down between panes (no flash). Off by default.
-	if RouterEnabled() {
+	// Single-program router: within an interactive session (BeginSession),
+	// run every screen on one long-lived program so the alt-screen isn't
+	// torn down between panes (no flash).
+	if sessionWanted {
 		return runOnSession(m)
 	}
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())

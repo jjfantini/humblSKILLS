@@ -60,12 +60,12 @@ type Profile struct {
 	// screens auto-return - a failed run always waits for the user.
 	StatusAutoReturnSeconds *int `json:"status_auto_return_seconds,omitempty"`
 
-	// TUIRouter opts the interactive TUI into the experimental single-program
-	// router: every screen runs on one long-lived program so the alt-screen
-	// isn't torn down between panes (no flash). Off by default. The
-	// HUMBLSKILLS_TUI_ROUTER env var ("1" on, anything else off) overrides
-	// this when set.
-	TUIRouter bool `json:"tui_router,omitempty"`
+	// TUIRouter controls the interactive dashboard's single-program router:
+	// every screen runs on one long-lived program so the alt-screen isn't
+	// torn down between panes (no flash). nil = default (on); false opts
+	// out. The HUMBLSKILLS_TUI_ROUTER env var ("1" on, anything else off)
+	// overrides this when set.
+	TUIRouter *bool `json:"tui_router,omitempty"`
 }
 
 // NamedRegistry is one entry in the multi-registry set (Profile.Registries).

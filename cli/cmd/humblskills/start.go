@@ -42,6 +42,10 @@ func runStart(app *App) error {
 		return printStartFallback(app)
 	}
 
+	// The dashboard is a long-lived session: run every screen on one shared
+	// program so navigation never tears the alt-screen down (no flash).
+	tui.BeginSession()
+
 	for {
 		// Rebuilt behind its own loading spinner (not synchronously on the
 		// exposed terminal buffer) so returning here after every dashboard

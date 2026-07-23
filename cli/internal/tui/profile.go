@@ -271,14 +271,26 @@ var autoReturnSettingOpts = []struct {
 
 func intPtr(n int) *int { return &n }
 
-// tuiRouterSettingOpts is the picker for Profile.TUIRouter — the experimental
-// single-program TUI router (no alt-screen teardown between panes).
+// tuiRouterSettingOpts is the picker for Profile.TUIRouter — the dashboard's
+// single-program router (no alt-screen teardown between panes). nil means
+// unset, i.e. the built-in default (on); false is the explicit opt-out.
 var tuiRouterSettingOpts = []struct {
 	label string
-	value bool
+	value *bool
 }{
-	{"off (default)", false},
-	{"on — experimental, no flash between panes", true},
+	{"on (default) — no flash between panes", nil},
+	{"off — one program per screen", boolPtr(false)},
+}
+
+func boolPtr(b bool) *bool { return &b }
+
+// tuiRouterCurrent maps the profile value onto a picker index: anything
+// that resolves to on (nil or true) is the first option, false the second.
+func tuiRouterCurrent(v *bool) int {
+	if v != nil && !*v {
+		return 1
+	}
+	return 0
 }
 
 // currentSelectionIndex returns the index in the right-pane options list that
@@ -303,11 +315,7 @@ func (m profileModel) currentSelectionIndex() int {
 			}
 		}
 	case 3:
-		for i, opt := range tuiRouterSettingOpts {
-			if opt.value == m.profile.TUIRouter {
-				return i
-			}
-		}
+		return tuiRouterCurrent(m.profile.TUIRouter)
 	}
 	return 0
 }
@@ -618,14 +626,15 @@ func (m profileModel) renderTUIRouterOptions(bar string, width int) []string {
 	th := m.theme
 	rows := make([]string, 0, len(tuiRouterSettingOpts)+4)
 	rows = append(rows, bar+" "+th.Detail.Render(
-		"Experimental: run every TUI screen on one long-lived program so the "+
+		"Run every dashboard screen on one long-lived program so the "+
 			"alt-screen isn't torn down between panes — no flash when navigating. "+
 			"The HUMBLSKILLS_TUI_ROUTER env var (1/0) overrides this when set."))
 	rows = append(rows, bar)
 	rows = append(rows, bar+" "+th.SectionTitle.Render("OPTIONS"))
+	current := tuiRouterCurrent(m.profile.TUIRouter)
 	for i, opt := range tuiRouterSettingOpts {
 		cursorHere := i == m.valueIdx && m.focus == focusValue
-		isCurrent := opt.value == m.profile.TUIRouter
+		isCurrent := i == current
 		marker := "( )"
 		if isCurrent {
 			marker = "(●)"
@@ -682,10 +691,10 @@ func (m profileModel) settingBadge(key string) string {
 	case "status_auto_return":
 		return formatAutoReturnBadge(m.profile.StatusAutoReturnSeconds)
 	case "tui_router":
-		if m.profile.TUIRouter {
-			return "on (experimental)"
+		if tuiRouterCurrent(m.profile.TUIRouter) == 0 {
+			return "on"
 		}
-		return "off (default)"
+		return "off"
 	}
 	return ""
 }

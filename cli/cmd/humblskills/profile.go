@@ -48,7 +48,7 @@ func newProfileSetCmd(app *App) *cobra.Command {
 		Use: "set <key> <value>",
 		Short: "Set a profile value. Keys: platforms (csv), scope (global|user|project|adapter-default), " +
 			"registry (URL/file:// path, or \"\" to clear), status_auto_return_seconds (seconds, or default|off), " +
-			"tui_router (on|off — experimental single-program TUI, no flash between panes).",
+			"tui_router (on|off|default — single-program dashboard TUI, on by default).",
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runProfileSet(app, args[0], args[1])
@@ -310,23 +310,32 @@ func formatAutoReturn(seconds *int) string {
 	}
 }
 
-// parseTUIRouter parses the `profile set tui_router` value.
-func parseTUIRouter(value string) (bool, error) {
+// parseTUIRouter parses the `profile set tui_router` value: on/off pin a
+// choice, "default"/"" resets to unset (the built-in default, on).
+func parseTUIRouter(value string) (*bool, error) {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "on", "true", "1":
-		return true, nil
-	case "off", "false", "0", "default", "":
-		return false, nil
+		on := true
+		return &on, nil
+	case "off", "false", "0":
+		off := false
+		return &off, nil
+	case "default", "":
+		return nil, nil
 	}
-	return false, fmt.Errorf("invalid tui_router %q — expected on or off", value)
+	return nil, fmt.Errorf("invalid tui_router %q — expected on, off, or default", value)
 }
 
 // formatTUIRouter renders Profile.TUIRouter for `profile show`.
-func formatTUIRouter(on bool) string {
-	if on {
-		return "on — experimental single-program TUI"
+func formatTUIRouter(v *bool) string {
+	switch {
+	case v == nil:
+		return "on (default)"
+	case *v:
+		return "on"
+	default:
+		return "off"
 	}
-	return "off (default)"
 }
 
 // formatRegistry renders Profile.Registry for `profile show`.
