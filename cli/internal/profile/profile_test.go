@@ -37,6 +37,7 @@ func TestSave_WritesAtomicallyAndRoundTrips(t *testing.T) {
 	in := &profile.Profile{
 		DefaultPlatforms: []string{"claude-code", "cursor"},
 		DefaultScope:     "project",
+		TUIRouter:        true,
 		Eval: &profile.EvalProfile{
 			Runner:                 "anthropic-api",
 			ExecutorModel:          "claude-sonnet-4-6",
@@ -68,6 +69,9 @@ func TestSave_WritesAtomicallyAndRoundTrips(t *testing.T) {
 	}
 	if out.Eval == nil || out.Eval.Runner != "anthropic-api" {
 		t.Errorf("Eval lost in round-trip: %+v", out.Eval)
+	}
+	if !out.TUIRouter {
+		t.Error("TUIRouter not round-tripped")
 	}
 	if !out.Eval.IncludeBlindComparator {
 		t.Error("IncludeBlindComparator not round-tripped")

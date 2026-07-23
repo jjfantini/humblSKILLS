@@ -233,6 +233,11 @@ func (m profileModel) toggleCurrent() profileModel {
 			m.profile.StatusAutoReturnSeconds = autoReturnSettingOpts[m.valueIdx].value
 			m.changed = true
 		}
+	case 3: // tui router
+		if m.valueIdx >= 0 && m.valueIdx < len(tuiRouterSettingOpts) {
+			m.profile.TUIRouter = tuiRouterSettingOpts[m.valueIdx].value
+			m.changed = true
+		}
 	}
 	return m
 }
@@ -266,6 +271,16 @@ var autoReturnSettingOpts = []struct {
 
 func intPtr(n int) *int { return &n }
 
+// tuiRouterSettingOpts is the picker for Profile.TUIRouter — the experimental
+// single-program TUI router (no alt-screen teardown between panes).
+var tuiRouterSettingOpts = []struct {
+	label string
+	value bool
+}{
+	{"off (default)", false},
+	{"on — experimental, no flash between panes", true},
+}
+
 // currentSelectionIndex returns the index in the right-pane options list that
 // represents the profile's current value for the focused setting. Used to
 // place the cursor on the already-selected option when the user drills in.
@@ -284,6 +299,12 @@ func (m profileModel) currentSelectionIndex() int {
 		cur := m.profile.StatusAutoReturnSeconds
 		for i, opt := range autoReturnSettingOpts {
 			if autoReturnValueEqual(cur, opt.value) {
+				return i
+			}
+		}
+	case 3:
+		for i, opt := range tuiRouterSettingOpts {
+			if opt.value == m.profile.TUIRouter {
 				return i
 			}
 		}
@@ -309,6 +330,8 @@ func (m profileModel) valueCount() int {
 		return len(scopeSettingOpts)
 	case 2:
 		return len(autoReturnSettingOpts)
+	case 3:
+		return len(tuiRouterSettingOpts)
 	}
 	return 0
 }
@@ -332,6 +355,7 @@ var profileSettings = []profileSetting{
 	{key: "platforms", label: "default platforms", kind: settingMulti},
 	{key: "scope", label: "default scope", kind: settingRadio},
 	{key: "status_auto_return", label: "status auto-return", kind: settingRadio},
+	{key: "tui_router", label: "tui router", kind: settingRadio},
 }
 
 func (m profileModel) View() string {
@@ -460,6 +484,8 @@ func (m profileModel) renderRight(width int) string {
 		body = append(body, m.renderScopeOptions(bar, width)...)
 	case 2:
 		body = append(body, m.renderAutoReturnOptions(bar, width)...)
+	case 3:
+		body = append(body, m.renderTUIRouterOptions(bar, width)...)
 	}
 	return strings.Join(body, "\n")
 }
@@ -586,6 +612,43 @@ func (m profileModel) renderAutoReturnOptions(bar string, width int) []string {
 	return rows
 }
 
+// renderTUIRouterOptions renders the Profile.TUIRouter picker: whether the
+// interactive TUI runs every screen on one long-lived program (experimental).
+func (m profileModel) renderTUIRouterOptions(bar string, width int) []string {
+	th := m.theme
+	rows := make([]string, 0, len(tuiRouterSettingOpts)+4)
+	rows = append(rows, bar+" "+th.Detail.Render(
+		"Experimental: run every TUI screen on one long-lived program so the "+
+			"alt-screen isn't torn down between panes — no flash when navigating. "+
+			"The HUMBLSKILLS_TUI_ROUTER env var (1/0) overrides this when set."))
+	rows = append(rows, bar)
+	rows = append(rows, bar+" "+th.SectionTitle.Render("OPTIONS"))
+	for i, opt := range tuiRouterSettingOpts {
+		cursorHere := i == m.valueIdx && m.focus == focusValue
+		isCurrent := opt.value == m.profile.TUIRouter
+		marker := "( )"
+		if isCurrent {
+			marker = "(●)"
+		}
+		var styled string
+		switch {
+		case cursorHere:
+			styled = th.RowSelected.Render(marker + "  " + opt.label)
+		case isCurrent:
+			styled = th.Success.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
+		default:
+			styled = th.RowDim.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
+		}
+		prefix := bar + "   "
+		if cursorHere {
+			prefix = bar + " " + th.Bullet.Render("▸") + " "
+		}
+		rows = append(rows, prefix+styled)
+	}
+	_ = width
+	return rows
+}
+
 func (m profileModel) layoutRow(label, badge string, width int) string {
 	lw := lipgloss.Width(label)
 	bw := lipgloss.Width(badge)
@@ -618,6 +681,11 @@ func (m profileModel) settingBadge(key string) string {
 		}
 	case "status_auto_return":
 		return formatAutoReturnBadge(m.profile.StatusAutoReturnSeconds)
+	case "tui_router":
+		if m.profile.TUIRouter {
+			return "on (experimental)"
+		}
+		return "off (default)"
 	}
 	return ""
 }

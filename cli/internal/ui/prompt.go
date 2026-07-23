@@ -44,6 +44,17 @@ func NewPrompter(yes bool) *Prompter {
 // internally.
 func theme() *huh.Theme { return HuhTheme(DefaultTheme()) }
 
+// RunGuard, when set by a host TUI program, wraps every interactive prompt so
+// the host can release/restore the terminal around it — a prompt is its own
+// bubbletea program and can't share a running host program's terminal. Defaults
+// to calling fn directly (no host = no-op), so non-router callers are unaffected.
+var RunGuard = func(fn func() error) error { return fn() }
+
+type huhRunner interface{ Run() error }
+
+// guard runs a huh field/form through RunGuard.
+func guard(r huhRunner) error { return RunGuard(func() error { return r.Run() }) }
+
 // Confirm asks a yes/no question. When non-interactive, returns dflt.
 func (p *Prompter) Confirm(title string, dflt bool) (bool, error) {
 	if p.Yes {
@@ -53,13 +64,12 @@ func (p *Prompter) Confirm(title string, dflt bool) (bool, error) {
 		return dflt, nil
 	}
 	v := dflt
-	err := huh.NewConfirm().
+	err := guard(huh.NewConfirm().
 		Title(title).
 		Affirmative("Yes").
 		Negative("No").
 		Value(&v).
-		WithTheme(theme()).
-		Run()
+		WithTheme(theme()))
 	if err != nil {
 		return dflt, err
 	}
@@ -101,12 +111,11 @@ func (p *Prompter) MultiSelect(title string, options []MultiSelectOption) ([]str
 		opts = append(opts, huh.NewOption(label, o.Value).Selected(o.Selected))
 	}
 	var selected []string
-	err := huh.NewMultiSelect[string]().
+	err := guard(huh.NewMultiSelect[string]().
 		Title(title).
 		Options(opts...).
 		Value(&selected).
-		WithTheme(theme()).
-		Run()
+		WithTheme(theme()))
 	if err != nil {
 		return nil, fmt.Errorf("prompt: %w", err)
 	}
@@ -121,12 +130,11 @@ func (p *Prompter) Secret(title string) (string, error) {
 		return "", ErrNonInteractive
 	}
 	var v string
-	err := huh.NewInput().
+	err := guard(huh.NewInput().
 		Title(title).
 		EchoMode(huh.EchoModePassword).
 		Value(&v).
-		WithTheme(theme()).
-		Run()
+		WithTheme(theme()))
 	if err != nil {
 		return "", fmt.Errorf("prompt: %w", err)
 	}
@@ -144,7 +152,7 @@ func (p *Prompter) Text(title, placeholder string) (string, error) {
 	if placeholder != "" {
 		in = in.Placeholder(placeholder)
 	}
-	if err := in.WithTheme(theme()).Run(); err != nil {
+	if err := guard(in.WithTheme(theme())); err != nil {
 		return "", fmt.Errorf("prompt: %w", err)
 	}
 	return v, nil
@@ -192,7 +200,7 @@ func (p *Prompter) Select(title, description string, options []SelectOption) (st
 	if description != "" {
 		sel = sel.Description(description)
 	}
-	if err := sel.WithTheme(theme()).Run(); err != nil {
+	if err := guard(sel.WithTheme(theme())); err != nil {
 		return "", fmt.Errorf("prompt: %w", err)
 	}
 	return picked, nil
