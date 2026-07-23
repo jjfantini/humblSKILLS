@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.34.0](https://github.com/jjfantini/humblSKILLS/compare/v2.33.0...v2.34.0) (2026-07-23)
+
+
+### Features
+
+* **tui:** make the single-program router the only dashboard behavior ([ad640f1](https://github.com/jjfantini/humblSKILLS/commit/ad640f1e2a141b21d1ac0d205247c09bb2bb8d72))
+
 ## [2.33.0](https://github.com/jjfantini/humblSKILLS/compare/v2.32.0...v2.33.0) (2026-07-23)
 
 
