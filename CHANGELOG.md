@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.33.0](https://github.com/jjfantini/humblSKILLS/compare/v2.32.0...v2.33.0) (2026-07-23)
+
+
+### Features
+
+* **tui:** enable the single-program router by default for the dashboard ([0482490](https://github.com/jjfantini/humblSKILLS/commit/0482490ab87967be394c405205d656637abdbcdc))
+
 ## [2.32.0](https://github.com/jjfantini/humblSKILLS/compare/v2.31.1...v2.32.0) (2026-07-23)
 
 
