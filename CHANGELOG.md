@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.32.0](https://github.com/jjfantini/humblSKILLS/compare/v2.31.1...v2.32.0) (2026-07-23)
+
+
+### Features
+
+* **tui:** opt-in single-program TUI router — no flash between panes ([#190](https://github.com/jjfantini/humblSKILLS/issues/190)) ([bb0d49c](https://github.com/jjfantini/humblSKILLS/commit/bb0d49c4593fe6d16a91dd00b172f5c68ee64243))
+
 ## [2.31.1](https://github.com/jjfantini/humblSKILLS/compare/v2.31.0...v2.31.1) (2026-07-22)
 
 
