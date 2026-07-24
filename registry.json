@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-23T20:57:41Z",
+  "generated_at": "2026-07-23T20:58:12Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "ad640f1e2a141b21d1ac0d205247c09bb2bb8d72"
+    "sha": "553e3b126f057177c0f31ad9a57450417a8e760f"
   },
   "skills": [
     {
@@ -172,6 +172,37 @@
       ],
       "path": "skills/smart-frontend-design",
       "dir_sha": "4ce3280e2df5909cad0dd440040bd1b194aafff4e87bffb47d8a781072d4a002"
+    },
+    {
+      "name": "use-smart-animation",
+      "version": "0.1.0",
+      "description": "Professional, performance-first frontend animation and transition guidance that routes by the codebase you are in (HTML, CSS, JavaScript, TypeScript, React) and by four ready-made libraries (thinking-orbs, border-beam, metal-fx, transitions.dev). Use when adding animations, motion, transitions, page or route transitions, scroll reveals, hover micro-interactions, loading/thinking indicators, or when the user says \"animate this\", \"add motion\", \"make it feel premium/polished\", \"page transition\", \"reveal on scroll\", or asks which animation library to use. Enforces compositor-only performance and a prefers-reduced-motion floor, and favors distinctive, non-generic motion. Do NOT use for non-frontend work or for static visual design with no motion.\n",
+      "category": "design",
+      "tags": [
+        "animation",
+        "transitions",
+        "frontend",
+        "motion",
+        "css",
+        "react",
+        "performance",
+        "accessibility",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "preserve": [
+        "references/raw/",
+        "references/wiki/",
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/use-smart-animation",
+      "dir_sha": "029a1e3c98c3549a4ed37f4b318b93a954c243974028a4fabcbe239c1281b84a"
     },
     {
       "name": "use-smart-commit",
