@@ -27,3 +27,10 @@ Entry shape:
   - Decision recorded: lib concept only (no Vue/Svelte language routing); flagged experimental html-in-canvas API + MIT+Commons-Clause license.
 
 [LINT 2026-07-23] 13 wiki, 7 raw. Hard: 0, Soft: 8. Regenerated _index.md.
+
+[INGEST 2026-07-24] Added Safari/SVG-workaround note to Canvas UI docs.
+  - Documented that html-in-canvas is Chromium-only (Safari/WebKit + Firefox unsupported), matching observed reduced clarity in Safari.
+  - Noted the SVG <foreignObject> -> drawImage cross-browser workaround and its Safari caveats; steer to WebGL components for Safari/production.
+  - Updated raw/canvas-ui.md + lib/canvas-ui/usage.md (no version change; 0.2.0 still in PR #195).
+
+[LINT 2026-07-23] 13 wiki, 7 raw. Hard: 0, Soft: 8. Regenerated _index.md.

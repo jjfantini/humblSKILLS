@@ -63,11 +63,21 @@ function Hero({ children }) {
 ```
 
 Key facts to design around:
-- **Browser support:** the flagship html-in-canvas mode is experimental
-  (Chrome/Edge 140+ behind a flag / origin trial). Components detect support and
-  **degrade gracefully** — without it, content renders as plain HTML. **WebGL
-  components bypass the requirement and work everywhere today** — prefer them for
-  production.
+- **Browser support:** the flagship html-in-canvas mode is Chromium-only and
+  experimental (Chrome/Edge 140+ behind a flag / origin trial). **Safari/WebKit
+  and Firefox do NOT support it** — on Safari the effect won't render at full
+  fidelity (in practice: visibly reduced clarity vs Chromium). Components detect
+  support and **degrade gracefully** — without the API, content renders as plain
+  HTML. **WebGL components bypass the requirement and work everywhere today,
+  including Safari — prefer them for production and any Safari target.**
+- **Safari / SVG workaround:** if you need actual live HTML rendered *into* a
+  canvas outside Chromium, the cross-browser technique is
+  **SVG `<foreignObject>` → `ctx.drawImage()`** (serialize HTML → wrap in
+  `<svg><foreignObject>` → data-URL `<img>` → draw). It runs in Safari but
+  imperfectly (external fonts/CSS and pseudo-elements can drop, cross-origin
+  images taint the canvas, and Safari's first render can silently fail — render
+  twice or inline assets as data URIs). Treat it as a fallback, not a
+  full-fidelity substitute; where possible reach for a WebGL component instead.
 - **Accessibility:** the site says components respect reduced motion, but verify
   per component and be ready to gate manually (see
   `motion/principles/accessibility`) — same discipline as metal-fx.

@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-24T03:09:47Z",
+  "generated_at": "2026-07-24T03:15:07Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "feat/add-canvas-ui",
-    "sha": "cc5ec223f394412e60e859bdde3c5999eb80fb7b"
+    "sha": "dba5534708f28780e9da51210f938379f93d83d9"
   },
   "skills": [
     {
@@ -203,7 +203,7 @@
         "references/patterns.md"
       ],
       "path": "skills/use-smart-animation",
-      "dir_sha": "bd62e648ea4f08101874b413f98ad564b4bd99667c5a869e961daa43cc3842d0"
+      "dir_sha": "3eefbf5c11652030c27a722ac3cb9e8a8dad90c549533939ce59ce10b8d73a79"
     },
     {
       "name": "use-smart-commit",

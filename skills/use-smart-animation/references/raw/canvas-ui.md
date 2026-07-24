@@ -44,15 +44,26 @@ export function Hero() {
 ```
 
 ## Browser support / graceful degradation — IMPORTANT
-- The **html-in-canvas** API is an experimental Chrome feature (origin trial);
-  broadly it needs Chrome/Edge 140+ with
-  `#enable-experimental-web-platform-features`.
+- The **html-in-canvas** API (`drawElement` / `chrome://flags/#canvas-draw-element`)
+  is Chromium-only, experimental (origin trial); broadly it needs Chrome/Edge
+  140+ with `#enable-experimental-web-platform-features`.
+- **Safari/WebKit and Firefox do NOT support html-in-canvas** (no announced
+  implementation as of 2026-07). On Safari the flagship effect will not render at
+  full fidelity — observed in practice as noticeably reduced clarity vs a
+  Chromium browser.
+- **SVG `<foreignObject>` is the cross-browser workaround** for rendering live
+  HTML into a canvas without the html-in-canvas API: serialize the HTML → wrap in
+  `<svg><foreignObject>` → Blob/data-URL → `<img>` → `ctx.drawImage()`. It works
+  in Safari but imperfectly: external stylesheets/fonts may not load, some CSS
+  properties and pseudo-elements render differently or not at all, cross-origin
+  images taint the canvas (CORS), and Safari has a known quirk where the first
+  render can silently fail (render twice, or preload assets as data URIs).
 - Components **detect support at runtime and degrade gracefully**: without the
   API, content renders as normal HTML and the parts of the effect that can still
   run, still do.
 - **WebGL-based components bypass the html-in-canvas requirement and work
-  everywhere today.** Prefer these for production where the flagship
-  html-in-canvas experience isn't guaranteed.
+  everywhere today** (including Safari). Prefer these for production/Safari where
+  the flagship html-in-canvas experience isn't guaranteed.
 
 ## Accessibility
 The site states components respect reduced-motion preferences. Because these are
