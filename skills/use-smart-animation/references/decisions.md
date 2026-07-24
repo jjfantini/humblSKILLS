@@ -49,3 +49,19 @@ Entry shape:
   maintenance for little gain, and native CSS/WAAPI covers non-React motion well.
 - Result: `lang/*` files teach native techniques; `lib/*` files document each
   library as shipped and note vanilla ports where they exist.
+
+### 2026-07-24 | Added Canvas UI as a fifth library
+- Context: user surfaced canvasui.dev (David Haz) — 27 creative canvas/WebGL
+  effects over real HTML, shadcn copy-paste, React/Vue/Svelte/vanilla.
+- Options: (A) add it as `lib/canvas-ui/usage`, (B) skip (out of scope),
+  (C) expand language routing to Vue/Svelte to match its framework matrix.
+- Chose: (A) add the lib concept only; did NOT expand language routing.
+- Why: strong thematic fit for the `lib` context; Vue/Svelte are outside this
+  skill's HTML/CSS/JS/TS/React routing, so adding them is scope creep for little
+  gain (noted their availability in the lib file instead).
+- Why-caveats: documented two non-obvious risks prominently — (1) flagship
+  html-in-canvas mode is an experimental Chrome origin-trial feature (prefer its
+  WebGL components for guaranteed support), (2) license is MIT + Commons Clause,
+  not pure MIT like the Antalik libs.
+- Result: `references/wiki/lib/canvas-ui/usage.md` + `references/raw/canvas-ui.md`;
+  skill version bumped 0.1.0 -> 0.2.0.

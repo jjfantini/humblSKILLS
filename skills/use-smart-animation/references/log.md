@@ -20,3 +20,10 @@ Entry shape:
   - 3 decisions recorded: beams=border-beam, fully standalone, native-first per language.
 
 [LINT 2026-07-23] 12 wiki, 6 raw. Hard: 0, Soft: 7. Regenerated _index.md.
+
+[INGEST 2026-07-24] Added Canvas UI (canvasui.dev) as a fifth library.
+  - New raw: references/raw/canvas-ui.md; new wiki: lib/canvas-ui/usage.
+  - SKILL.md router gained a Canvas UI routing line; description/tags updated (added webgl); version 0.1.0 -> 0.2.0.
+  - Decision recorded: lib concept only (no Vue/Svelte language routing); flagged experimental html-in-canvas API + MIT+Commons-Clause license.
+
+[LINT 2026-07-23] 13 wiki, 7 raw. Hard: 0, Soft: 8. Regenerated _index.md.
