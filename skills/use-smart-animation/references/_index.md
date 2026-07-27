@@ -12,7 +12,7 @@ files and re-run lint.
 Context -> categories. See `## Wiki` below for the concept enumeration.
 
 - **lang** -> `css`, `html`, `js`, `react`, `ts`
-- **lib** -> `beams`, `metal`, `orbs`, `transitions`
+- **lib** -> `beams`, `canvas-ui`, `metal`, `orbs`, `transitions`
 - **motion** -> `principles`
 
 ## Wiki
@@ -45,6 +45,10 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 - [usage.md](wiki/lib/beams/usage.md) - border-beam: Animated Border Glow
 
+#### canvas-ui
+
+- [usage.md](wiki/lib/canvas-ui/usage.md) - Canvas UI: Creative Canvas & WebGL Effects
+
 #### metal
 
 - [usage.md](wiki/lib/metal/usage.md) - metal-fx: Liquid-Metal Shader Accent
@@ -70,6 +74,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 ## Raw Sources
 
 - [border-beam.md](raw/border-beam.md) - cited by: references/wiki/lib/beams/usage.md
+- [canvas-ui.md](raw/canvas-ui.md) - cited by: references/wiki/lib/canvas-ui/usage.md
 - [frontend-design-motion-principles.md](raw/frontend-design-motion-principles.md) - cited by: references/wiki/lang/react/animation.md, references/wiki/motion/principles/design.md
 - [metal-fx.md](raw/metal-fx.md) - cited by: references/wiki/lib/metal/usage.md
 - [thinking-orbs.md](raw/thinking-orbs.md) - cited by: references/wiki/lib/orbs/usage.md

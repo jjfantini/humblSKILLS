@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-24T01:15:47Z",
+  "generated_at": "2026-07-24T03:15:20Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/use-smart-animation",
-    "sha": "848571556c937302e53284048dada167d83aa5c4"
+    "ref": "feat/add-canvas-ui",
+    "sha": "4dc5738a9542b6ab3ce7293e772bac2a72d2abc4"
   },
   "skills": [
     {
@@ -175,8 +175,8 @@
     },
     {
       "name": "use-smart-animation",
-      "version": "0.1.0",
-      "description": "Professional, performance-first frontend animation and transition guidance that routes by the codebase you are in (HTML, CSS, JavaScript, TypeScript, React) and by four ready-made libraries (thinking-orbs, border-beam, metal-fx, transitions.dev). Use when adding animations, motion, transitions, page or route transitions, scroll reveals, hover micro-interactions, loading/thinking indicators, or when the user says \"animate this\", \"add motion\", \"make it feel premium/polished\", \"page transition\", \"reveal on scroll\", or asks which animation library to use. Enforces compositor-only performance and a prefers-reduced-motion floor, and favors distinctive, non-generic motion. Do NOT use for non-frontend work or for static visual design with no motion.\n",
+      "version": "0.2.0",
+      "description": "Professional, performance-first frontend animation and transition guidance that routes by the codebase you are in (HTML, CSS, JavaScript, TypeScript, React) and by ready-made libraries (thinking-orbs, border-beam, metal-fx, transitions.dev, Canvas UI). Use when adding animations, motion, transitions, page or route transitions, scroll reveals, hover micro-interactions, loading/thinking indicators, or when the user says \"animate this\", \"add motion\", \"make it feel premium/polished\", \"page transition\", \"reveal on scroll\", or asks which animation library to use. Enforces compositor-only performance and a prefers-reduced-motion floor, and favors distinctive, non-generic motion. Do NOT use for non-frontend work or for static visual design with no motion.\n",
       "category": "design",
       "tags": [
         "animation",
@@ -185,6 +185,7 @@
         "motion",
         "css",
         "react",
+        "webgl",
         "performance",
         "accessibility",
         "humblskill"
@@ -202,7 +203,7 @@
         "references/patterns.md"
       ],
       "path": "skills/use-smart-animation",
-      "dir_sha": "029a1e3c98c3549a4ed37f4b318b93a954c243974028a4fabcbe239c1281b84a"
+      "dir_sha": "3eefbf5c11652030c27a722ac3cb9e8a8dad90c549533939ce59ce10b8d73a79"
     },
     {
       "name": "use-smart-commit",
