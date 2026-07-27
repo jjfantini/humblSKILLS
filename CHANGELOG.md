@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.35.0](https://github.com/jjfantini/humblSKILLS/compare/v2.34.0...v2.35.0) (2026-07-27)
+
+
+### Features
+
+* **skills:** add Canvas UI library to use-smart-animation ([#195](https://github.com/jjfantini/humblSKILLS/issues/195)) ([b5ea556](https://github.com/jjfantini/humblSKILLS/commit/b5ea556f7d7c81c34399a40e457b5f3840839593))
+* **skills:** add use-smart-animation skill ([4a2943d](https://github.com/jjfantini/humblSKILLS/commit/4a2943da4e345356e319ba81ee96c713f9d8c0c5))
+
 ## [2.34.0](https://github.com/jjfantini/humblSKILLS/compare/v2.33.0...v2.34.0) (2026-07-23)
 
 
