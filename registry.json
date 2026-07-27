@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-27T16:39:09Z",
+  "generated_at": "2026-07-27T20:34:11Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/generate-smart-html-skill",
-    "sha": "09b4600a734b74ea2ef5196a864dd7e57035cc94"
+    "ref": "main",
+    "sha": "0dbff94be2ea0c4d6b929be945cc4e711c0c75d0"
   },
   "skills": [
     {
