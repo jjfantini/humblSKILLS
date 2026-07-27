@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-24T03:15:20Z",
+  "generated_at": "2026-07-27T16:39:09Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/add-canvas-ui",
-    "sha": "4dc5738a9542b6ab3ce7293e772bac2a72d2abc4"
+    "ref": "feat/generate-smart-html-skill",
+    "sha": "09b4600a734b74ea2ef5196a864dd7e57035cc94"
   },
   "skills": [
     {
@@ -116,6 +116,37 @@
       ],
       "path": "skills/create-video-transition",
       "dir_sha": "43be9c82a06e2e6f1c31c7636e12523ca257729cbef821b01146062fb9d733af"
+    },
+    {
+      "name": "generate-smart-html",
+      "version": "0.1.0",
+      "description": "Gather requirements, then generate a sleek, zero-dependency, single-file HTML page (inline CSS/JS, system-stack typography, no CDNs) that is print-faithful on US Letter paper — portrait or landscape — and export it to PDF with headless Google Chrome. Use when the user says \"generate an HTML page/report\", \"single-file HTML\", \"make this printable\", \"export HTML to PDF\", \"US letter PDF\", \"landscape/portrait PDF\", or wants data or a document visualized as a portable webpage plus a matching PDF. Do NOT use for multi-page web apps, HTML emails, or animation work (use use-smart-animation for motion).\n",
+      "category": "design",
+      "tags": [
+        "html",
+        "pdf",
+        "print",
+        "us-letter",
+        "single-file",
+        "headless-chrome",
+        "typography",
+        "report",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "preserve": [
+        "references/raw/",
+        "references/wiki/",
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/generate-smart-html",
+      "dir_sha": "7a807716f2c58f1f1b09130bcef4f2fc2a9911fe18eff94079eb1e5053d71639"
     },
     {
       "name": "smart-claude-init",
