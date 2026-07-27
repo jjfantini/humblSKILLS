@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.36.0](https://github.com/jjfantini/humblSKILLS/compare/v2.35.0...v2.36.0) (2026-07-27)
+
+
+### Features
+
+* **skills:** add generate-smart-html — single-file HTML + US Letter PDF via headless Chrome ([#197](https://github.com/jjfantini/humblSKILLS/issues/197)) ([0dbff94](https://github.com/jjfantini/humblSKILLS/commit/0dbff94be2ea0c4d6b929be945cc4e711c0c75d0))
+
 ## [2.35.0](https://github.com/jjfantini/humblSKILLS/compare/v2.34.0...v2.35.0) (2026-07-27)
 
 
