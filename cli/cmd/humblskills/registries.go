@@ -388,6 +388,11 @@ func aggregateSkills(loaded []registrySkills) ([]registry.Skill, map[string]erro
 		if all[i].Registry != all[j].Registry {
 			return all[i].Registry < all[j].Registry
 		}
+		// Role-less skills ("") sort first, directly under the registry
+		// header; role-tagged skills follow, block per role.
+		if all[i].Role != all[j].Role {
+			return all[i].Role < all[j].Role
+		}
 		return all[i].Name < all[j].Name
 	})
 	return all, errs

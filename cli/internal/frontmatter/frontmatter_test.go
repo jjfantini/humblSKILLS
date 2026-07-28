@@ -208,3 +208,34 @@ func TestParse_EmptyFrontmatterBlock(t *testing.T) {
 		t.Errorf("body: got %q", string(body))
 	}
 }
+
+func TestParse_MetadataRole(t *testing.T) {
+	src := []byte(`---
+name: foo
+description: A foo skill.
+metadata:
+  version: 1.0.0
+  category: development
+  role: fde
+---
+Body.
+`)
+	fm, _, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fm.Role() != "fde" {
+		t.Errorf("Role() = %q, want %q", fm.Role(), "fde")
+	}
+}
+
+func TestParse_RoleAbsent_Empty(t *testing.T) {
+	src := []byte("---\nname: foo\ndescription: d\nmetadata:\n  version: 1.0.0\n  category: development\n---\nBody.\n")
+	fm, _, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fm.Role() != "" {
+		t.Errorf("Role() = %q, want empty", fm.Role())
+	}
+}

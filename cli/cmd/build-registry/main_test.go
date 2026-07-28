@@ -292,3 +292,50 @@ func TestSemanticDiff_DetectsSkillChange(t *testing.T) {
 		t.Error("expected diff detected")
 	}
 }
+
+func TestRun_RoleFlowsIntoRegistry(t *testing.T) {
+	root := t.TempDir()
+	skillsDir := filepath.Join(root, "skills")
+	d := filepath.Join(skillsDir, "fdeskill")
+	if err := os.MkdirAll(d, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := "---\nname: fdeskill\ndescription: role-tagged on purpose\nversion: 1.0.0\nmetadata:\n  category: development\n  role: fde\n---\nBody.\n"
+	if err := os.WriteFile(filepath.Join(d, "SKILL.md"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	out := filepath.Join(root, "registry.json")
+	if err := run(skillsDir, out, "r", "main", "sha", false); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	data, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reg registry.Registry
+	if err := json.Unmarshal(data, &reg); err != nil {
+		t.Fatal(err)
+	}
+	if len(reg.Skills) != 1 || reg.Skills[0].Role != "fde" {
+		t.Errorf("skills = %+v, want one skill with role fde", reg.Skills)
+	}
+}
+
+func TestRun_UnknownRole_Rejected(t *testing.T) {
+	root := t.TempDir()
+	skillsDir := filepath.Join(root, "skills")
+	d := filepath.Join(skillsDir, "badrole")
+	if err := os.MkdirAll(d, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := "---\nname: badrole\ndescription: unknown role on purpose\nversion: 1.0.0\nmetadata:\n  category: development\n  role: astronaut\n---\nBody.\n"
+	if err := os.WriteFile(filepath.Join(d, "SKILL.md"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := run(skillsDir, filepath.Join(root, "registry.json"), "r", "main", "sha", false)
+	if err == nil || !strings.Contains(err.Error(), `unknown role "astronaut"`) {
+		t.Fatalf("expected unknown-role validation error, got %v", err)
+	}
+}

@@ -15,6 +15,7 @@ type SkillFixture struct {
 	Version     string
 	Description string
 	Category    string
+	Role        string
 	Tags        []string
 	Platforms   []string
 	Requires    []string
@@ -65,6 +66,7 @@ func BuildRegistry(t testing.TB, cacheDir, owner, name, sha string, fixtures []S
 			Version:     f.Version,
 			Description: f.Description,
 			Category:    f.Category,
+			Role:        f.Role,
 			Tags:        f.Tags,
 			Platforms:   f.Platforms,
 			Requires:    f.Requires,

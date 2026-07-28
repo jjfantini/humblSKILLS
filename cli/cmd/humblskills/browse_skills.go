@@ -51,7 +51,7 @@ func (s skillItem) primary() *manifest.Installation {
 
 func (s skillItem) Key() string { return s.s.Name }
 func (s skillItem) FilterValue() string {
-	return strings.ToLower(s.s.Name + " " + s.s.Category + " " + strings.Join(s.s.Tags, " ") + " " + s.s.Description)
+	return strings.ToLower(s.s.Name + " " + s.s.Category + " " + s.s.Role + " " + strings.Join(s.s.Tags, " ") + " " + s.s.Description)
 }
 
 // NaturalWidth reports the row's display width: dot + space + name + 2-gap
@@ -106,6 +106,9 @@ func (s skillItem) Detail(th *ui.Theme, width int) string {
 	}
 	if s.s.Category != "" {
 		sb.WriteString(kvRow(th, "category", th.Category.Render(s.s.Category)))
+	}
+	if s.s.Role != "" {
+		sb.WriteString(kvRow(th, "role", th.Platform.Render(s.s.Role)))
 	}
 	if len(s.s.Tags) > 0 {
 		chips := make([]string, 0, len(s.s.Tags))
@@ -205,26 +208,41 @@ func buildSkillItems(skills []registry.Skill, m *manifest.Manifest) []skillItem 
 	}
 	sort.SliceStable(items, func(i, j int) bool {
 		// Group by source registry (empty registry — single-registry views —
-		// all collapse into one group), then by skill name within a group.
+		// all collapse into one group), then by role within a registry
+		// (role-less skills first, directly under the registry header),
+		// then by skill name. Must stay in step with aggregateSkills.
 		if items[i].s.Registry != items[j].s.Registry {
 			return items[i].s.Registry < items[j].s.Registry
+		}
+		if items[i].s.Role != items[j].s.Role {
+			return items[i].s.Role < items[j].s.Role
 		}
 		return items[i].s.Name < items[j].s.Name
 	})
 	return items
 }
 
-// registryHeaderItem is a non-selectable section-header row rendered above each
-// registry's skills when more than one registry is shown.
-type registryHeaderItem struct{ name string }
+// registryHeaderItem is a non-selectable section-header row rendered above
+// each registry's skills when more than one registry is shown, and — with
+// sub set — as the lighter role sub-header within a registry's block. One
+// type for both levels so the list's header handling (nav skipping, filter
+// hiding, countSkills) needs no second case.
+type registryHeaderItem struct {
+	name     string
+	registry string // owning registry, part of Key so same-named role headers don't collide
+	sub      bool   // true = role sub-header
+}
 
 func (h registryHeaderItem) IsHeader() bool      { return true }
-func (h registryHeaderItem) Key() string         { return "__header__:" + h.name }
+func (h registryHeaderItem) Key() string         { return "__header__:" + h.registry + ":" + h.name }
 func (h registryHeaderItem) FilterValue() string { return "" }
 func (h registryHeaderItem) NaturalWidth(th *ui.Theme) int {
 	return lipgloss.Width(h.render(th))
 }
 func (h registryHeaderItem) render(th *ui.Theme) string {
+	if h.sub {
+		return th.Meta.Render("· " + h.name + " ·")
+	}
 	return th.SectionTitle.Render("── " + h.name + " ──")
 }
 func (h registryHeaderItem) Row(th *ui.Theme, width int, _ bool) string {
@@ -232,19 +250,32 @@ func (h registryHeaderItem) Row(th *ui.Theme, width int, _ bool) string {
 }
 func (h registryHeaderItem) Detail(th *ui.Theme, width int) string { return "" }
 
-// interleaveRegistryHeaders turns a (registry, name)-sorted item list into a
-// tui.Item slice with a "── <registry> ──" header before each registry's
-// block. When only one registry is present, no headers are added.
+// interleaveRegistryHeaders turns a (registry, role, name)-sorted item list
+// into a tui.Item slice with a "── <registry> ──" header before each
+// registry's block (only when grouped, i.e. >1 registry) and a lighter
+// "· <role> ·" sub-header before each role's block. Role sub-headers appear
+// whenever any skill carries a role — independent of registry grouping.
+// Role-less skills sort first within their registry and get no sub-header.
 func interleaveRegistryHeaders(skills []skillItem, grouped bool) []tui.Item {
-	items := make([]tui.Item, 0, len(skills)+4)
-	last := ""
-	first := true
+	hasRoles := false
 	for _, s := range skills {
-		if grouped && (first || s.s.Registry != last) {
-			items = append(items, registryHeaderItem{name: registryDisplayName(s.s.Registry)})
-			last = s.s.Registry
-			first = false
+		if s.s.Role != "" {
+			hasRoles = true
+			break
 		}
+	}
+	items := make([]tui.Item, 0, len(skills)+4)
+	prevReg, prevRole := "", ""
+	started := false
+	for _, s := range skills {
+		regChanged := !started || s.s.Registry != prevReg
+		if grouped && regChanged {
+			items = append(items, registryHeaderItem{name: registryDisplayName(s.s.Registry), registry: s.s.Registry})
+		}
+		if hasRoles && s.s.Role != "" && (regChanged || s.s.Role != prevRole) {
+			items = append(items, registryHeaderItem{name: s.s.Role, registry: s.s.Registry, sub: true})
+		}
+		prevReg, prevRole, started = s.s.Registry, s.s.Role, true
 		items = append(items, s)
 	}
 	return items

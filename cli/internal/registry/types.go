@@ -26,7 +26,11 @@ type Skill struct {
 	Version     string   `json:"version"`
 	Description string   `json:"description"`
 	Category    string   `json:"category,omitempty"`
-	Tags        []string `json:"tags,omitempty"`
+	// Role is the optional target role this skill is scoped to (closed set,
+	// see frontmatter.Roles). Empty means unscoped; single-valued like
+	// Category. Used to sub-group skills within a registry when browsing.
+	Role string   `json:"role,omitempty"`
+	Tags []string `json:"tags,omitempty"`
 	Platforms   []string `json:"platforms,omitempty"`
 	Requires    []string `json:"requires,omitempty"`
 	Preserve    []string `json:"preserve,omitempty"`

@@ -13,6 +13,7 @@
 //	  author: jjfantini
 //	  version: 1.0.0                   # humblSKILLS requires this
 //	  category: development            # humblSKILLS requires this, one of a closed set
+//	  role: fde                        # optional, one of a closed set (see validate.Roles)
 //	  tags: [...]
 //	  platforms: [claude-code]
 //	  requires: [...]
@@ -42,6 +43,7 @@ type Metadata struct {
 	Author    string   `yaml:"author,omitempty"`
 	Version   string   `yaml:"version,omitempty"`
 	Category  string   `yaml:"category,omitempty"`
+	Role      string   `yaml:"role,omitempty"`
 	Requires  []string `yaml:"requires,omitempty"`
 	Platforms []string `yaml:"platforms,omitempty"`
 	Tags      []string `yaml:"tags,omitempty"`
@@ -90,6 +92,14 @@ func (f Frontmatter) Version() string {
 // the legacy-field migration window, so metadata is the only source.
 func (f Frontmatter) Category() string {
 	return f.Metadata.Category
+}
+
+// Role returns the skill's target role (e.g. "fde", "sdr"), used to group
+// and filter skills by who they serve. Optional; empty means unscoped. Like
+// Category there is no deprecated top-level fallback - role postdates the
+// legacy-field migration window, so metadata is the only source.
+func (f Frontmatter) Role() string {
+	return f.Metadata.Role
 }
 
 // Requires returns the humblSKILLS dep list: metadata.requires first,

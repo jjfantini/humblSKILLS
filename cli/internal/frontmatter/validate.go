@@ -34,6 +34,25 @@ func IsKnownCategory(c string) bool {
 	return false
 }
 
+// Roles is the closed, stable set of roles a skill can be scoped to:
+// fde (forward-deployed engineer), ds (data scientist), sdr (sales
+// development representative). Optional per skill (empty = unscoped),
+// single-valued like category. Adding a role is a taxonomy decision that
+// ships in a CLI release, same as adding a category.
+var Roles = []string{"fde", "ds", "sdr"}
+
+// IsKnownRole reports whether r is one of Roles. Exported so callers
+// outside this package (e.g. the search command's --role flag) can validate
+// against the same closed set used at registry-build time.
+func IsKnownRole(r string) bool {
+	for _, known := range Roles {
+		if r == known {
+			return true
+		}
+	}
+	return false
+}
+
 // isStrictSemver accepts only MAJOR.MINOR.PATCH, optionally with prerelease
 // or build metadata. Go's x/mod/semver treats "1.2" as valid (v1.2.0); we
 // want to reject shortened forms.
@@ -157,6 +176,10 @@ func (fm Frontmatter) Validate(dirName string, ctx ValidationContext) error {
 		errs = append(errs, fmt.Sprintf("category is required (set `metadata.category` to one of %s)", strings.Join(Categories, ", ")))
 	case !IsKnownCategory(category):
 		errs = append(errs, fmt.Sprintf("unknown category %q (must be one of %s)", category, strings.Join(Categories, ", ")))
+	}
+
+	if role := fm.Role(); role != "" && !IsKnownRole(role) {
+		errs = append(errs, fmt.Sprintf("unknown role %q (must be one of %s, or omitted)", role, strings.Join(Roles, ", ")))
 	}
 
 	for _, plat := range fm.Platforms() {
