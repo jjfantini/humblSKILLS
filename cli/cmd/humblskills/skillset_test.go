@@ -364,8 +364,10 @@ func TestSync_AutoConfiguresRegistryFromSkillset(t *testing.T) {
 	})
 
 	setPath := filepath.Join(s.Root, "humblskills.json")
-	body := `{"schema_version":1,"registries":[{"name":"work","url":"` + regURL + `"}],"skills":[{"name":"foo"}]}`
-	if err := os.WriteFile(setPath, []byte(body), 0o644); err != nil {
+	set := skillset.New()
+	set.Add("foo", "")
+	set.AddRegistry("work", regURL)
+	if err := skillset.Save(setPath, set); err != nil {
 		t.Fatal(err)
 	}
 
@@ -417,11 +419,12 @@ func TestSync_UnreachableRegistry_NonInteractive_GuidesAndContinues(t *testing.T
 	})
 
 	setPath := filepath.Join(s.Root, "humblskills.json")
-	body := `{"schema_version":1,"registries":[` +
-		`{"name":"good","url":"` + goodURL + `"},` +
-		`{"name":"private","url":"https://raw.githubusercontent.com/acme/private-skills/main/registry.json"}` +
-		`],"skills":[{"name":"foo"},{"name":"secret-skill"}]}`
-	if err := os.WriteFile(setPath, []byte(body), 0o644); err != nil {
+	set := skillset.New()
+	set.Add("foo", "")
+	set.Add("secret-skill", "")
+	set.AddRegistry("good", goodURL)
+	set.AddRegistry("private", "https://raw.githubusercontent.com/acme/private-skills/main/registry.json")
+	if err := skillset.Save(setPath, set); err != nil {
 		t.Fatal(err)
 	}
 
@@ -467,8 +470,10 @@ func TestExport_EmitsRegistries(t *testing.T) {
 		},
 	})
 	setPath := filepath.Join(s.Root, "humblskills.json")
-	body := `{"schema_version":1,"registries":[{"name":"work","url":"` + regURL + `"}],"skills":[{"name":"foo"}]}`
-	if err := os.WriteFile(setPath, []byte(body), 0o644); err != nil {
+	set := skillset.New()
+	set.Add("foo", "")
+	set.AddRegistry("work", regURL)
+	if err := skillset.Save(setPath, set); err != nil {
 		t.Fatal(err)
 	}
 	if res := runCLIWithStdoutCapture(t,
