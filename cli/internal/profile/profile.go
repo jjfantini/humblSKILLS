@@ -59,6 +59,13 @@ type Profile struct {
 	// positive value is the number of seconds to wait. Only success
 	// screens auto-return - a failed run always waits for the user.
 	StatusAutoReturnSeconds *int `json:"status_auto_return_seconds,omitempty"`
+
+	// DesktopExports, when true, regenerates a claude.ai / Claude Desktop
+	// upload zip (see `humblskills export desktop`) for every skill that an
+	// install or update touches, under ~/.humblskills/desktop. Off by
+	// default — Desktop uploads are manual either way; this just keeps the
+	// zips fresh.
+	DesktopExports bool `json:"desktop_exports,omitempty"`
 }
 
 // NamedRegistry is one entry in the multi-registry set (Profile.Registries).

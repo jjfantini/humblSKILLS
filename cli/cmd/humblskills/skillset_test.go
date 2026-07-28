@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/skillset"
 	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
 )
@@ -347,5 +348,151 @@ func TestSync_MissingFile_Errors(t *testing.T) {
 	)
 	if res.RunErr == nil {
 		t.Fatal("expected error when skillset file is missing")
+	}
+}
+
+func TestSync_AutoConfiguresRegistryFromSkillset(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{
+			Name: "foo", Version: "1.0.0",
+			Platforms: []string{"claude-code"},
+			Files:     testutil.SkillTree{"SKILL.md": sampleSkillMD},
+		},
+	})
+
+	setPath := filepath.Join(s.Root, "humblskills.json")
+	body := `{"schema_version":1,"registries":[{"name":"work","url":"` + regURL + `"}],"skills":[{"name":"foo"}]}`
+	if err := os.WriteFile(setPath, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	res := runCLIWithStdoutCapture(t,
+		"sync", setPath,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--profile", s.ProfilePath,
+		"--platform", "claude-code",
+		"--scope", "user",
+		"--yes",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("sync: %v\n%s", res.RunErr, res.Err)
+	}
+
+	// The registry from the skillset must now be configured…
+	p, err := profile.Load(s.ProfilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r, ok := p.FindRegistry("work"); !ok || r.URL == "" {
+		t.Fatalf("registry not auto-configured; profile registries: %+v", p.Registries)
+	}
+	// …and the skill installed from it, attributed to it.
+	m, err := manifest.Load(s.ManifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	insts := m.FindAll("foo")
+	if len(insts) == 0 {
+		t.Fatalf("foo not installed; manifest: %+v", m.Installations)
+	}
+	if insts[0].RegistryName != "work" {
+		t.Errorf("RegistryName = %q, want work", insts[0].RegistryName)
+	}
+}
+
+func TestSync_UnreachableRegistry_NonInteractive_GuidesAndContinues(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+
+	goodURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{
+			Name: "foo", Version: "1.0.0",
+			Platforms: []string{"claude-code"},
+			Files:     testutil.SkillTree{"SKILL.md": sampleSkillMD},
+		},
+	})
+
+	setPath := filepath.Join(s.Root, "humblskills.json")
+	body := `{"schema_version":1,"registries":[` +
+		`{"name":"good","url":"` + goodURL + `"},` +
+		`{"name":"private","url":"https://raw.githubusercontent.com/acme/private-skills/main/registry.json"}` +
+		`],"skills":[{"name":"foo"},{"name":"secret-skill"}]}`
+	if err := os.WriteFile(setPath, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	res := runCLIWithStdoutCapture(t,
+		"sync", setPath,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--profile", s.ProfilePath,
+		"--platform", "claude-code",
+		"--scope", "user",
+		"--yes",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("sync should continue past an unreadable registry: %v\n%s", res.RunErr, res.Err)
+	}
+	// The good registry's skill installed…
+	m, err := manifest.Load(s.ManifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.FindAll("foo")) == 0 {
+		t.Errorf("foo not installed; manifest: %+v", m.Installations)
+	}
+	// …the private one's skill was skipped, and the token guide printed.
+	if len(m.FindAll("secret-skill")) != 0 {
+		t.Error("secret-skill should not have installed")
+	}
+	combined := res.Out + res.Err
+	assertContains(t, combined, "personal-access-tokens")
+	assertContains(t, combined, "acme/private-skills")
+	assertContains(t, combined, "registry login --name private")
+}
+
+func TestExport_EmitsRegistries(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{
+			Name: "foo", Version: "1.0.0",
+			Platforms: []string{"claude-code"},
+			Files:     testutil.SkillTree{"SKILL.md": sampleSkillMD},
+		},
+	})
+	setPath := filepath.Join(s.Root, "humblskills.json")
+	body := `{"schema_version":1,"registries":[{"name":"work","url":"` + regURL + `"}],"skills":[{"name":"foo"}]}`
+	if err := os.WriteFile(setPath, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if res := runCLIWithStdoutCapture(t,
+		"sync", setPath,
+		"--cache-dir", s.CacheDir, "--manifest", s.ManifestPath, "--profile", s.ProfilePath,
+		"--platform", "claude-code", "--scope", "user", "--yes",
+	); res.RunErr != nil {
+		t.Fatalf("sync: %v\n%s", res.RunErr, res.Err)
+	}
+
+	outPath := filepath.Join(s.Root, "exported.json")
+	if res := runCLIWithStdoutCapture(t,
+		"export",
+		"--manifest", s.ManifestPath, "--profile", s.ProfilePath,
+		"--output", outPath, "--yes",
+	); res.RunErr != nil {
+		t.Fatalf("export: %v\n%s", res.RunErr, res.Err)
+	}
+
+	exported, err := skillset.Load(outPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(exported.Registries) != 1 || exported.Registries[0].Name != "work" {
+		t.Errorf("exported registries = %+v, want [work]", exported.Registries)
 	}
 }

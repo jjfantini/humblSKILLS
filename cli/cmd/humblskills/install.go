@@ -220,8 +220,10 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 			return err
 		}
 		// Feedback already lives in the progress model's blocking done/summary
-		// screen — printing to the normal buffer here would just get hidden
-		// the instant the dashboard loop re-enters the alt-screen.
+		// screen; the desktop-zip lines below are the exception (they don't
+		// exist in the progress model) — the dashboard loop captures them
+		// onto its status screen, one-shot runs print them normally.
+		maybeDesktopExport(app, res)
 		return nil
 	}
 	if err := run(nil); err != nil {
@@ -229,10 +231,15 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 	}
 
 	if app.Config.JSON {
-		return app.UI.JSON(res)
+		zips := maybeDesktopExport(app, res)
+		return app.UI.JSON(struct {
+			install.Result
+			DesktopZips []desktopZipInfo `json:"desktop_zips,omitempty"`
+		}{res, zips})
 	}
 
 	printInstall(app, res)
+	maybeDesktopExport(app, res)
 	return nil
 }
 

@@ -219,7 +219,8 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 			return err
 		}
 		// Feedback already lives in the progress model's blocking done/summary
-		// screen — see runInstall for why we don't also print to stdout here.
+		// screen — see runInstall for why the desktop-zip lines still print.
+		maybeDesktopExport(app, aggregate)
 		return nil
 	}
 	if err := run(nil); err != nil {
@@ -227,9 +228,14 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 	}
 
 	if app.Config.JSON {
-		return app.UI.JSON(aggregate)
+		zips := maybeDesktopExport(app, aggregate)
+		return app.UI.JSON(struct {
+			install.Result
+			DesktopZips []desktopZipInfo `json:"desktop_zips,omitempty"`
+		}{aggregate, zips})
 	}
 	printInstall(app, aggregate)
+	maybeDesktopExport(app, aggregate)
 	return nil
 }
 

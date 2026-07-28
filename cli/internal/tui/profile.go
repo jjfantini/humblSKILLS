@@ -233,6 +233,11 @@ func (m profileModel) toggleCurrent() profileModel {
 			m.profile.StatusAutoReturnSeconds = autoReturnSettingOpts[m.valueIdx].value
 			m.changed = true
 		}
+	case 3: // desktop zips
+		if m.valueIdx >= 0 && m.valueIdx < len(desktopExportSettingOpts) {
+			m.profile.DesktopExports = desktopExportSettingOpts[m.valueIdx].value
+			m.changed = true
+		}
 	}
 	return m
 }
@@ -266,6 +271,24 @@ var autoReturnSettingOpts = []struct {
 
 func intPtr(n int) *int { return &n }
 
+// desktopExportSettingOpts is the picker for Profile.DesktopExports: whether
+// install/update also regenerates claude.ai / Claude Desktop upload zips.
+var desktopExportSettingOpts = []struct {
+	label string
+	value bool
+}{
+	{"off (default)", false},
+	{"on — write upload zips on every install/update", true},
+}
+
+// desktopExportCurrent maps the profile value onto a picker index.
+func desktopExportCurrent(on bool) int {
+	if on {
+		return 1
+	}
+	return 0
+}
+
 // currentSelectionIndex returns the index in the right-pane options list that
 // represents the profile's current value for the focused setting. Used to
 // place the cursor on the already-selected option when the user drills in.
@@ -287,6 +310,8 @@ func (m profileModel) currentSelectionIndex() int {
 				return i
 			}
 		}
+	case 3:
+		return desktopExportCurrent(m.profile.DesktopExports)
 	}
 	return 0
 }
@@ -309,6 +334,8 @@ func (m profileModel) valueCount() int {
 		return len(scopeSettingOpts)
 	case 2:
 		return len(autoReturnSettingOpts)
+	case 3:
+		return len(desktopExportSettingOpts)
 	}
 	return 0
 }
@@ -332,6 +359,7 @@ var profileSettings = []profileSetting{
 	{key: "platforms", label: "default platforms", kind: settingMulti},
 	{key: "scope", label: "default scope", kind: settingRadio},
 	{key: "status_auto_return", label: "status auto-return", kind: settingRadio},
+	{key: "desktop_exports", label: "desktop zips", kind: settingRadio},
 }
 
 func (m profileModel) View() string {
@@ -460,6 +488,8 @@ func (m profileModel) renderRight(width int) string {
 		body = append(body, m.renderScopeOptions(bar, width)...)
 	case 2:
 		body = append(body, m.renderAutoReturnOptions(bar, width)...)
+	case 3:
+		body = append(body, m.renderDesktopExportOptions(bar, width)...)
 	}
 	return strings.Join(body, "\n")
 }
@@ -586,6 +616,44 @@ func (m profileModel) renderAutoReturnOptions(bar string, width int) []string {
 	return rows
 }
 
+// renderDesktopExportOptions renders the Profile.DesktopExports picker:
+// whether install/update regenerates claude.ai / Claude Desktop upload zips.
+func (m profileModel) renderDesktopExportOptions(bar string, width int) []string {
+	th := m.theme
+	rows := make([]string, 0, len(desktopExportSettingOpts)+4)
+	rows = append(rows, bar+" "+th.Detail.Render(
+		"Claude Desktop and claude.ai take skills as zip uploads. When on, "+
+			"every install/update also writes an upload-ready zip per skill to "+
+			"~/.humblskills/desktop (same as 'humblskills export desktop')."))
+	rows = append(rows, bar)
+	rows = append(rows, bar+" "+th.SectionTitle.Render("OPTIONS"))
+	current := desktopExportCurrent(m.profile.DesktopExports)
+	for i, opt := range desktopExportSettingOpts {
+		cursorHere := i == m.valueIdx && m.focus == focusValue
+		isCurrent := i == current
+		marker := "( )"
+		if isCurrent {
+			marker = "(●)"
+		}
+		var styled string
+		switch {
+		case cursorHere:
+			styled = th.RowSelected.Render(marker + "  " + opt.label)
+		case isCurrent:
+			styled = th.Success.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
+		default:
+			styled = th.RowDim.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
+		}
+		prefix := bar + "   "
+		if cursorHere {
+			prefix = bar + " " + th.Bullet.Render("▸") + " "
+		}
+		rows = append(rows, prefix+styled)
+	}
+	_ = width
+	return rows
+}
+
 func (m profileModel) layoutRow(label, badge string, width int) string {
 	lw := lipgloss.Width(label)
 	bw := lipgloss.Width(badge)
@@ -618,6 +686,11 @@ func (m profileModel) settingBadge(key string) string {
 		}
 	case "status_auto_return":
 		return formatAutoReturnBadge(m.profile.StatusAutoReturnSeconds)
+	case "desktop_exports":
+		if m.profile.DesktopExports {
+			return "on"
+		}
+		return "off (default)"
 	}
 	return ""
 }

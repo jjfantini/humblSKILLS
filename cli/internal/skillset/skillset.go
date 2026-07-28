@@ -41,10 +41,23 @@ type Skill struct {
 	Version string `json:"version,omitempty"`
 }
 
+// Registry is a named registry the skillset's skills come from. `sync`
+// auto-configures any it doesn't have yet (and walks the user through storing
+// a token for private ones). Tokens themselves NEVER belong in a skillset —
+// it's a shared file.
+type Registry struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
 // Set is the full skillset document.
 type Set struct {
 	SchemaVersion int     `json:"schema_version"`
 	Skills        []Skill `json:"skills"`
+	// Registries, when present, lists the named registries needed to resolve
+	// Skills. Additive: older CLIs ignore it and hand-written files may omit
+	// it entirely.
+	Registries []Registry `json:"registries,omitempty"`
 }
 
 // New returns an empty, current-schema Set. Skills is a non-nil empty slice so
@@ -70,9 +83,10 @@ func (s *Set) Add(name, version string) {
 	s.Skills = append(s.Skills, Skill{Name: name, Version: version})
 }
 
-// Sort orders skills by name for stable, diff-friendly output.
+// Sort orders skills and registries by name for stable, diff-friendly output.
 func (s *Set) Sort() {
 	sort.Slice(s.Skills, func(i, j int) bool { return s.Skills[i].Name < s.Skills[j].Name })
+	sort.Slice(s.Registries, func(i, j int) bool { return s.Registries[i].Name < s.Registries[j].Name })
 }
 
 // Names returns the skill names in file order.
@@ -99,17 +113,48 @@ func (s *Set) Validate() error {
 		}
 		seen[sk.Name] = true
 	}
+	seenReg := map[string]bool{}
+	for _, r := range s.Registries {
+		if strings.TrimSpace(r.Name) == "" {
+			return fmt.Errorf("skillset contains a registry with an empty name")
+		}
+		if strings.TrimSpace(r.URL) == "" {
+			return fmt.Errorf("skillset registry %q has an empty url", r.Name)
+		}
+		if seenReg[r.Name] {
+			return fmt.Errorf("skillset lists registry %q more than once", r.Name)
+		}
+		seenReg[r.Name] = true
+	}
 	return nil
+}
+
+// AddRegistry records a named registry, de-duplicating by name (last URL
+// wins). Blank names are ignored.
+func (s *Set) AddRegistry(name, url string) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return
+	}
+	for i := range s.Registries {
+		if s.Registries[i].Name == name {
+			s.Registries[i].URL = url
+			return
+		}
+	}
+	s.Registries = append(s.Registries, Registry{Name: name, URL: url})
 }
 
 // LoadFrom loads a skillset from any supported source: a local filesystem
 // path, a file:// URL, or an http(s):// URL. This is the entry point `sync`
 // uses so a team can host one canonical skillset and everyone runs
-// `humblskills sync https://example.com/humblskills.json`.
-func LoadFrom(source string) (*Set, error) {
+// `humblskills sync https://example.com/humblskills.json`. token, when
+// non-empty, is sent as a Bearer token on http(s) fetches so a skillset can
+// live in the same private repo as its registry.
+func LoadFrom(source, token string) (*Set, error) {
 	switch {
 	case isRemote(source):
-		return loadRemote(source)
+		return loadRemote(source, token)
 	case strings.HasPrefix(source, "file://"):
 		return Load(fileURLPath(source))
 	default:
@@ -133,8 +178,15 @@ func isRemote(source string) bool {
 
 // loadRemote fetches a skillset over HTTP(S) and validates it. It never touches
 // any cache - a skillset is small and the caller asked for a fresh copy.
-func loadRemote(rawURL string) (*Set, error) {
-	resp, err := httpClient.Get(rawURL)
+func loadRemote(rawURL, token string) (*Set, error) {
+	req, err := http.NewRequest(http.MethodGet, rawURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("fetch skillset %s: %w", rawURL, err)
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetch skillset %s: %w", rawURL, err)
 	}
