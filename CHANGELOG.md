@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.39.0](https://github.com/jjfantini/humblSKILLS/compare/v2.38.0...v2.39.0) (2026-07-28)
+
+
+### Features
+
+* **cli:** claude-desktop as a first-class platform (zip transform) ([#203](https://github.com/jjfantini/humblSKILLS/issues/203)) ([e3981ad](https://github.com/jjfantini/humblSKILLS/commit/e3981ad9706d768e3adad17c460023177ff4d07f))
+
 ## [2.38.0](https://github.com/jjfantini/humblSKILLS/compare/v2.37.0...v2.38.0) (2026-07-28)
 
 
