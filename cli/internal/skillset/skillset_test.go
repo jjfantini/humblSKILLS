@@ -140,7 +140,7 @@ func TestLoadFrom_LocalPath(t *testing.T) {
 	if err := os.WriteFile(path, []byte(`{"skills":[{"name":"foo"}]}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got, err := LoadFrom(path)
+	got, err := LoadFrom(path, "")
 	if err != nil {
 		t.Fatalf("LoadFrom(local): %v", err)
 	}
@@ -155,7 +155,7 @@ func TestLoadFrom_FileURL(t *testing.T) {
 	if err := os.WriteFile(path, []byte(`{"skills":[{"name":"bar"}]}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got, err := LoadFrom("file://" + path)
+	got, err := LoadFrom("file://"+path, "")
 	if err != nil {
 		t.Fatalf("LoadFrom(file url): %v", err)
 	}
@@ -170,7 +170,7 @@ func TestLoadFrom_RemoteHTTP(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	got, err := LoadFrom(srv.URL + "/humblskills.json")
+	got, err := LoadFrom(srv.URL+"/humblskills.json", "")
 	if err != nil {
 		t.Fatalf("LoadFrom(http): %v", err)
 	}
@@ -185,7 +185,7 @@ func TestLoadFrom_RemoteNon200(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	if _, err := LoadFrom(srv.URL + "/missing.json"); err == nil {
+	if _, err := LoadFrom(srv.URL+"/missing.json", ""); err == nil {
 		t.Fatal("expected error for HTTP 404")
 	}
 }
@@ -196,7 +196,7 @@ func TestLoadFrom_RemoteBadJSON(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	if _, err := LoadFrom(srv.URL + "/bad.json"); err == nil {
+	if _, err := LoadFrom(srv.URL+"/bad.json", ""); err == nil {
 		t.Fatal("expected parse error for invalid JSON")
 	}
 }
@@ -207,7 +207,49 @@ func TestLoadFrom_RemoteValidatesSchema(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	if _, err := LoadFrom(srv.URL + "/s.json"); err == nil {
+	if _, err := LoadFrom(srv.URL+"/s.json", ""); err == nil {
 		t.Fatal("expected validation error for bad schema_version")
+	}
+}
+
+func TestRegistries_RoundTripAndSorted(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/humblskills.json"
+	s := New()
+	s.Add("a-skill", "1.0.0")
+	s.AddRegistry("zeta", "https://example.com/z/registry.json")
+	s.AddRegistry("alpha", "https://example.com/a/registry.json")
+	s.AddRegistry("zeta", "https://example.com/z2/registry.json") // last URL wins
+	if err := Save(path, s); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	got, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got.Registries) != 2 {
+		t.Fatalf("registries = %+v, want 2", got.Registries)
+	}
+	if got.Registries[0].Name != "alpha" || got.Registries[1].Name != "zeta" {
+		t.Errorf("not sorted: %+v", got.Registries)
+	}
+	if got.Registries[1].URL != "https://example.com/z2/registry.json" {
+		t.Errorf("dedupe last-wins failed: %+v", got.Registries[1])
+	}
+}
+
+func TestValidate_RegistryErrors(t *testing.T) {
+	cases := []struct {
+		name string
+		set  Set
+	}{
+		{"empty name", Set{SchemaVersion: SchemaVersion, Registries: []Registry{{Name: " ", URL: "https://x"}}}},
+		{"empty url", Set{SchemaVersion: SchemaVersion, Registries: []Registry{{Name: "a", URL: ""}}}},
+		{"duplicate", Set{SchemaVersion: SchemaVersion, Registries: []Registry{{Name: "a", URL: "https://x"}, {Name: "a", URL: "https://y"}}}},
+	}
+	for _, tc := range cases {
+		if err := tc.set.Validate(); err == nil {
+			t.Errorf("%s: expected validation error", tc.name)
+		}
 	}
 }

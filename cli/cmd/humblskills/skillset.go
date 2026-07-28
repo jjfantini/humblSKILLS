@@ -3,14 +3,17 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/install"
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
+	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
 	"github.com/jjfantini/humblSKILLS/cli/internal/skillset"
 	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
@@ -100,6 +103,7 @@ func newExportCmd(app *App) *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&output, "output", "o", skillset.DefaultFilename,
 		"skillset file to write")
+	cmd.AddCommand(newExportDesktopCmd(app))
 	return cmd
 }
 
@@ -119,6 +123,19 @@ func runExport(app *App, output string) error {
 			version = insts[0].Version
 		}
 		set.Add(name, version)
+	}
+	// Record the named registries these skills came from so `sync` on another
+	// machine can auto-configure them. Default-registry installs contribute
+	// nothing (every CLI already has the default).
+	if p, err := profile.Load(app.Config.ProfilePath); err == nil && p != nil {
+		for _, inst := range m.Installations {
+			if inst.RegistryName == "" || inst.RegistryName == "default" {
+				continue
+			}
+			if r, ok := p.FindRegistry(inst.RegistryName); ok {
+				set.AddRegistry(r.Name, r.URL)
+			}
+		}
 	}
 	set.Sort()
 
@@ -171,7 +188,10 @@ func newSyncCmd(app *App) *cobra.Command {
 }
 
 func runSync(app *App, path string, f installFlags, prune bool) error {
-	set, err := skillset.LoadFrom(path)
+	// Send the default stored token (if any) on remote skillset fetches so a
+	// skillset can live in the same private repo as its registry.
+	defaultTok, _ := secrets.GetRegistryTokenFor("")
+	set, err := skillset.LoadFrom(path, defaultTok)
 	if err != nil {
 		return err
 	}
@@ -180,13 +200,32 @@ func runSync(app *App, path string, f installFlags, prune bool) error {
 		return nil
 	}
 
+	// Configure any registries the skillset names before loading them: add
+	// missing ones to the profile and walk the user through a token for
+	// private ones. Non-fatal — unreadable registries surface as per-skill
+	// "not found" warnings below.
+	bootstrapSkillsetRegistries(app, set)
+
 	adapterList, err := app.Adapters()
 	if err != nil {
 		return fmt.Errorf("load adapters: %w", err)
 	}
-	reg, _, err := app.registryFetcher().Load()
-	if err != nil {
-		return fmt.Errorf("load registry: %w", err)
+	loaded := app.loadRegistries()
+	anyLoaded := false
+	for _, rs := range loaded {
+		if rs.Err == nil {
+			anyLoaded = true
+		} else if !app.Config.JSON {
+			app.UI.Warn("registry %q unavailable: %v", rs.Name, rs.Err)
+		}
+	}
+	if !anyLoaded {
+		for _, rs := range loaded {
+			if rs.Err != nil {
+				return fmt.Errorf("load registry %q: %w", rs.Name, rs.Err)
+			}
+		}
+		return fmt.Errorf("no registries configured")
 	}
 	p, err := profile.Load(app.Config.ProfilePath)
 	if err != nil {
@@ -205,14 +244,36 @@ func runSync(app *App, path string, f installFlags, prune bool) error {
 		return fmt.Errorf("no platforms selected — run 'humblskills doctor' to see what's detected")
 	}
 
-	engine := app.installEngine()
+	// When a skill exists in several registries, prefer the skillset's own
+	// registry order — the file's author knows where their skills live.
+	regOrder := map[string]int{}
+	for i, r := range set.Registries {
+		regOrder[r.Name] = i + 1
+	}
+
 	var aggregate install.Result
 	var missing []string
 
 	names := set.Names()
 	sort.Strings(names)
 	for _, name := range names {
-		plan, planErr := install.Plan(reg, name)
+		matches := allRegistriesForSkill(loaded, name)
+		if len(matches) == 0 {
+			missing = append(missing, name)
+			app.UI.Warn("skipping %q: not found in any configured registry", name)
+			continue
+		}
+		target := matches[0]
+		if len(matches) > 1 {
+			best := int(^uint(0) >> 1)
+			for _, m := range matches {
+				if o, ok := regOrder[m.Name]; ok && o < best {
+					best = o
+					target = m
+				}
+			}
+		}
+		plan, planErr := install.Plan(target.Reg, name)
 		if planErr != nil {
 			// A skill in the skillset that the registry doesn't know about is a
 			// warning, not a hard failure — sync the rest.
@@ -220,12 +281,13 @@ func runSync(app *App, path string, f installFlags, prune bool) error {
 			app.UI.Warn("skipping %q: %v", name, planErr)
 			continue
 		}
-		res, execErr := engine.Execute(reg, plan, install.ExecuteOpts{
-			Adapters:  adapterList,
-			Platforms: selected,
-			Scope:     scope,
-			Force:     f.force,
-			Global:    global,
+		res, execErr := app.installEngineForToken(target.Token).Execute(target.Reg, plan, install.ExecuteOpts{
+			Adapters:     adapterList,
+			Platforms:    selected,
+			Scope:        scope,
+			Force:        f.force,
+			Global:       global,
+			RegistryName: target.Name,
 		})
 		if execErr != nil {
 			return fmt.Errorf("%s: %w", name, execErr)
@@ -243,12 +305,15 @@ func runSync(app *App, path string, f installFlags, prune bool) error {
 	}
 
 	if app.Config.JSON {
+		zips := maybeDesktopExport(app, aggregate)
 		return app.UI.JSON(struct {
 			install.Result
-			Pruned []install.TargetResult `json:"pruned,omitempty"`
-		}{aggregate, pruned})
+			Pruned      []install.TargetResult `json:"pruned,omitempty"`
+			DesktopZips []desktopZipInfo       `json:"desktop_zips,omitempty"`
+		}{aggregate, pruned, zips})
 	}
 	printInstall(app, aggregate)
+	maybeDesktopExport(app, aggregate)
 	for _, t := range pruned {
 		app.UI.Success("pruned %s [%s/%s]", t.Skill, t.Platform, t.Scope)
 	}
@@ -257,6 +322,111 @@ func runSync(app *App, path string, f installFlags, prune bool) error {
 			len(missing), textutil.Plural(len(missing)), path, missing)
 	}
 	return nil
+}
+
+// bootstrapSkillsetRegistries makes sure every registry the skillset names is
+// configured (adding missing ones to the profile) and readable — walking the
+// user through creating and storing a token for private ones. Everything here
+// is non-fatal: sync continues, and skills from a registry that stays
+// unreadable surface as per-skill warnings.
+func bootstrapSkillsetRegistries(app *App, set *skillset.Set) {
+	if len(set.Registries) == 0 {
+		return
+	}
+	p, err := profile.Load(app.Config.ProfilePath)
+	if err != nil {
+		app.UI.Warn("skillset registries: %v", err)
+		return
+	}
+	for _, r := range set.Registries {
+		if existing, ok := p.FindRegistry(r.Name); ok {
+			if existing.URL != normalizeRegistryURL(strings.TrimSpace(r.URL)) {
+				app.UI.Detail("registry %q already configured (%s) — keeping your URL over the skillset's", r.Name, existing.URL)
+			}
+			ensureRegistryReadable(app, r.Name)
+			continue
+		}
+		name, url, err := addRegistry(app, r.Name, r.URL)
+		if err != nil {
+			app.UI.Warn("skillset registry %q: %v", r.Name, err)
+			continue
+		}
+		app.UI.Success("added registry %s → %s", name, url)
+		ensureRegistryReadable(app, name)
+	}
+}
+
+// ensureRegistryReadable checks a configured registry loads; when it doesn't
+// and no token of its own is stored, prints the token guide and (on a TTY)
+// prompts for one, storing + verifying it via the same path as
+// `registry login`.
+func ensureRegistryReadable(app *App, name string) {
+	var target *resolvedRegistry
+	for _, r := range app.resolvedRegistries() {
+		if r.Name == name {
+			rr := r
+			target = &rr
+			break
+		}
+	}
+	if target == nil {
+		return
+	}
+	if _, _, err := app.fetcherForRegistry(*target).Load(); err == nil {
+		return
+	}
+	if own := secrets.OwnRegistryTokenSource(name); own != secrets.SourceAbsent {
+		app.UI.Warn("registry %q is not readable with its stored token — re-run 'humblskills registry login --name %s'", name, name)
+		return
+	}
+	printTokenGuide(app, name, target.URL)
+	if !app.Prompt.Interactive {
+		app.UI.Warn("no token stored for %q — its skills will be skipped this run; add one with 'humblskills registry login --name %s' and re-run sync", name, name)
+		return
+	}
+	tok, err := app.Prompt.Secret("Paste the token for " + name + " (input hidden)")
+	if err != nil || strings.TrimSpace(tok) == "" {
+		app.UI.Warn("no token provided — skills from %q will be skipped this run", name)
+		return
+	}
+	msg, ok := storeAndVerifyToken(app, name, strings.TrimSpace(tok))
+	if ok {
+		app.UI.Success("%s", msg)
+	} else {
+		app.UI.Warn("%s", msg)
+	}
+}
+
+// printTokenGuide prints the shortest path to a working GitHub token for a
+// private registry, with the repo name filled in when the URL reveals it.
+func printTokenGuide(app *App, name, rawURL string) {
+	repoLabel := "the registry's GitHub repository"
+	if owner, repo := ownerRepoFromRegistryURL(rawURL); owner != "" {
+		repoLabel = owner + "/" + repo
+	}
+	app.UI.Info("registry %q looks private — a GitHub token is needed to read it", name)
+	app.UI.Info("  1. ask the repo owner to give your GitHub account read access to %s", repoLabel)
+	app.UI.Info("  2. open https://github.com/settings/personal-access-tokens → Generate new token (fine-grained)")
+	app.UI.Info("  3. Repository access: 'Only select repositories' → %s", repoLabel)
+	app.UI.Info("  4. Permissions → Repository permissions → Contents: Read-only → Generate, then copy the token")
+	app.UI.Info("  5. paste it at the prompt below (or later: humblskills registry login --name %s)", name)
+}
+
+// ownerRepoFromRegistryURL extracts owner/repo from a github.com or
+// raw.githubusercontent.com registry URL; empty strings when it can't.
+func ownerRepoFromRegistryURL(raw string) (string, string) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", ""
+	}
+	if u.Host != "raw.githubusercontent.com" && u.Host != "github.com" {
+		return "", ""
+	}
+	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
+	if len(parts) < 2 {
+		return "", ""
+	}
+	return parts[0], parts[1]
 }
 
 // pruneToSkillset uninstalls every skill that's installed locally but absent
