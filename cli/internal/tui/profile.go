@@ -233,11 +233,6 @@ func (m profileModel) toggleCurrent() profileModel {
 			m.profile.StatusAutoReturnSeconds = autoReturnSettingOpts[m.valueIdx].value
 			m.changed = true
 		}
-	case 3: // desktop zips
-		if m.valueIdx >= 0 && m.valueIdx < len(desktopExportSettingOpts) {
-			m.profile.DesktopExports = desktopExportSettingOpts[m.valueIdx].value
-			m.changed = true
-		}
 	}
 	return m
 }
@@ -271,23 +266,22 @@ var autoReturnSettingOpts = []struct {
 
 func intPtr(n int) *int { return &n }
 
-// desktopExportSettingOpts is the picker for Profile.DesktopExports: whether
-// install/update also regenerates claude.ai / Claude Desktop upload zips.
-var desktopExportSettingOpts = []struct {
-	label string
-	value bool
-}{
-	{"off (default)", false},
-	{"on — write upload zips on every install/update", true},
+// detailLines wraps a setting description to the value pane's width and
+// prefixes each wrapped line with the divider bar, so long descriptions
+// flow instead of getting clipped at the pane edge on narrow terminals.
+func detailLines(th *ui.Theme, bar, text string, width int) []string {
+	w := width - 4
+	if w < 16 {
+		w = 16
+	}
+	wrapped := th.Detail.Width(w).Render(text)
+	var out []string
+	for _, line := range strings.Split(wrapped, "\n") {
+		out = append(out, bar+" "+line)
+	}
+	return out
 }
 
-// desktopExportCurrent maps the profile value onto a picker index.
-func desktopExportCurrent(on bool) int {
-	if on {
-		return 1
-	}
-	return 0
-}
 
 // currentSelectionIndex returns the index in the right-pane options list that
 // represents the profile's current value for the focused setting. Used to
@@ -310,8 +304,6 @@ func (m profileModel) currentSelectionIndex() int {
 				return i
 			}
 		}
-	case 3:
-		return desktopExportCurrent(m.profile.DesktopExports)
 	}
 	return 0
 }
@@ -334,8 +326,6 @@ func (m profileModel) valueCount() int {
 		return len(scopeSettingOpts)
 	case 2:
 		return len(autoReturnSettingOpts)
-	case 3:
-		return len(desktopExportSettingOpts)
 	}
 	return 0
 }
@@ -359,7 +349,6 @@ var profileSettings = []profileSetting{
 	{key: "platforms", label: "default platforms", kind: settingMulti},
 	{key: "scope", label: "default scope", kind: settingRadio},
 	{key: "status_auto_return", label: "status auto-return", kind: settingRadio},
-	{key: "desktop_exports", label: "desktop zips", kind: settingRadio},
 }
 
 func (m profileModel) View() string {
@@ -488,8 +477,6 @@ func (m profileModel) renderRight(width int) string {
 		body = append(body, m.renderScopeOptions(bar, width)...)
 	case 2:
 		body = append(body, m.renderAutoReturnOptions(bar, width)...)
-	case 3:
-		body = append(body, m.renderDesktopExportOptions(bar, width)...)
 	}
 	return strings.Join(body, "\n")
 }
@@ -502,8 +489,8 @@ func (m profileModel) renderPlatformOptions(bar string, width int) []string {
 	}
 	rows := make([]string, 0, len(m.adapters)+2)
 	if len(m.profile.DefaultPlatforms) == 0 {
-		rows = append(rows, bar+" "+th.Detail.Render(
-			"No defaults set — installs target every detected platform."))
+		rows = append(rows, detailLines(th, bar,
+			"No defaults set — installs target every detected platform.", width)...)
 		rows = append(rows, bar)
 	}
 	rows = append(rows, bar+" "+th.SectionTitle.Render("PLATFORMS"))
@@ -529,7 +516,6 @@ func (m profileModel) renderPlatformOptions(bar string, width int) []string {
 		}
 		rows = append(rows, prefix+styled)
 	}
-	_ = width
 	return rows
 }
 
@@ -537,10 +523,10 @@ func (m profileModel) renderScopeOptions(bar string, width int) []string {
 	th := m.theme
 	resolved := m.profile.ResolvedScope()
 	rows := make([]string, 0, len(scopeSettingOpts)+4)
-	rows = append(rows, bar+" "+th.Detail.Render(
+	rows = append(rows, detailLines(th, bar,
 		"Which scope installs default to. Global humblskills installs one canonical "+
 			"copy and symlinks it to every selected platform — recommended for most "+
-			"setups. User/project pin a concrete platform-native location instead."))
+			"setups. User/project pin a concrete platform-native location instead.", width)...)
 	rows = append(rows, bar)
 	rows = append(rows, bar+" "+th.SectionTitle.Render("OPTIONS"))
 	for i, opt := range scopeSettingOpts {
@@ -567,13 +553,12 @@ func (m profileModel) renderScopeOptions(bar string, width int) []string {
 	}
 	if resolved == profile.ScopeAdapterDefault {
 		rows = append(rows, bar)
-		rows = append(rows, bar+" "+th.Detail.Render(
+		rows = append(rows, detailLines(th, bar,
 			"Note: adapter default can't show a concrete location up front — "+
 				"every platform here happens to default to \"user\" today, but the "+
 				"install screen will still ask you to pick a scope since it can't "+
-				"display one for this setting."))
+				"display one for this setting.", width)...)
 	}
-	_ = width
 	return rows
 }
 
@@ -584,10 +569,10 @@ func (m profileModel) renderAutoReturnOptions(bar string, width int) []string {
 	th := m.theme
 	cur := m.profile.StatusAutoReturnSeconds
 	rows := make([]string, 0, len(autoReturnSettingOpts)+4)
-	rows = append(rows, bar+" "+th.Detail.Render(
+	rows = append(rows, detailLines(th, bar,
 		"How long a completed status screen (registry refresh, install, update) "+
 			"stays up before automatically returning to the dashboard. A failed run "+
-			"always waits for enter/q — this only applies to successful runs."))
+			"always waits for enter/q — this only applies to successful runs.", width)...)
 	rows = append(rows, bar)
 	rows = append(rows, bar+" "+th.SectionTitle.Render("OPTIONS"))
 	for i, opt := range autoReturnSettingOpts {
@@ -612,45 +597,6 @@ func (m profileModel) renderAutoReturnOptions(bar string, width int) []string {
 		}
 		rows = append(rows, prefix+styled)
 	}
-	_ = width
-	return rows
-}
-
-// renderDesktopExportOptions renders the Profile.DesktopExports picker:
-// whether install/update regenerates claude.ai / Claude Desktop upload zips.
-func (m profileModel) renderDesktopExportOptions(bar string, width int) []string {
-	th := m.theme
-	rows := make([]string, 0, len(desktopExportSettingOpts)+4)
-	rows = append(rows, bar+" "+th.Detail.Render(
-		"Claude Desktop and claude.ai take skills as zip uploads. When on, "+
-			"every install/update also writes an upload-ready zip per skill to "+
-			"~/.humblskills/desktop (same as 'humblskills export desktop')."))
-	rows = append(rows, bar)
-	rows = append(rows, bar+" "+th.SectionTitle.Render("OPTIONS"))
-	current := desktopExportCurrent(m.profile.DesktopExports)
-	for i, opt := range desktopExportSettingOpts {
-		cursorHere := i == m.valueIdx && m.focus == focusValue
-		isCurrent := i == current
-		marker := "( )"
-		if isCurrent {
-			marker = "(●)"
-		}
-		var styled string
-		switch {
-		case cursorHere:
-			styled = th.RowSelected.Render(marker + "  " + opt.label)
-		case isCurrent:
-			styled = th.Success.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
-		default:
-			styled = th.RowDim.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
-		}
-		prefix := bar + "   "
-		if cursorHere {
-			prefix = bar + " " + th.Bullet.Render("▸") + " "
-		}
-		rows = append(rows, prefix+styled)
-	}
-	_ = width
 	return rows
 }
 
@@ -686,11 +632,6 @@ func (m profileModel) settingBadge(key string) string {
 		}
 	case "status_auto_return":
 		return formatAutoReturnBadge(m.profile.StatusAutoReturnSeconds)
-	case "desktop_exports":
-		if m.profile.DesktopExports {
-			return "on"
-		}
-		return "off (default)"
 	}
 	return ""
 }

@@ -47,8 +47,7 @@ func newProfileSetCmd(app *App) *cobra.Command {
 	return &cobra.Command{
 		Use: "set <key> <value>",
 		Short: "Set a profile value. Keys: platforms (csv), scope (global|user|project|adapter-default), " +
-			"registry (URL/file:// path, or \"\" to clear), status_auto_return_seconds (seconds, or default|off), " +
-			"desktop_exports (on|off — write claude.ai upload zips on every install/update).",
+			"registry (URL/file:// path, or \"\" to clear), status_auto_return_seconds (seconds, or default|off).",
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runProfileSet(app, args[0], args[1])
@@ -147,8 +146,6 @@ func runProfileShow(app *App) error {
 		th.KVValue.Render(formatRegistry(p.Registry)))
 	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("auto-return")+"  "+
 		th.KVValue.Render(formatAutoReturn(p.StatusAutoReturnSeconds)))
-	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("desktop-zips")+" "+
-		th.KVValue.Render(formatOnOff(p.DesktopExports)))
 	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("path")+"         "+
 		th.KVValue.Render(app.Config.ProfilePath))
 
@@ -203,14 +200,8 @@ func runProfileSet(app *App, key, value string) error {
 			return err
 		}
 		p.StatusAutoReturnSeconds = seconds
-	case "desktop_exports":
-		on, err := parseOnOff(value)
-		if err != nil {
-			return fmt.Errorf("invalid desktop_exports %q — expected on or off", value)
-		}
-		p.DesktopExports = on
 	default:
-		return fmt.Errorf("unknown key %q — valid keys: platforms, scope, registry, status_auto_return_seconds, desktop_exports", key)
+		return fmt.Errorf("unknown key %q — valid keys: platforms, scope, registry, status_auto_return_seconds", key)
 	}
 
 	if err := profile.Save(app.Config.ProfilePath, p); err != nil {
@@ -308,25 +299,6 @@ func formatAutoReturn(seconds *int) string {
 	default:
 		return fmt.Sprintf("%ds", *seconds)
 	}
-}
-
-// parseOnOff parses a boolean profile value.
-func parseOnOff(value string) (bool, error) {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "on", "true", "1":
-		return true, nil
-	case "off", "false", "0", "":
-		return false, nil
-	}
-	return false, fmt.Errorf("expected on or off")
-}
-
-// formatOnOff renders a boolean profile value for `profile show`.
-func formatOnOff(on bool) string {
-	if on {
-		return "on"
-	}
-	return "off (default)"
 }
 
 // formatRegistry renders Profile.Registry for `profile show`.

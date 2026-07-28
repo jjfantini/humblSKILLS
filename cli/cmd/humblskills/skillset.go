@@ -305,15 +305,12 @@ func runSync(app *App, path string, f installFlags, prune bool) error {
 	}
 
 	if app.Config.JSON {
-		zips := maybeDesktopExport(app, aggregate)
 		return app.UI.JSON(struct {
 			install.Result
-			Pruned      []install.TargetResult `json:"pruned,omitempty"`
-			DesktopZips []desktopZipInfo       `json:"desktop_zips,omitempty"`
-		}{aggregate, pruned, zips})
+			Pruned []install.TargetResult `json:"pruned,omitempty"`
+		}{aggregate, pruned})
 	}
 	printInstall(app, aggregate)
-	maybeDesktopExport(app, aggregate)
 	for _, t := range pruned {
 		app.UI.Success("pruned %s [%s/%s]", t.Skill, t.Platform, t.Scope)
 	}

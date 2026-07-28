@@ -14,6 +14,11 @@ type Adapter struct {
 	Transform      string            `yaml:"transform"`
 }
 
+// TransformZip is the adapter transform that writes an upload-ready zip
+// (skill folder at the zip root) instead of symlinking the store — used by
+// claude-desktop, which only accepts account-level zip uploads.
+const TransformZip = "zip"
+
 // DetectRules describes how to decide whether this platform is present on the
 // user's machine. Only one of AnyOf / AllOf should be set.
 type DetectRules struct {

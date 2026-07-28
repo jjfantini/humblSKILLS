@@ -1,0 +1,18 @@
+name: claude-desktop
+# Claude Desktop / claude.ai can't read skills from the filesystem — they
+# take an account-level zip upload. This adapter's transform writes an
+# upload-ready zip (skill folder at the zip root) instead of symlinking, so
+# selecting the platform keeps ~/.humblskills/desktop stocked with current
+# zips to upload at claude.ai → Settings → Capabilities → Skills.
+# Detection probes the app's per-user data dir (created on first run) rather
+# than the app bundle: home-relative paths keep detection correct per user
+# and hermetic under test sandboxes that re-home $HOME.
+detect:
+  any_of:
+    - path_exists: ~/Library/Application Support/Claude
+    - path_exists: ~/AppData/Roaming/Claude
+    - path_exists: ~/.config/Claude
+install_targets:
+  user: ~/.humblskills/desktop
+default_scope: user
+transform: zip
