@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.37.0](https://github.com/jjfantini/humblSKILLS/compare/v2.36.0...v2.37.0) (2026-07-28)
+
+
+### Features
+
+* **registry:** role taxonomy — group and filter skills by target role ([#199](https://github.com/jjfantini/humblSKILLS/issues/199)) ([6331df5](https://github.com/jjfantini/humblSKILLS/commit/6331df5e83eb97ff1241a94578e2e48eaba7cb66))
+
 ## [2.36.0](https://github.com/jjfantini/humblSKILLS/compare/v2.35.0...v2.36.0) (2026-07-27)
 
 
