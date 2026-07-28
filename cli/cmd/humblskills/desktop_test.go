@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jjfantini/humblSKILLS/cli/internal/install"
+	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
 )
 
@@ -69,7 +71,7 @@ func TestExportDesktop_WritesUploadReadyZip(t *testing.T) {
 		t.Fatalf("export desktop: %v\n%s", res.RunErr, res.Err)
 	}
 
-	zipPath := filepath.Join(outDir, "foo-1.0.0.zip")
+	zipPath := filepath.Join(outDir, "foo.zip")
 	names := zipNames(t, zipPath)
 	want := map[string]bool{"foo/SKILL.md": false, "foo/references/notes.md": false}
 	for _, n := range names {
@@ -135,21 +137,14 @@ func TestExportDesktop_NotInstalled_Errors(t *testing.T) {
 	}
 }
 
-func TestInstall_DesktopExportsSetting_WritesZip(t *testing.T) {
+func TestInstall_ClaudeDesktopPlatform_WritesZip(t *testing.T) {
 	s := testutil.NewSandbox(t)
 	enableClaudeCode(t, s)
-
-	if err := os.MkdirAll(filepath.Dir(s.ProfilePath), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(s.ProfilePath, []byte(`{"schema_version":1,"desktop_exports":true}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
 
 	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
 		{
 			Name: "foo", Version: "1.0.0",
-			Platforms: []string{"claude-code"},
+			Platforms: []string{"claude-code", "claude-desktop"},
 			Files:     testutil.SkillTree{"SKILL.md": sampleSkillMD},
 		},
 	})
@@ -159,42 +154,58 @@ func TestInstall_DesktopExportsSetting_WritesZip(t *testing.T) {
 		"--cache-dir", s.CacheDir,
 		"--manifest", s.ManifestPath,
 		"--profile", s.ProfilePath,
-		"--platform", "claude-code",
+		"--platform", "claude-code,claude-desktop",
 		"--scope", "user",
-		"--json", "--yes",
+		"--yes",
 	)
 	if res.RunErr != nil {
 		t.Fatalf("install: %v\n%s", res.RunErr, res.Err)
 	}
-	idx := strings.Index(res.Out, "{")
-	var out struct {
-		DesktopZips []struct {
-			Zip string `json:"zip"`
-		} `json:"desktop_zips"`
+
+	m, err := manifest.Load(s.ManifestPath)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if err := json.Unmarshal([]byte(res.Out[idx:]), &out); err != nil {
-		t.Fatalf("parse: %v\n%s", err, res.Out)
+	desktop := m.FindOne("foo", "claude-desktop", "user")
+	if desktop == nil {
+		t.Fatalf("no claude-desktop manifest entry; manifest: %+v", m.Installations)
 	}
-	if len(out.DesktopZips) != 1 {
-		t.Fatalf("desktop_zips = %+v, want 1 entry", out.DesktopZips)
+	if desktop.InstallMode != install.InstallModeZip {
+		t.Errorf("InstallMode = %q, want zip", desktop.InstallMode)
 	}
-	if _, err := os.Stat(out.DesktopZips[0].Zip); err != nil {
-		t.Errorf("auto-exported zip not on disk: %v", err)
+	if !strings.HasSuffix(desktop.Path, "foo.zip") {
+		t.Errorf("Path = %q, want …/foo.zip", desktop.Path)
 	}
-	names := zipNames(t, out.DesktopZips[0].Zip)
+	names := zipNames(t, desktop.Path)
 	if len(names) == 0 || !strings.HasPrefix(names[0], "foo/") {
 		t.Errorf("zip layout wrong: %v", names)
 	}
-}
+	assertContains(t, res.Out+res.Err, "upload at claude.ai")
 
-func TestInstall_DesktopExportsOff_NoZip(t *testing.T) {
-	s := testutil.NewSandbox(t)
-	enableClaudeCode(t, s)
-	installFixtureSkill(t, s, "foo")
+	// Second install is idempotent for the zip target too.
+	res = runCLIWithStdoutCapture(t,
+		"install", "foo",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--profile", s.ProfilePath,
+		"--platform", "claude-desktop",
+		"--scope", "user",
+		"--json", "--yes",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("reinstall: %v\n%s", res.RunErr, res.Err)
+	}
+	assertContains(t, res.Out, "\"outcome\": \"skipped\"")
 
-	home, _ := os.UserHomeDir()
-	dir := filepath.Join(home, ".humblskills", "desktop")
-	if entries, err := os.ReadDir(dir); err == nil && len(entries) > 0 {
-		t.Errorf("desktop dir should be empty with the setting off; got %v", entries)
+	// Uninstall removes the zip.
+	if res := runCLIWithStdoutCapture(t,
+		"uninstall", "foo",
+		"--manifest", s.ManifestPath, "--profile", s.ProfilePath, "--yes",
+	); res.RunErr != nil {
+		t.Fatalf("uninstall: %v\n%s", res.RunErr, res.Err)
+	}
+	if _, err := os.Stat(desktop.Path); !os.IsNotExist(err) {
+		t.Errorf("zip still on disk after uninstall: %v", err)
 	}
 }

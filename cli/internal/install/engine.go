@@ -238,7 +238,11 @@ func (e *Engine) installOne(
 		}
 		adapter := adapterIndex[p]
 		scope := opts.Scope
-		if opts.Global {
+		if adapter.Transform == adapters.TransformZip {
+			// Zip targets (claude-desktop) have one machine-wide output dir;
+			// project/global scope distinctions don't apply to an upload zip.
+			scope = adapter.DefaultScope
+		} else if opts.Global {
 			scope = "user"
 		} else if scope == "" {
 			scope = adapter.DefaultScope
@@ -247,17 +251,31 @@ func (e *Engine) installOne(
 		if err != nil {
 			return nil, err
 		}
+		final := filepath.Join(t.Path, skill.Name)
+		if adapter.Transform == adapters.TransformZip {
+			final = filepath.Join(t.Path, skill.Name+".zip")
+		}
 		pendings = append(pendings, installPending{
 			adapter: adapter,
 			target:  t,
-			final:   filepath.Join(t.Path, skill.Name),
+			final:   final,
 		})
 	}
 	if len(pendings) == 0 {
 		return nil, nil
 	}
 
-	storePath, err := CanonicalSkillPath(skill.Name, pendings[0].target.Scope, opts.Global)
+	// The canonical store's scope follows the first real (non-zip) target;
+	// zip targets are derived artifacts and shouldn't decide where the store
+	// lives when mixed with filesystem platforms.
+	storeScope := pendings[0].target.Scope
+	for _, pg := range pendings {
+		if pg.adapter.Transform != adapters.TransformZip {
+			storeScope = pg.target.Scope
+			break
+		}
+	}
+	storePath, err := CanonicalSkillPath(skill.Name, storeScope, opts.Global)
 	if err != nil {
 		return nil, err
 	}
@@ -273,13 +291,23 @@ func (e *Engine) installOne(
 			orphan = existing.Path
 		}
 
+		targetMode := mode
+		if pg.adapter.Transform == adapters.TransformZip {
+			targetMode = InstallModeZip
+		}
 		upToDate := existing != nil &&
 			existing.Version == skill.Version &&
 			existing.RegistryRef == skill.DirSHA &&
 			existing.Path == pg.final &&
 			existing.StorePath == storePath &&
-			existing.InstallMode == mode
-		if !targetLinksToStore(pg.final, storePath) {
+			existing.InstallMode == targetMode
+		if pg.adapter.Transform == adapters.TransformZip {
+			// A zip is current when the manifest matches and the file exists —
+			// it's a derived artifact, not a link back to the store.
+			if _, err := os.Stat(pg.final); err != nil {
+				upToDate = false
+			}
+		} else if !targetLinksToStore(pg.final, storePath) {
 			upToDate = false
 		}
 		if _, err := os.Stat(filepath.Join(storePath, "SKILL.md")); err != nil {
@@ -391,7 +419,13 @@ func (e *Engine) installOne(
 				return nil, fmt.Errorf("clean old install %s: %w", pt.orphan, err)
 			}
 		}
-		if err := linkStore(storePath, pt.pending.final); err != nil {
+		targetMode := mode
+		if pt.pending.adapter.Transform == adapters.TransformZip {
+			targetMode = InstallModeZip
+			if err := WriteSkillZip(storePath, skill.Name, pt.pending.final); err != nil {
+				return nil, fmt.Errorf("zip %s -> %s: %w", storePath, pt.pending.final, err)
+			}
+		} else if err := linkStore(storePath, pt.pending.final); err != nil {
 			return nil, fmt.Errorf("link %s -> %s: %w", pt.pending.final, storePath, err)
 		}
 		m.Upsert(manifest.Installation{
@@ -401,7 +435,7 @@ func (e *Engine) installOne(
 			Scope:        pt.pending.target.Scope,
 			Path:         pt.pending.final,
 			StorePath:    storePath,
-			InstallMode:  mode,
+			InstallMode:  targetMode,
 			InstalledAt:  e.Now().UTC(),
 			SourceSHA:    reg.Source.SHA,
 			RegistryRef:  skill.DirSHA,

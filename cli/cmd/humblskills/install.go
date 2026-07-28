@@ -220,10 +220,8 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 			return err
 		}
 		// Feedback already lives in the progress model's blocking done/summary
-		// screen; the desktop-zip lines below are the exception (they don't
-		// exist in the progress model) — the dashboard loop captures them
-		// onto its status screen, one-shot runs print them normally.
-		maybeDesktopExport(app, res)
+		// screen — printing to the normal buffer here would just get hidden
+		// the instant the dashboard loop re-enters the alt-screen.
 		return nil
 	}
 	if err := run(nil); err != nil {
@@ -231,15 +229,10 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 	}
 
 	if app.Config.JSON {
-		zips := maybeDesktopExport(app, res)
-		return app.UI.JSON(struct {
-			install.Result
-			DesktopZips []desktopZipInfo `json:"desktop_zips,omitempty"`
-		}{res, zips})
+		return app.UI.JSON(res)
 	}
 
 	printInstall(app, res)
-	maybeDesktopExport(app, res)
 	return nil
 }
 
@@ -349,6 +342,12 @@ func printInstall(app *App, r install.Result) {
 	}
 	if len(installed)+len(replaced)+len(forced) == 0 {
 		app.UI.Info("%d target%s already up-to-date (use --force to reinstall)", len(skipped), textutil.Plural(len(skipped)))
+	}
+	for _, t := range r.Results {
+		if t.Platform == "claude-desktop" && t.Outcome != install.OutcomeSkipped {
+			app.UI.Info("%s", desktopUploadHint)
+			break
+		}
 	}
 }
 

@@ -11,6 +11,9 @@ import (
 const (
 	InstallModeLinked = "linked"
 	InstallModeGlobal = "global"
+	// InstallModeZip marks a claude-desktop upload zip target: a derived
+	// artifact regenerated from the store, not a link back to it.
+	InstallModeZip = "zip"
 )
 
 // CanonicalSkillPath returns the humblskills-owned source directory for a
