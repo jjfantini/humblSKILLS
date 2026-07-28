@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-28T17:55:55Z",
+  "generated_at": "2026-07-28T17:56:04Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "feat/role-taxonomy",
-    "sha": "e6bd59b428469859389e233a78f7b8183e983eb9"
+    "sha": "b8ead48633e1891095d5b90c4d5a3834050f120d"
   },
   "skills": [
     {
