@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.38.0](https://github.com/jjfantini/humblSKILLS/compare/v2.37.0...v2.38.0) (2026-07-28)
+
+
+### Features
+
+* **cli:** skillset registry bootstrap + Claude Desktop zip export ([#201](https://github.com/jjfantini/humblSKILLS/issues/201)) ([f58d581](https://github.com/jjfantini/humblSKILLS/commit/f58d5810af2b9652be9e941814e3e6e9df39399c))
+
+
+### Bug Fixes
+
+* **cli:** windows-safe skillset fixtures in sync/export tests ([9f2b81b](https://github.com/jjfantini/humblSKILLS/commit/9f2b81b8175f23c71d504429f3755b8ed87f25d3))
+
 ## [2.37.0](https://github.com/jjfantini/humblSKILLS/compare/v2.36.0...v2.37.0) (2026-07-28)
 
 
