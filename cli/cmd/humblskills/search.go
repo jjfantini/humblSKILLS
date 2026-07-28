@@ -18,17 +18,22 @@ import (
 
 func newSearchCmd(app *App) *cobra.Command {
 	var category string
+	var role string
 	cmd := &cobra.Command{
 		Use:   "search [query]",
 		Short: "Search the registry by name, description, or tag",
 		Long: "search matches a query against each skill's name, description, and " +
-			"tags. Narrow to one category with --category (see " +
-			"'humblskills search --category=' for the list of valid values).",
+			"tags. Narrow to one category with --category or to one target role " +
+			"with --role (see the flag help for the valid values).",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			category = strings.ToLower(strings.TrimSpace(category))
 			if category != "" && !frontmatter.IsKnownCategory(category) {
 				return fmt.Errorf("unknown --category %q (must be one of %s)", category, strings.Join(frontmatter.Categories, ", "))
+			}
+			role = strings.ToLower(strings.TrimSpace(role))
+			if role != "" && !frontmatter.IsKnownRole(role) {
+				return fmt.Errorf("unknown --role %q (must be one of %s)", role, strings.Join(frontmatter.Roles, ", "))
 			}
 
 			query := ""
@@ -66,6 +71,9 @@ func newSearchCmd(app *App) *cobra.Command {
 				if category != "" && s.Category != category {
 					continue
 				}
+				if role != "" && s.Role != role {
+					continue
+				}
 				if query == "" || matches(s, query) {
 					hits = append(hits, s)
 				}
@@ -75,8 +83,9 @@ func newSearchCmd(app *App) *cobra.Command {
 				return app.UI.JSON(struct {
 					Query    string           `json:"query,omitempty"`
 					Category string           `json:"category,omitempty"`
+					Role     string           `json:"role,omitempty"`
 					Results  []registry.Skill `json:"results"`
-				}{query, category, hits})
+				}{query, category, role, hits})
 			}
 			if len(hits) == 0 {
 				app.UI.Warn("no skills matched %q", query)
@@ -95,6 +104,7 @@ func newSearchCmd(app *App) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&category, "category", "", "restrict results to one category ("+strings.Join(frontmatter.Categories, ", ")+")")
+	cmd.Flags().StringVar(&role, "role", "", "restrict results to one target role ("+strings.Join(frontmatter.Roles, ", ")+")")
 	return cmd
 }
 
@@ -170,27 +180,37 @@ func renderSearchResults(theme *ui.Theme, hits []registry.Skill, query string) s
 	sb.WriteString("\n\n")
 
 	// Group hits under a "── <registry> ──" header when they span more than
-	// one registry (hits are already sorted by registry then name).
+	// one registry, and under a lighter "· <role> ·" sub-header when any hit
+	// carries a role (hits are already sorted by registry, role, name;
+	// role-less hits sort first within their registry).
 	grouped := false
+	hasRoles := false
 	{
 		seen := map[string]struct{}{}
 		for _, s := range hits {
 			seen[s.Registry] = struct{}{}
+			if s.Role != "" {
+				hasRoles = true
+			}
 		}
 		grouped = len(seen) > 1
 	}
 	lastReg := ""
-	headerShown := false
+	lastRole := ""
+	started := false
 
 	for i, s := range hits {
-		if grouped && (!headerShown || s.Registry != lastReg) {
-			if headerShown {
+		regChanged := !started || s.Registry != lastReg
+		if grouped && regChanged {
+			if started {
 				sb.WriteString("\n")
 			}
 			sb.WriteString("  " + theme.SectionTitle.Render("── "+registryDisplayName(s.Registry)+" ──") + "\n\n")
-			lastReg = s.Registry
-			headerShown = true
 		}
+		if hasRoles && s.Role != "" && (regChanged || s.Role != lastRole) {
+			sb.WriteString("  " + theme.Meta.Render("· "+s.Role+" ·") + "\n\n")
+		}
+		lastReg, lastRole, started = s.Registry, s.Role, true
 		left := theme.Bullet.Render("▌ ") + highlightName(s.Name, query, theme.Name, theme.Hit)
 		right := theme.Version.Render("v" + s.Version)
 		pad := inner - lipgloss.Width(left) - lipgloss.Width(right)
@@ -207,6 +227,9 @@ func renderSearchResults(theme *ui.Theme, hits []registry.Skill, query string) s
 		}
 		if s.Category != "" {
 			sb.WriteString("    " + theme.Label.Render("category ") + theme.Category.Render(s.Category) + "\n")
+		}
+		if s.Role != "" {
+			sb.WriteString("    " + theme.Label.Render("role    ") + theme.Platform.Render(s.Role) + "\n")
 		}
 		if len(s.Tags) > 0 {
 			chips := make([]string, 0, len(s.Tags))

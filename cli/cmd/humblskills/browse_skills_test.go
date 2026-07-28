@@ -99,3 +99,97 @@ func TestSkillItem_Detail_NotInstalled_NoInstalledSection(t *testing.T) {
 		t.Errorf("uninstalled skill should not render an INSTALLED section:\n%s", detail)
 	}
 }
+
+func TestBuildSkillItems_RolelessFirstThenByRoleWithinRegistry(t *testing.T) {
+	items := buildSkillItems([]registry.Skill{
+		{Name: "zeta", Version: "1.0.0", Registry: "work", Role: "sdr"},
+		{Name: "alpha", Version: "1.0.0", Registry: "work", Role: "fde"},
+		{Name: "misc", Version: "1.0.0", Registry: "work"},
+		{Name: "other", Version: "1.0.0", Registry: "personal"},
+	}, nil)
+	got := make([]string, 0, len(items))
+	for _, it := range items {
+		got = append(got, it.s.Registry+"/"+it.s.Role+"/"+it.s.Name)
+	}
+	want := []string{"personal//other", "work//misc", "work/fde/alpha", "work/sdr/zeta"}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("order = %v, want %v", got, want)
+		}
+	}
+}
+
+func TestInterleaveHeaders_RoleSubHeaders(t *testing.T) {
+	skills := buildSkillItems([]registry.Skill{
+		{Name: "misc", Version: "1.0.0", Registry: "work"},
+		{Name: "alpha", Version: "1.0.0", Registry: "work", Role: "fde"},
+		{Name: "beta", Version: "1.0.0", Registry: "work", Role: "fde"},
+		{Name: "zeta", Version: "1.0.0", Registry: "work", Role: "sdr"},
+		{Name: "other", Version: "1.0.0", Registry: "personal"},
+	}, nil)
+	items := interleaveRegistryHeaders(skills, true)
+
+	got := make([]string, 0, len(items))
+	for _, it := range items {
+		switch v := it.(type) {
+		case registryHeaderItem:
+			if v.sub {
+				got = append(got, "role:"+v.name)
+			} else {
+				got = append(got, "reg:"+v.name)
+			}
+		case skillItem:
+			got = append(got, v.s.Name)
+		}
+	}
+	want := []string{"reg:personal", "other", "reg:work", "misc", "role:fde", "alpha", "beta", "role:sdr", "zeta"}
+	if len(got) != len(want) {
+		t.Fatalf("items = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("items = %v, want %v", got, want)
+		}
+	}
+}
+
+func TestInterleaveHeaders_RoleSubHeadersWithoutRegistryGrouping(t *testing.T) {
+	// Single registry (grouped=false): role sub-headers still appear.
+	skills := buildSkillItems([]registry.Skill{
+		{Name: "misc", Version: "1.0.0"},
+		{Name: "alpha", Version: "1.0.0", Role: "fde"},
+	}, nil)
+	items := interleaveRegistryHeaders(skills, false)
+
+	if len(items) != 3 {
+		t.Fatalf("items = %d, want 3 (skill, sub-header, skill)", len(items))
+	}
+	h, ok := items[1].(registryHeaderItem)
+	if !ok || !h.sub || h.name != "fde" {
+		t.Fatalf("items[1] = %#v, want fde sub-header", items[1])
+	}
+}
+
+func TestInterleaveHeaders_NoRoleSubHeadersWhenNoRoles(t *testing.T) {
+	skills := buildSkillItems([]registry.Skill{
+		{Name: "a", Version: "1.0.0", Registry: "work"},
+		{Name: "b", Version: "1.0.0", Registry: "personal"},
+	}, nil)
+	items := interleaveRegistryHeaders(skills, true)
+	for _, it := range items {
+		if h, ok := it.(registryHeaderItem); ok && h.sub {
+			t.Fatalf("unexpected role sub-header %q", h.name)
+		}
+	}
+}
+
+func TestSkillItem_RoleInDetailAndFilterValue(t *testing.T) {
+	it := skillItem{s: registry.Skill{Name: "alpha", Version: "1.0.0", Role: "fde"}}
+	th := ui.DefaultTheme()
+	if !strings.Contains(it.Detail(th, 80), "fde") {
+		t.Error("Detail missing role")
+	}
+	if !strings.Contains(it.FilterValue(), "fde") {
+		t.Error("FilterValue missing role")
+	}
+}

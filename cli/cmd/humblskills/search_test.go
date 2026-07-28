@@ -211,3 +211,61 @@ func TestMatches_NameDescriptionTag(t *testing.T) {
 		t.Errorf("tag match: got %d", n)
 	}
 }
+
+func TestSearch_RoleFilter_JSON(t *testing.T) {
+	s := testutil.NewSandbox(t)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{Name: "alpha", Version: "1.0.0", Category: "development", Role: "fde",
+			Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+		{Name: "beta", Version: "1.0.0", Category: "development", Role: "sdr",
+			Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+		{Name: "gamma", Version: "1.0.0", Category: "development",
+			Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+	})
+	res := runCLIWithStdoutCapture(t,
+		"search",
+		"--role", "fde",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\n%s", res.RunErr, res.Err)
+	}
+	idx := strings.Index(res.Out, "{")
+	var out struct {
+		Role    string `json:"role"`
+		Results []struct {
+			Name string `json:"name"`
+			Role string `json:"role"`
+		} `json:"results"`
+	}
+	if err := json.Unmarshal([]byte(res.Out[idx:]), &out); err != nil {
+		t.Fatalf("parse: %v\n%s", err, res.Out)
+	}
+	if out.Role != "fde" {
+		t.Errorf("echoed role = %q, want fde", out.Role)
+	}
+	if len(out.Results) != 1 || out.Results[0].Name != "alpha" || out.Results[0].Role != "fde" {
+		t.Errorf("results = %+v", out.Results)
+	}
+}
+
+func TestSearch_UnknownRole_Errors(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{Name: "alpha", Version: "1.0.0", Category: "development",
+			Files: testutil.SkillTree{"SKILL.md": sampleSkillMD}},
+	})
+	res := runCLIWithStdoutCapture(t,
+		"search",
+		"--role", "astronaut",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--json",
+	)
+	if res.RunErr == nil {
+		t.Fatal("expected error for unknown --role")
+	}
+}

@@ -270,3 +270,33 @@ func TestDepSatisfies(t *testing.T) {
 		})
 	}
 }
+
+func TestValidate_RoleOptional(t *testing.T) {
+	fm := mkFM("foo", "0.1.0", func(f *Frontmatter) {
+		f.Metadata.Role = ""
+	})
+	if err := fm.Validate("foo", ctxWith(nil)); err != nil {
+		t.Fatalf("empty role should validate: %v", err)
+	}
+}
+
+func TestValidate_RoleUnknown(t *testing.T) {
+	fm := mkFM("foo", "0.1.0", func(f *Frontmatter) {
+		f.Metadata.Role = "astronaut"
+	})
+	err := fm.Validate("foo", ctxWith(nil))
+	if err == nil || !strings.Contains(err.Error(), `unknown role "astronaut"`) {
+		t.Fatalf("expected unknown-role error, got %v", err)
+	}
+}
+
+func TestValidate_RoleEveryKnownValueAccepted(t *testing.T) {
+	for _, r := range Roles {
+		fm := mkFM("foo", "0.1.0", func(f *Frontmatter) {
+			f.Metadata.Role = r
+		})
+		if err := fm.Validate("foo", ctxWith(nil)); err != nil {
+			t.Errorf("role %q should validate: %v", r, err)
+		}
+	}
+}
