@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-29T19:13:19Z",
+  "generated_at": "2026-07-29T19:13:55Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/better-typography",
-    "sha": "3b89829bd097f0dd46641bc42e1f15621735cb2c"
+    "ref": "feat/better-colors",
+    "sha": "aab80788c7539ddf2193291cb7877a2ada293751"
   },
   "skills": [
     {
@@ -86,6 +86,37 @@
       ],
       "path": "skills/better-accessibility",
       "dir_sha": "bfbb5001c92a436b302aa64227ba3f50bd9d4b8f6beb728f79e124868828632f"
+    },
+    {
+      "name": "better-colors",
+      "version": "1.0.0",
+      "description": "Review and design color systems using existing semantic tokens, measured contrast, gamut-aware palettes, and OKLCH when appropriate. Use when the user asks about color systems, OKLCH, palettes, contrast, gamut, Display P3, Tailwind colors, semantic tokens, dark mode, or color conversion. This skill owns domain review and is read-only by default; edit or implement only when explicitly requested. For full frontend construction use smart-frontend-design.\n",
+      "category": "design",
+      "tags": [
+        "color",
+        "oklch",
+        "contrast",
+        "palettes",
+        "gamut",
+        "design-tokens",
+        "dark-mode",
+        "design-review",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "preserve": [
+        "references/raw/",
+        "references/wiki/",
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/better-colors",
+      "dir_sha": "d7b50e634c971c3ae835e7b5e0eb140242933e8a2338a38da5de98e570bbf227"
     },
     {
       "name": "better-layout",
