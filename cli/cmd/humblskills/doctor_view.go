@@ -7,12 +7,22 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/eval/workspace"
 	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
 )
+
+// ansiWrap wraps s to limit cells, breaking mid-token when needed (paths,
+// long tags). Empty breakpoints forces hard wrap via charmbracelet/x/ansi.
+func ansiWrap(s string, limit int) string {
+	if limit < 1 {
+		return s
+	}
+	return ansi.Wrap(s, limit, "")
+}
 
 // This file is the doctor presentation layer: the listdetail Item adapters
 // used by the TUI plus the non-TTY static renderer. The report data model and
@@ -308,15 +318,42 @@ func rowWithTrailingBadge(label, badge string, width int) string {
 	return label + strings.Repeat(" ", gap) + badge
 }
 
+// kvLabelCol is the display width reserved for the key column in kvRow.
+const kvLabelCol = 11
+
 // kvRow formats one key/value pair as `  label    value` with the label padded
-// to 11 cells (matching the design's 110px label column, in mono-font terms).
+// to kvLabelCol cells. Prefer kvRowWidth when the pane width is known so long
+// values wrap instead of clipping.
 func kvRow(th *ui.Theme, key, value string) string {
+	return kvRowWidth(th, key, value, 0)
+}
+
+// kvRowWidth is kvRow with soft/hard wrapping of the value to fit `width`
+// display cells. width <= 0 disables wrapping (legacy single-line behaviour).
+func kvRowWidth(th *ui.Theme, key, value string, width int) string {
 	label := th.KVKey.Render(key)
-	pad := 11 - lipgloss.Width(label)
+	pad := kvLabelCol - lipgloss.Width(label)
 	if pad < 1 {
 		pad = 1
 	}
-	return "  " + label + strings.Repeat(" ", pad) + value + "\n"
+	indent := "  " + label + strings.Repeat(" ", pad)
+	indentW := lipgloss.Width(indent)
+	if width <= 0 || width <= indentW+4 {
+		return indent + value + "\n"
+	}
+	valueW := width - indentW
+	wrapped := ansiWrap(value, valueW)
+	lines := strings.Split(wrapped, "\n")
+	var sb strings.Builder
+	cont := strings.Repeat(" ", indentW)
+	for i, line := range lines {
+		if i == 0 {
+			sb.WriteString(indent + line + "\n")
+		} else {
+			sb.WriteString(cont + line + "\n")
+		}
+	}
+	return sb.String()
 }
 
 // rwLegend explains the pills rendered by pathRow so users don't have to guess

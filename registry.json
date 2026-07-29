@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-29T19:15:42Z",
+  "generated_at": "2026-07-29T20:23:11Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/better-interface",
-    "sha": "a4a27accb4f5f959556e55f5cd2c939e2afea13c"
+    "ref": "feat/tui-category-grouping",
+    "sha": "1d6ae0d1c4ade97ea71d1a1ba3666345a71e4772"
   },
   "skills": [
     {

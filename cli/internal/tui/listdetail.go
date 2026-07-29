@@ -56,9 +56,48 @@ type HeaderItem interface {
 	IsHeader() bool
 }
 
+// CollapsibleItem marks a focusable section header (category/role) that can
+// hide its descendants when collapsed. Unlike HeaderItem, these rows ARE
+// navigable; Enter toggles collapse instead of firing the first Action.
+type CollapsibleItem interface {
+	Item
+	IsCollapsible() bool
+	CollapseKey() string
+	// RowCollapsed is like Row but includes expand/collapse caret state.
+	RowCollapsed(theme *ui.Theme, width int, selected, collapsed bool) string
+}
+
+// NestedItem reports ancestor collapse keys. When any key is collapsed in the
+// model's map, the item is hidden from the visible list.
+type NestedItem interface {
+	Item
+	ParentCollapseKeys() []string
+}
+
 func isHeader(it Item) bool {
 	h, ok := it.(HeaderItem)
 	return ok && h.IsHeader()
+}
+
+func isCollapsible(it Item) bool {
+	c, ok := it.(CollapsibleItem)
+	return ok && c.IsCollapsible()
+}
+
+// isNavSkip reports whether ↑/↓ should skip this row. Collapsible headers are
+// focusable; plain HeaderItem dividers are not.
+func isNavSkip(it Item) bool {
+	if isCollapsible(it) {
+		return false
+	}
+	return isHeader(it)
+}
+
+func parentCollapseKeys(it Item) []string {
+	if n, ok := it.(NestedItem); ok {
+		return n.ParentCollapseKeys()
+	}
+	return nil
 }
 
 // ActionSpec binds a key to a caller-named action. Pressing Key while an item
@@ -105,19 +144,20 @@ type Result struct {
 
 // Model is the shared two-pane bubbletea model.
 type Model struct {
-	cfg     Config
-	items   []Item // filtered view (equal to cfg.Items when filter is empty)
-	cursor  int
-	width   int
-	height  int
-	preview viewport.Model
-	filter  textinput.Model
-	filtOn  bool
-	helpOn  bool // ? overlay: full-body keybinding cheatsheet
-	result  Result
-	keys    Keys
-	actions map[string]ActionSpec // keyed by ActionSpec.Key
-	done    bool
+	cfg       Config
+	items     []Item // visible view (filter + collapse applied)
+	cursor    int
+	width     int
+	height    int
+	preview   viewport.Model
+	filter    textinput.Model
+	filtOn    bool
+	helpOn    bool // ? overlay: full-body keybinding cheatsheet
+	result    Result
+	keys      Keys
+	actions   map[string]ActionSpec // keyed by ActionSpec.Key
+	done      bool
+	collapsed map[string]bool // CollapseKey → collapsed; missing = expanded
 }
 
 // NewListDetail builds a Model ready for Run.
@@ -145,32 +185,33 @@ func NewListDetail(cfg Config) Model {
 	}
 
 	m := Model{
-		cfg:     cfg,
-		items:   append([]Item(nil), cfg.Items...),
-		preview: vp,
-		filter:  filt,
-		keys:    DefaultKeys(),
-		actions: acts,
+		cfg:       cfg,
+		preview:   vp,
+		filter:    filt,
+		keys:      DefaultKeys(),
+		actions:   acts,
+		collapsed: map[string]bool{},
 	}
+	m.rebuildVisible()
 	m.cursor = m.firstSelectable()
 	return m
 }
 
-// firstSelectable returns the index of the first non-header item, or 0.
+// firstSelectable returns the index of the first navigable item, or 0.
 func (m Model) firstSelectable() int {
 	for i := range m.items {
-		if !isHeader(m.items[i]) {
+		if !isNavSkip(m.items[i]) {
 			return i
 		}
 	}
 	return 0
 }
 
-// nextSelectable / prevSelectable return the next non-header index in the given
+// nextSelectable / prevSelectable return the next navigable index in the given
 // direction, or -1 if there is none.
 func (m Model) nextSelectable(from int) int {
 	for i := from + 1; i < len(m.items); i++ {
-		if !isHeader(m.items[i]) {
+		if !isNavSkip(m.items[i]) {
 			return i
 		}
 	}
@@ -179,7 +220,7 @@ func (m Model) nextSelectable(from int) int {
 
 func (m Model) prevSelectable(from int) int {
 	for i := from - 1; i >= 0; i-- {
-		if !isHeader(m.items[i]) {
+		if !isNavSkip(m.items[i]) {
 			return i
 		}
 	}
@@ -319,6 +360,17 @@ func (m Model) updateNav(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	k := msg.String()
 	if k == "enter" {
+		// Collapsible section headers absorb enter to toggle expand/collapse.
+		if len(m.items) > 0 && m.cursor < len(m.items) && isCollapsible(m.items[m.cursor]) {
+			c := m.items[m.cursor].(CollapsibleItem)
+			key := c.CollapseKey()
+			m.collapsed[key] = !m.collapsed[key]
+			focusKey := key
+			m.rebuildVisible()
+			m.cursor = m.indexOfCollapseKey(focusKey)
+			m.refreshPreview()
+			return m, nil
+		}
 		// First enabled action absorbs enter so users don't need to learn a
 		// verb-key for the common case (install, update, apply…).
 		for _, a := range m.cfg.Actions {
@@ -342,12 +394,24 @@ func (m Model) exitWith(action string) (tea.Model, tea.Cmd) {
 	if len(m.items) > 0 && m.cursor < len(m.items) {
 		it = m.items[m.cursor]
 	}
-	if isHeader(it) { // never surface a header row as a selection
+	// Never surface a header or collapsible section row as a selection.
+	if isHeader(it) || isCollapsible(it) {
 		it = nil
 	}
 	m.result = Result{Action: action, Item: it}
 	m.done = true
 	return m, tea.Quit
+}
+
+// indexOfCollapseKey finds a collapsible header by CollapseKey in the visible
+// list, or falls back to firstSelectable.
+func (m Model) indexOfCollapseKey(key string) int {
+	for i, it := range m.items {
+		if c, ok := it.(CollapsibleItem); ok && c.IsCollapsible() && c.CollapseKey() == key {
+			return i
+		}
+	}
+	return m.firstSelectable()
 }
 
 func (m *Model) resize() {
@@ -431,15 +495,24 @@ func (m Model) measureLeftWidth() int {
 }
 
 func (m *Model) applyFilter() {
+	m.rebuildVisible()
+	// Keep the cursor in range and off non-navigable rows.
+	if len(m.items) == 0 {
+		m.cursor = 0
+	} else if m.cursor >= len(m.items) || isNavSkip(m.items[m.cursor]) {
+		m.cursor = m.firstSelectable()
+	}
+}
+
+// rebuildVisible rebuilds m.items from cfg.Items applying the active filter
+// and collapse state. While filtering, all headers (including collapsible
+// section headers) are hidden so the list is a flat match view.
+func (m *Model) rebuildVisible() {
 	q := strings.ToLower(strings.TrimSpace(m.filter.Value()))
-	if q == "" {
-		m.items = append([]Item(nil), m.cfg.Items...)
-	} else {
+	if q != "" {
 		out := make([]Item, 0, len(m.cfg.Items))
 		for _, it := range m.cfg.Items {
-			// Headers are group dividers, not matches — hide them while
-			// filtering so the list collapses to a flat matched view.
-			if isHeader(it) {
+			if isHeader(it) || isCollapsible(it) {
 				continue
 			}
 			if strings.Contains(strings.ToLower(it.FilterValue()), q) {
@@ -447,13 +520,28 @@ func (m *Model) applyFilter() {
 			}
 		}
 		m.items = out
+		return
 	}
-	// Keep the cursor in range and off any header row.
-	if len(m.items) == 0 {
-		m.cursor = 0
-	} else if m.cursor >= len(m.items) || isHeader(m.items[m.cursor]) {
-		m.cursor = m.firstSelectable()
+	if m.collapsed == nil {
+		m.collapsed = map[string]bool{}
 	}
+	out := make([]Item, 0, len(m.cfg.Items))
+	for _, it := range m.cfg.Items {
+		if hiddenByCollapse(it, m.collapsed) {
+			continue
+		}
+		out = append(out, it)
+	}
+	m.items = out
+}
+
+func hiddenByCollapse(it Item, collapsed map[string]bool) bool {
+	for _, k := range parentCollapseKeys(it) {
+		if collapsed[k] {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Model) refreshPreview() {
@@ -556,7 +644,12 @@ func (m Model) renderLeft(width int) string {
 	sb.WriteString("\n\n")
 	for i, it := range m.items {
 		selected := i == m.cursor
-		row := it.Row(th, width-2, selected)
+		var row string
+		if c, ok := it.(CollapsibleItem); ok && c.IsCollapsible() {
+			row = c.RowCollapsed(th, width-2, selected, m.collapsed[c.CollapseKey()])
+		} else {
+			row = it.Row(th, width-2, selected)
+		}
 		// Pad the row body (minus the leading bar/gutter) to width-2.
 		rowW := lipgloss.Width(row)
 		if rowW < width-2 {
@@ -661,12 +754,21 @@ func (m Model) hints() []KeyHint {
 		hints = append(hints, KeyHint{Keys: "/", Label: "filter"})
 	}
 	hints = append(hints, KeyHint{Keys: "⇞⇟", Label: "scroll"})
+
+	onSection := len(m.items) > 0 && m.cursor < len(m.items) && isCollapsible(m.items[m.cursor])
+	if onSection {
+		hints = append(hints, KeyHint{Keys: "enter", Label: "toggle"})
+	}
+
 	// Deduplicate enter when it's absorbed by the first action.
 	seen := map[string]bool{}
+	if onSection {
+		seen["enter"] = true // enter already claimed by section toggle
+	}
 	for _, a := range m.cfg.Actions {
 		label := a.Label
 		keyStr := a.Key
-		if keyStr == "enter" || (len(m.cfg.Actions) > 0 && !seen["enter"] && a.Key == m.cfg.Actions[0].Key) {
+		if !onSection && (keyStr == "enter" || (len(m.cfg.Actions) > 0 && !seen["enter"] && a.Key == m.cfg.Actions[0].Key)) {
 			// First action also triggers on enter.
 			keyStr = a.Key + "/enter"
 			if a.Key == "enter" {
@@ -705,6 +807,7 @@ func (m Model) renderHelp() string {
 	nav := helpGroup{title: "NAVIGATE", rows: []helpRow{
 		{"↑ / k", "move up"},
 		{"↓ / j", "move down"},
+		{"enter", "toggle section (on category/role headers)"},
 	}}
 	if m.cfg.Items != nil {
 		nav.rows = append(nav.rows, helpRow{"/", "filter list"})
