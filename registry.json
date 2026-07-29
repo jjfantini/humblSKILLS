@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-28T21:12:41Z",
+  "generated_at": "2026-07-29T19:08:41Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "main",
-    "sha": "e3981ad9706d768e3adad17c460023177ff4d07f"
+    "ref": "feat/better-accessibility",
+    "sha": "8e1da8339af709654a01de3bbc866de35c45f1cf"
   },
   "skills": [
     {
@@ -56,6 +56,36 @@
       ],
       "path": "skills/analyze-system-design",
       "dir_sha": "083508d595d0e7c728de83c5c4db8a4efa9ba60df7654eaf1231c6075313a47f"
+    },
+    {
+      "name": "better-accessibility",
+      "version": "1.0.0",
+      "description": "Review product interfaces for keyboard, semantic, form, screen-reader, target-size, motion, and zoom accessibility. Use when the user asks about accessibility, a11y, WCAG, ARIA, keyboard navigation, focus, forms, screen readers, hit areas, reduced motion, or zoom behavior. This skill owns domain review and is read-only by default; edit or implement only when explicitly requested. For full frontend construction use smart-frontend-design.\n",
+      "category": "design",
+      "tags": [
+        "accessibility",
+        "a11y",
+        "wcag",
+        "aria",
+        "keyboard",
+        "screen-readers",
+        "design-review",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "preserve": [
+        "references/raw/",
+        "references/wiki/",
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/better-accessibility",
+      "dir_sha": "bfbb5001c92a436b302aa64227ba3f50bd9d4b8f6beb728f79e124868828632f"
     },
     {
       "name": "create-scroll-animation",
