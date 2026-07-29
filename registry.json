@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-29T19:12:00Z",
+  "generated_at": "2026-07-29T19:12:44Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/better-layout",
-    "sha": "04fd9a9de7cf85b8f8a15d860ea1a8555f30917e"
+    "ref": "feat/better-writing",
+    "sha": "9a3211d5e5c795b313a2da6a699ee34270486566"
   },
   "skills": [
     {
@@ -116,6 +116,35 @@
       ],
       "path": "skills/better-layout",
       "dir_sha": "2819ad5c6927595b5e9e852b577e9def558c6de7b002e0ac3bad93044c839cda"
+    },
+    {
+      "name": "better-writing",
+      "version": "1.0.0",
+      "description": "Review user-facing interface copy for clarity, consistency, actionability, localization safety, and appropriate tone. Use when the user asks about UX writing, microcopy, interface copy, button labels, error messages, empty states, placeholders, settings labels, or voice and tone. This skill owns domain review and is read-only by default; edit or implement only when explicitly requested. For full frontend construction use smart-frontend-design.\n",
+      "category": "design",
+      "tags": [
+        "ux-writing",
+        "microcopy",
+        "content-design",
+        "localization",
+        "error-messages",
+        "design-review",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "preserve": [
+        "references/raw/",
+        "references/wiki/",
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/better-writing",
+      "dir_sha": "4339c9bcb9f3fc5bb379cf40db5e05c2116dfbe1aea8572b239e5849d9f3bfe0"
     },
     {
       "name": "create-scroll-animation",
