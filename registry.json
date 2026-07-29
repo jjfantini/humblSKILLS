@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-29T19:08:41Z",
+  "generated_at": "2026-07-29T19:12:00Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/better-accessibility",
-    "sha": "8e1da8339af709654a01de3bbc866de35c45f1cf"
+    "ref": "feat/better-layout",
+    "sha": "04fd9a9de7cf85b8f8a15d860ea1a8555f30917e"
   },
   "skills": [
     {
@@ -86,6 +86,36 @@
       ],
       "path": "skills/better-accessibility",
       "dir_sha": "bfbb5001c92a436b302aa64227ba3f50bd9d4b8f6beb728f79e124868828632f"
+    },
+    {
+      "name": "better-layout",
+      "version": "1.0.0",
+      "description": "Review layout structure, grouping, alignment, reading order, responsive behavior, localization, and RTL resilience. Use when the user asks about layout, spacing, alignment, grouping, hierarchy, responsive breakpoints, container queries, safe areas, localization, or RTL. This skill owns domain review and is read-only by default; edit or implement only when explicitly requested. For full frontend construction use smart-frontend-design.\n",
+      "category": "design",
+      "tags": [
+        "layout",
+        "responsive-design",
+        "spacing",
+        "alignment",
+        "rtl",
+        "localization",
+        "design-review",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "preserve": [
+        "references/raw/",
+        "references/wiki/",
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/better-layout",
+      "dir_sha": "2819ad5c6927595b5e9e852b577e9def558c6de7b002e0ac3bad93044c839cda"
     },
     {
       "name": "create-scroll-animation",
