@@ -407,7 +407,7 @@ func pickSkill(app *App, reg *registry.Registry, fromDashboard bool) (string, er
 		}
 		return m, nil
 	})
-	items := buildSkillItems(skills, m)
+	items := buildSkillItems(skills, m, app.resolvedGroupByCategory())
 
 	skill, action, err := runSkillBrowser(app, "Install", items, modeSearch, "registry is empty", fromDashboard)
 	if err != nil {

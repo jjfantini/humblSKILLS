@@ -47,7 +47,8 @@ func newProfileSetCmd(app *App) *cobra.Command {
 	return &cobra.Command{
 		Use: "set <key> <value>",
 		Short: "Set a profile value. Keys: platforms (csv), scope (global|user|project|adapter-default), " +
-			"registry (URL/file:// path, or \"\" to clear), status_auto_return_seconds (seconds, or default|off).",
+			"registry (URL/file:// path, or \"\" to clear), status_auto_return_seconds (seconds, or default|off), " +
+			"group_by_category (on|off|default).",
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runProfileSet(app, args[0], args[1])
@@ -146,6 +147,8 @@ func runProfileShow(app *App) error {
 		th.KVValue.Render(formatRegistry(p.Registry)))
 	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("auto-return")+"  "+
 		th.KVValue.Render(formatAutoReturn(p.StatusAutoReturnSeconds)))
+	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("group-by")+"     "+
+		th.KVValue.Render(formatGroupByCategory(p.GroupByCategory)))
 	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("path")+"         "+
 		th.KVValue.Render(app.Config.ProfilePath))
 
@@ -200,8 +203,14 @@ func runProfileSet(app *App, key, value string) error {
 			return err
 		}
 		p.StatusAutoReturnSeconds = seconds
+	case "group_by_category":
+		flag, err := parseGroupByCategory(value)
+		if err != nil {
+			return err
+		}
+		p.GroupByCategory = flag
 	default:
-		return fmt.Errorf("unknown key %q — valid keys: platforms, scope, registry, status_auto_return_seconds", key)
+		return fmt.Errorf("unknown key %q — valid keys: platforms, scope, registry, status_auto_return_seconds, group_by_category", key)
 	}
 
 	if err := profile.Save(app.Config.ProfilePath, p); err != nil {
@@ -298,6 +307,34 @@ func formatAutoReturn(seconds *int) string {
 		return "disabled — wait for enter/q"
 	default:
 		return fmt.Sprintf("%ds", *seconds)
+	}
+}
+
+// parseGroupByCategory parses `profile set group_by_category`:
+// "default"/"" resets to unset (on), "on"/"true"/"1" enables, "off"/"false"/"0" disables.
+func parseGroupByCategory(value string) (*bool, error) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "default", "":
+		return nil, nil
+	case "on", "true", "1", "yes":
+		v := true
+		return &v, nil
+	case "off", "false", "0", "no":
+		v := false
+		return &v, nil
+	}
+	return nil, fmt.Errorf("invalid group_by_category %q — expected on, off, or default", value)
+}
+
+// formatGroupByCategory renders GroupByCategory for `profile show`.
+func formatGroupByCategory(flag *bool) string {
+	switch {
+	case flag == nil:
+		return "on (default)"
+	case *flag:
+		return "on"
+	default:
+		return "off"
 	}
 }
 

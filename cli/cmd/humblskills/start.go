@@ -164,7 +164,7 @@ func dispatchDashboardCommand(app *App, cmd string) error {
 		return runUpgrade(app, upgradeFlags{})
 	case "search":
 		hits, err := tui.RunWithLoading(app.UI.Theme(), "loading registries…", func() ([]registry.Skill, error) {
-			all, _ := aggregateSkills(app.loadRegistries())
+			all, _ := aggregateSkills(app.loadRegistries(), app.resolvedGroupByCategory())
 			return all, nil
 		})
 		if err != nil {

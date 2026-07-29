@@ -59,7 +59,7 @@ func runUninstallPicker(app *App, fromDashboard bool) error {
 		}
 		skills = append(skills, registry.Skill{Name: name, Version: inst[0].Version})
 	}
-	items := buildSkillItems(skills, m)
+	items := buildSkillItems(skills, m, app.resolvedGroupByCategory())
 
 	skill, action, err := runSkillBrowser(app, "Uninstall", items, modeInstalledOnly, "no skills installed", fromDashboard)
 	if err != nil {

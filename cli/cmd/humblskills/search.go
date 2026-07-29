@@ -47,7 +47,7 @@ func newSearchCmd(app *App) *cobra.Command {
 			loaded, _ := tui.RunWithLoadingIf(willBrowse, app.UI.Theme(), "loading registries…", func() ([]registrySkills, error) {
 				return app.loadRegistries(), nil
 			})
-			all, loadErrs := aggregateSkills(loaded)
+			all, loadErrs := aggregateSkills(loaded, app.resolvedGroupByCategory())
 			// A failed registry is reported but doesn't abort the others; only
 			// error out if every registry failed and nothing loaded.
 			if len(all) == 0 && len(loadErrs) > 0 {
@@ -130,7 +130,7 @@ func runSearchTUI(app *App, hits []registry.Skill, fromDashboard bool) error {
 	if err != nil {
 		m = &manifest.Manifest{}
 	}
-	items := buildSkillItems(hits, m)
+	items := buildSkillItems(hits, m, app.resolvedGroupByCategory())
 
 	skill, action, err := runSkillBrowser(app, "Search", items, modeSearch, "no skills match", fromDashboard)
 	if err != nil {

@@ -227,7 +227,7 @@ func runListTUI(app *App, m *manifest.Manifest, fromDashboard bool) error {
 		skills = append(skills, sk)
 	}
 
-	items := buildSkillItems(skills, m)
+	items := buildSkillItems(skills, m, app.resolvedGroupByCategory())
 
 	skill, action, err := runSkillBrowser(app, "Installed", items, modeInstalledOnly, "no skills installed", fromDashboard)
 	if err != nil {

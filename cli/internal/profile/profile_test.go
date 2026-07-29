@@ -355,6 +355,25 @@ func TestStatusAutoReturnDuration(t *testing.T) {
 	}
 }
 
+func TestResolvedGroupByCategory(t *testing.T) {
+	ptr := func(b bool) *bool { return &b }
+	cases := []struct {
+		name string
+		p    *profile.Profile
+		want bool
+	}{
+		{"nil profile defaults to on", nil, true},
+		{"unset defaults to on", &profile.Profile{}, true},
+		{"explicit on", &profile.Profile{GroupByCategory: ptr(true)}, true},
+		{"explicit off", &profile.Profile{GroupByCategory: ptr(false)}, false},
+	}
+	for _, c := range cases {
+		if got := c.p.ResolvedGroupByCategory(); got != c.want {
+			t.Errorf("%s: ResolvedGroupByCategory() = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
 func TestResolvedScope(t *testing.T) {
 	cases := []struct {
 		name string

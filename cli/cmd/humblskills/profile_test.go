@@ -228,6 +228,46 @@ func TestProfileSet_StatusAutoReturnSeconds_Invalid(t *testing.T) {
 	}
 }
 
+func TestProfileSet_GroupByCategory(t *testing.T) {
+	s := testutil.NewSandbox(t)
+
+	res := runCLIWithStdoutCapture(t,
+		"profile", "set", "group_by_category", "off",
+		"--profile", s.ProfilePath, "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v", res.RunErr)
+	}
+	p, err := profile.Load(s.ProfilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.GroupByCategory == nil || *p.GroupByCategory {
+		t.Errorf("GroupByCategory = %v, want false", p.GroupByCategory)
+	}
+	if p.ResolvedGroupByCategory() {
+		t.Error("ResolvedGroupByCategory() should be false after off")
+	}
+
+	res = runCLIWithStdoutCapture(t,
+		"profile", "set", "group_by_category", "default",
+		"--profile", s.ProfilePath, "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("reset: %v", res.RunErr)
+	}
+	p, err = profile.Load(s.ProfilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.GroupByCategory != nil {
+		t.Errorf("GroupByCategory = %v, want nil after default", p.GroupByCategory)
+	}
+	if !p.ResolvedGroupByCategory() {
+		t.Error("ResolvedGroupByCategory() should be true after default")
+	}
+}
+
 func TestProfileReset_RemovesFile(t *testing.T) {
 	s := testutil.NewSandbox(t)
 

@@ -246,3 +246,33 @@ func TestProfileModel_Radio_EnterTogglesAndReturns(t *testing.T) {
 		t.Errorf("enter should return focus to the settings pane, got %v", updated.focus)
 	}
 }
+
+func TestProfileModel_GroupByCategory_DefaultsOn(t *testing.T) {
+	m := newTestProfileModel(profile.Profile{})
+	m.settingIdx = 3 // group_by_category
+	if got := m.currentSelectionIndex(); got != 0 {
+		t.Errorf("unset group_by_category should select on (default), got %d", got)
+	}
+	if got := m.settingBadge("group_by_category"); got != "on (default)" {
+		t.Errorf("badge = %q, want on (default)", got)
+	}
+	if m.valueCount() != 2 {
+		t.Errorf("valueCount = %d, want 2", m.valueCount())
+	}
+}
+
+func TestProfileModel_GroupByCategory_ToggleOff(t *testing.T) {
+	m := newTestProfileModel(profile.Profile{})
+	m.settingIdx = 3
+	m.focus = focusValue
+	m.valueIdx = 1 // off
+
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated := out.(profileModel)
+	if updated.profile.GroupByCategory == nil || *updated.profile.GroupByCategory {
+		t.Errorf("GroupByCategory = %v, want false", updated.profile.GroupByCategory)
+	}
+	if updated.profile.ResolvedGroupByCategory() {
+		t.Error("expected ResolvedGroupByCategory false after off")
+	}
+}

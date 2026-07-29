@@ -59,6 +59,12 @@ type Profile struct {
 	// positive value is the number of seconds to wait. Only success
 	// screens auto-return - a failed run always waits for the user.
 	StatusAutoReturnSeconds *int `json:"status_auto_return_seconds,omitempty"`
+
+	// GroupByCategory controls whether the skills TUI nests skills under
+	// category (and role) section headers. nil (unset) means on — the
+	// recommended default. Explicit false restores the legacy flat
+	// registry→role→skills layout.
+	GroupByCategory *bool `json:"group_by_category,omitempty"`
 }
 
 // NamedRegistry is one entry in the multi-registry set (Profile.Registries).
@@ -289,4 +295,13 @@ func (p *Profile) StatusAutoReturnDuration() time.Duration {
 		return 0
 	}
 	return time.Duration(*p.StatusAutoReturnSeconds) * time.Second
+}
+
+// ResolvedGroupByCategory returns whether the skills TUI should nest by
+// category. nil/unset defaults to true (on).
+func (p *Profile) ResolvedGroupByCategory() bool {
+	if p == nil || p.GroupByCategory == nil {
+		return true
+	}
+	return *p.GroupByCategory
 }

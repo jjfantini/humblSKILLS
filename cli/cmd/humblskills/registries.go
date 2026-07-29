@@ -170,7 +170,8 @@ func (a *App) loadRegistries() []registrySkills {
 // (Source left empty — it's for listing/picking only, not fetching), sorted by
 // (registry, name) so a picker renders grouped.
 func mergedRegistry(loaded []registrySkills) *registry.Registry {
-	skills, _ := aggregateSkills(loaded)
+	// Default-on category sort matches the TUI when the profile is unset.
+	skills, _ := aggregateSkills(loaded, true)
 	return &registry.Registry{SchemaVersion: registry.SchemaVersion, Skills: skills}
 }
 
@@ -371,10 +372,11 @@ func (a *App) installEngineForToken(token string) *install.Engine {
 	return e
 }
 
-// aggregateSkills flattens loaded registries into a single slice sorted by
-// (registry name, skill name), so a stable grouped order can be rendered. It
-// also returns the per-registry load errors (name -> err) for reporting.
-func aggregateSkills(loaded []registrySkills) ([]registry.Skill, map[string]error) {
+// aggregateSkills flattens loaded registries into a single slice sorted to
+// match the skills TUI tree (see lessSkill). groupByCategory selects
+// registry→category→role→name vs legacy registry→role→name. It also returns
+// the per-registry load errors (name -> err) for reporting.
+func aggregateSkills(loaded []registrySkills, groupByCategory bool) ([]registry.Skill, map[string]error) {
 	var all []registry.Skill
 	errs := map[string]error{}
 	for _, rs := range loaded {
@@ -385,15 +387,7 @@ func aggregateSkills(loaded []registrySkills) ([]registry.Skill, map[string]erro
 		all = append(all, rs.Skills...)
 	}
 	sort.SliceStable(all, func(i, j int) bool {
-		if all[i].Registry != all[j].Registry {
-			return all[i].Registry < all[j].Registry
-		}
-		// Role-less skills ("") sort first, directly under the registry
-		// header; role-tagged skills follow, block per role.
-		if all[i].Role != all[j].Role {
-			return all[i].Role < all[j].Role
-		}
-		return all[i].Name < all[j].Name
+		return lessSkill(all[i], all[j], groupByCategory)
 	})
 	return all, errs
 }

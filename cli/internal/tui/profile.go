@@ -201,8 +201,8 @@ func (m profileModel) updateValue(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m profileModel) toggleCurrent() profileModel {
-	switch m.settingIdx {
-	case 0: // platforms
+	switch profileSettings[m.settingIdx].key {
+	case "platforms":
 		if m.valueIdx >= len(m.adapters) {
 			return m
 		}
@@ -223,14 +223,19 @@ func (m profileModel) toggleCurrent() profileModel {
 			m.profile.DefaultPlatforms = append(m.profile.DefaultPlatforms, name)
 		}
 		m.changed = true
-	case 1: // scope
+	case "scope":
 		if m.valueIdx >= 0 && m.valueIdx < len(scopeSettingOpts) {
 			m.profile.DefaultScope = scopeSettingOpts[m.valueIdx].value
 			m.changed = true
 		}
-	case 2: // status auto-return
+	case "status_auto_return":
 		if m.valueIdx >= 0 && m.valueIdx < len(autoReturnSettingOpts) {
 			m.profile.StatusAutoReturnSeconds = autoReturnSettingOpts[m.valueIdx].value
+			m.changed = true
+		}
+	case "group_by_category":
+		if m.valueIdx >= 0 && m.valueIdx < len(groupByCategoryOpts) {
+			m.profile.GroupByCategory = groupByCategoryOpts[m.valueIdx].value
 			m.changed = true
 		}
 	}
@@ -264,7 +269,18 @@ var autoReturnSettingOpts = []struct {
 	{"disabled — wait for enter/q", intPtr(0)},
 }
 
-func intPtr(n int) *int { return &n }
+// groupByCategoryOpts is the picker for GroupByCategory. Selecting "on"
+// clears the field (nil → resolved default on); "off" stores explicit false.
+var groupByCategoryOpts = []struct {
+	label string
+	value *bool
+}{
+	{"on (default)", nil},
+	{"off", boolPtr(false)},
+}
+
+func intPtr(n int) *int    { return &n }
+func boolPtr(b bool) *bool { return &b }
 
 // detailLines wraps a setting description to the value pane's width and
 // prefixes each wrapped line with the divider bar, so long descriptions
@@ -282,28 +298,32 @@ func detailLines(th *ui.Theme, bar, text string, width int) []string {
 	return out
 }
 
-
 // currentSelectionIndex returns the index in the right-pane options list that
 // represents the profile's current value for the focused setting. Used to
 // place the cursor on the already-selected option when the user drills in.
 func (m profileModel) currentSelectionIndex() int {
-	switch m.settingIdx {
-	case 0:
+	switch profileSettings[m.settingIdx].key {
+	case "platforms":
 		return 0
-	case 1:
+	case "scope":
 		resolved := m.profile.ResolvedScope()
 		for i, opt := range scopeSettingOpts {
 			if opt.value == resolved {
 				return i
 			}
 		}
-	case 2:
+	case "status_auto_return":
 		cur := m.profile.StatusAutoReturnSeconds
 		for i, opt := range autoReturnSettingOpts {
 			if autoReturnValueEqual(cur, opt.value) {
 				return i
 			}
 		}
+	case "group_by_category":
+		if m.profile.ResolvedGroupByCategory() {
+			return 0
+		}
+		return 1
 	}
 	return 0
 }
@@ -319,13 +339,15 @@ func autoReturnValueEqual(a, b *int) bool {
 }
 
 func (m profileModel) valueCount() int {
-	switch m.settingIdx {
-	case 0:
+	switch profileSettings[m.settingIdx].key {
+	case "platforms":
 		return len(m.adapters)
-	case 1:
+	case "scope":
 		return len(scopeSettingOpts)
-	case 2:
+	case "status_auto_return":
 		return len(autoReturnSettingOpts)
+	case "group_by_category":
+		return len(groupByCategoryOpts)
 	}
 	return 0
 }
@@ -349,6 +371,7 @@ var profileSettings = []profileSetting{
 	{key: "platforms", label: "default platforms", kind: settingMulti},
 	{key: "scope", label: "default scope", kind: settingRadio},
 	{key: "status_auto_return", label: "status auto-return", kind: settingRadio},
+	{key: "group_by_category", label: "group by category", kind: settingRadio},
 }
 
 func (m profileModel) View() string {
@@ -470,13 +493,15 @@ func (m profileModel) renderRight(width int) string {
 	body = append(body, bar+" "+th.DetailSub.Render(hint))
 	body = append(body, bar)
 
-	switch m.settingIdx {
-	case 0:
+	switch setting.key {
+	case "platforms":
 		body = append(body, m.renderPlatformOptions(bar, width)...)
-	case 1:
+	case "scope":
 		body = append(body, m.renderScopeOptions(bar, width)...)
-	case 2:
+	case "status_auto_return":
 		body = append(body, m.renderAutoReturnOptions(bar, width)...)
+	case "group_by_category":
+		body = append(body, m.renderGroupByCategoryOptions(bar, width)...)
 	}
 	return strings.Join(body, "\n")
 }
@@ -600,6 +625,41 @@ func (m profileModel) renderAutoReturnOptions(bar string, width int) []string {
 	return rows
 }
 
+func (m profileModel) renderGroupByCategoryOptions(bar string, width int) []string {
+	th := m.theme
+	rows := make([]string, 0, len(groupByCategoryOpts)+4)
+	rows = append(rows, detailLines(th, bar,
+		"Nest skills under category headers in the skills browser (Registry → "+
+			"Category → Role → Skills). Role headers appear only when skills carry a "+
+			"role. Off restores the legacy Registry → Role → Skills layout.", width)...)
+	rows = append(rows, bar)
+	rows = append(rows, bar+" "+th.SectionTitle.Render("OPTIONS"))
+	for i, opt := range groupByCategoryOpts {
+		cursorHere := i == m.valueIdx && m.focus == focusValue
+		resolvedOn := m.profile.ResolvedGroupByCategory()
+		isCurrent := (i == 0 && resolvedOn) || (i == 1 && !resolvedOn)
+		marker := "( )"
+		if isCurrent {
+			marker = "(●)"
+		}
+		var styled string
+		switch {
+		case cursorHere:
+			styled = th.RowSelected.Render(marker + "  " + opt.label)
+		case isCurrent:
+			styled = th.Success.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
+		default:
+			styled = th.RowDim.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
+		}
+		prefix := bar + "   "
+		if cursorHere {
+			prefix = bar + " " + th.Bullet.Render("▸") + " "
+		}
+		rows = append(rows, prefix+styled)
+	}
+	return rows
+}
+
 func (m profileModel) layoutRow(label, badge string, width int) string {
 	lw := lipgloss.Width(label)
 	bw := lipgloss.Width(badge)
@@ -632,8 +692,21 @@ func (m profileModel) settingBadge(key string) string {
 		}
 	case "status_auto_return":
 		return formatAutoReturnBadge(m.profile.StatusAutoReturnSeconds)
+	case "group_by_category":
+		return formatGroupByCategoryBadge(m.profile.GroupByCategory)
 	}
 	return ""
+}
+
+func formatGroupByCategoryBadge(flag *bool) string {
+	switch {
+	case flag == nil:
+		return "on (default)"
+	case *flag:
+		return "on"
+	default:
+		return "off"
+	}
 }
 
 // formatAutoReturnBadge renders StatusAutoReturnSeconds for the left-pane
