@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.40.0](https://github.com/jjfantini/humblSKILLS/compare/v2.39.0...v2.40.0) (2026-07-29)
+
+
+### Features
+
+* **cli:** group skills TUI by category with collapsible sections ([#212](https://github.com/jjfantini/humblSKILLS/issues/212)) ([9fcaa6f](https://github.com/jjfantini/humblSKILLS/commit/9fcaa6f86c44ba2e643818ac86d88e27f212f275))
+* **skills:** add better-accessibility ([#205](https://github.com/jjfantini/humblSKILLS/issues/205)) ([8748020](https://github.com/jjfantini/humblSKILLS/commit/874802010ebed1d2585245a3e5af2d16280715a4))
+* **skills:** add better-colors ([#209](https://github.com/jjfantini/humblSKILLS/issues/209)) ([5a19096](https://github.com/jjfantini/humblSKILLS/commit/5a190967b5ef52a2fddf3eb0ab8c0662dc00cee1))
+* **skills:** add better-interface ([#211](https://github.com/jjfantini/humblSKILLS/issues/211)) ([079149e](https://github.com/jjfantini/humblSKILLS/commit/079149e01cd4c3cc3068758f18f70b4d150d65e4))
+* **skills:** add better-layout ([#206](https://github.com/jjfantini/humblSKILLS/issues/206)) ([329c97e](https://github.com/jjfantini/humblSKILLS/commit/329c97e3379a7541e58151b12255f353ce4d1e6e))
+* **skills:** add better-typography ([#208](https://github.com/jjfantini/humblSKILLS/issues/208)) ([481713d](https://github.com/jjfantini/humblSKILLS/commit/481713d0882bcc5343bea2a9f42a169747343978))
+* **skills:** add better-ui ([#210](https://github.com/jjfantini/humblSKILLS/issues/210)) ([56ca94c](https://github.com/jjfantini/humblSKILLS/commit/56ca94c787450c3bf72d2e954695bca9a5750419))
+* **skills:** add better-writing ([#207](https://github.com/jjfantini/humblSKILLS/issues/207)) ([2a44a5a](https://github.com/jjfantini/humblSKILLS/commit/2a44a5a9b13871e7b37ba9ff2dfdc3262e8b8ad0))
+
 ## [2.39.0](https://github.com/jjfantini/humblSKILLS/compare/v2.38.0...v2.39.0) (2026-07-28)
 
 
