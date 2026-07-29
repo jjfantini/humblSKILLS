@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-29T19:13:55Z",
+  "generated_at": "2026-07-29T19:14:50Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/better-colors",
-    "sha": "aab80788c7539ddf2193291cb7877a2ada293751"
+    "ref": "feat/better-ui",
+    "sha": "7211b31fffceeec83a0a051193db59b641f4fc6e"
   },
   "skills": [
     {
@@ -177,6 +177,37 @@
       ],
       "path": "skills/better-typography",
       "dir_sha": "3679582c1a9ca0781c53f2b057b50bdfa86f9edb3f97b5ae6d0d7a00bc39afae"
+    },
+    {
+      "name": "better-ui",
+      "version": "1.0.0",
+      "description": "Review interface polish across surfaces, icons, interaction states, animation details, and rendering performance. Use when the user asks about UI polish, visual details, border radius, shadows, icons, hover states, press feedback, micro-interactions, or motion restraint. This skill owns domain review and is read-only by default; edit or implement only when explicitly requested. For full frontend construction use smart-frontend-design.\n",
+      "category": "design",
+      "tags": [
+        "ui",
+        "visual-design",
+        "polish",
+        "icons",
+        "surfaces",
+        "micro-interactions",
+        "performance",
+        "design-review",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "preserve": [
+        "references/raw/",
+        "references/wiki/",
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/better-ui",
+      "dir_sha": "6cac7c792877bd6d4792c4894eb52dbdbe1b48cc3fa34e88937a5e4e84aefdbd"
     },
     {
       "name": "better-writing",
