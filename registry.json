@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-29T19:12:44Z",
+  "generated_at": "2026-07-29T19:13:19Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/better-writing",
-    "sha": "9a3211d5e5c795b313a2da6a699ee34270486566"
+    "ref": "feat/better-typography",
+    "sha": "3b89829bd097f0dd46641bc42e1f15621735cb2c"
   },
   "skills": [
     {
@@ -116,6 +116,36 @@
       ],
       "path": "skills/better-layout",
       "dir_sha": "2819ad5c6927595b5e9e852b577e9def558c6de7b002e0ac3bad93044c839cda"
+    },
+    {
+      "name": "better-typography",
+      "version": "1.0.0",
+      "description": "Review web typography for font selection, hierarchy, spacing, wrapping, rendering, and accessible text behavior. Use when the user asks about typography, fonts, type scale, line height, letter spacing, text wrapping, truncation, OpenType, variable fonts, or text rendering. This skill owns domain review and is read-only by default; edit or implement only when explicitly requested. For full frontend construction use smart-frontend-design.\n",
+      "category": "design",
+      "tags": [
+        "typography",
+        "fonts",
+        "css",
+        "variable-fonts",
+        "opentype",
+        "readability",
+        "design-review",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "preserve": [
+        "references/raw/",
+        "references/wiki/",
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/better-typography",
+      "dir_sha": "3679582c1a9ca0781c53f2b057b50bdfa86f9edb3f97b5ae6d0d7a00bc39afae"
     },
     {
       "name": "better-writing",
