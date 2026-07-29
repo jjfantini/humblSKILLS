@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-29T19:14:50Z",
+  "generated_at": "2026-07-29T19:15:42Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/better-ui",
-    "sha": "7211b31fffceeec83a0a051193db59b641f4fc6e"
+    "ref": "feat/better-interface",
+    "sha": "a4a27accb4f5f959556e55f5cd2c939e2afea13c"
   },
   "skills": [
     {
@@ -117,6 +117,37 @@
       ],
       "path": "skills/better-colors",
       "dir_sha": "d7b50e634c971c3ae835e7b5e0eb140242933e8a2338a38da5de98e570bbf227"
+    },
+    {
+      "name": "better-interface",
+      "version": "1.0.0",
+      "description": "Orchestrate a holistic interface review across better-accessibility, better-layout, better-writing, better-typography, better-colors, and better-ui. Use when explicitly asked for better-interface, a full interface review, a holistic UI audit, or a cross-discipline design review. Read-only by default; implement only when explicitly requested.\n",
+      "category": "design",
+      "tags": [
+        "interface-review",
+        "design-review",
+        "accessibility",
+        "layout",
+        "ux-writing",
+        "typography",
+        "color",
+        "ui",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "preserve": [
+        "references/raw/",
+        "references/wiki/",
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/better-interface",
+      "dir_sha": "68c59c74ab4ca0937591462fb682d30968e18a7867a66f11dd3e2d2aaef48c97"
     },
     {
       "name": "better-layout",
