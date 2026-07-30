@@ -11,6 +11,7 @@ license: MIT
 metadata:
   author: jjfantini
   version: 2.0.3
+  previous_names: ["use-smart-humanize-text"]
   category: writing
   platforms: [claude-code, cursor, codex]
   preserve:

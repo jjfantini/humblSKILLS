@@ -5,6 +5,7 @@ license: MIT
 metadata:
   author: Jennings Fantini
   version: "2.0.3"
+  previous_names: ["analyze-ml-system-design"]
   category: development
   tags: [ml-system-design, interviews, machine-learning]
   platforms: [claude-code, cursor, codex]

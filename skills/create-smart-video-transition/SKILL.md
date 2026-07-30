@@ -19,6 +19,7 @@ allowed-tools: "Read Write Edit Glob Grep Bash(open:*) Bash(xdg-open:*) Bash(bas
 metadata:
   author: jjfantini
   version: "1.0.3"
+  previous_names: ["create-video-transition"]
   category: design
   tags: [video, prompt, transition, image-generation, commercial-director, humblskill]
   platforms: [claude-code, cursor, codex]

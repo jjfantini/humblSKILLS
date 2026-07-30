@@ -12,6 +12,7 @@ compatibility: "Requires git 2.5+, GitHub CLI (`gh`) for PR/check operations, an
 metadata:
   author: jjfantini
   version: "1.0.3"
+  previous_names: ["use-worktree-flow"]
   category: development
   tags: [git, worktree, pull-requests, release, workflow, humblskill]
   platforms: [claude-code, cursor, codex]

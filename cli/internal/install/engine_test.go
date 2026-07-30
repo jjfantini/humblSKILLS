@@ -1478,3 +1478,134 @@ func TestEngine_DirSHAMismatchFails(t *testing.T) {
 		t.Fatal("expected dir_sha mismatch error")
 	}
 }
+
+// TestRename_CarriesPreservedDataToNewName is the regression test for the
+// data-loss hole a rename opens: `preserve` is looked up by skill name, so a
+// renamed skill matches no existing installation and every preserved path is
+// written fresh from the tarball -- silently discarding the user's log,
+// decisions, and patterns. `previous_names` closes it.
+func TestRename_CarriesPreservedDataToNewName(t *testing.T) {
+	root := t.TempDir()
+	cacheDir := filepath.Join(root, "cache")
+	installRoot := filepath.Join(root, "home", ".claude", "skills")
+	manifestPath := filepath.Join(root, "manifest.json")
+
+	oldBody := skillMD("use-foo", "0.1.0", []string{"log.md"})
+	oldFiles := map[string]string{
+		"skills/use-foo/SKILL.md": oldBody,
+		"skills/use-foo/log.md":   "shipped\n",
+	}
+	oldSHA := expectedDirSHA(t, map[string]string{"SKILL.md": oldBody, "log.md": "shipped\n"})
+	src1 := "sharename1aaa"
+	seedTarball(t, cacheDir, "ex", "r", src1, "ex-r-abc", oldFiles)
+
+	newBody := skillMD("foo", "0.2.0", []string{"log.md"})
+	newFiles := map[string]string{
+		"skills/foo/SKILL.md": newBody,
+		"skills/foo/log.md":   "shipped-v2\n",
+	}
+	newSHA := expectedDirSHA(t, map[string]string{"SKILL.md": newBody, "log.md": "shipped-v2\n"})
+	src2 := "sharename2bbb"
+	seedTarball(t, cacheDir, "ex", "r", src2, "ex-r-def", newFiles)
+
+	adapter := adapters.Adapter{
+		Name:           "test",
+		InstallTargets: map[string]string{"user": installRoot},
+		DefaultScope:   "user",
+	}
+	engine := NewEngine(cacheDir, manifestPath)
+	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
+
+	reg1 := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/ex/r", SHA: src1},
+		Skills: []registry.Skill{{
+			Name: "use-foo", Version: "0.1.0", Path: "skills/use-foo",
+			Platforms: []string{"test"}, DirSHA: oldSHA, Preserve: []string{"log.md"},
+		}},
+	}
+	plan1, _ := Plan(reg1, "use-foo")
+	if _, err := engine.Execute(reg1, plan1, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// The user accumulates brain data under the OLD name.
+	userLog := "shipped\n[SESSION] real work the user cannot get back\n"
+	if err := os.WriteFile(filepath.Join(installRoot, "use-foo", "log.md"), []byte(userLog), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Upstream renames use-foo -> foo.
+	reg2 := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/ex/r", SHA: src2},
+		Skills: []registry.Skill{{
+			Name: "foo", Version: "0.2.0", Path: "skills/foo",
+			Platforms: []string{"test"}, DirSHA: newSHA, Preserve: []string{"log.md"},
+			PreviousNames: []string{"use-foo"},
+		}},
+	}
+	plan2, _ := Plan(reg2, "foo")
+	r, err := engine.Execute(reg2, plan2, ExecuteOpts{
+		Adapters: []adapters.Adapter{adapter}, Platforms: []string{"test"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(filepath.Join(installRoot, "foo", "log.md"))
+	if err != nil {
+		t.Fatalf("renamed skill not installed: %v", err)
+	}
+	if string(got) != userLog {
+		t.Errorf("user brain data lost across rename\n got: %q\nwant: %q", got, userLog)
+	}
+
+	// The superseded install is retired, so the skill is not double-registered.
+	if _, err := os.Stat(filepath.Join(installRoot, "use-foo")); !os.IsNotExist(err) {
+		t.Error("old install directory should be removed after a successful rename")
+	}
+	m, err := manifest.Load(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Find("use-foo") != nil {
+		t.Error("manifest should no longer track the old name")
+	}
+	if m.Find("foo") == nil {
+		t.Error("manifest should track the new name")
+	}
+
+	// The carry-over is reported, not silent.
+	var announced bool
+	for _, w := range r.Warnings {
+		if strings.Contains(w.Msg, "renamed from use-foo") {
+			announced = true
+		}
+	}
+	if !announced {
+		t.Errorf("rename carry-over should be surfaced to the user, got %+v", r.Warnings)
+	}
+}
+
+// TestRename_WithoutPreviousNamesLeavesOldAlone guards the blast radius: a
+// skill that merely shares a prefix must never trigger retirement.
+func TestRename_WithoutPreviousNamesLeavesOldAlone(t *testing.T) {
+	m := &manifest.Manifest{Installations: []manifest.Installation{
+		{Skill: "use-foo", Platform: "test", Scope: "user"},
+	}}
+	if got := m.FindPrevious(nil, "test", "user"); got != nil {
+		t.Error("no previous_names must match nothing")
+	}
+	if got := m.FindPrevious([]string{"", "unrelated"}, "test", "user"); got != nil {
+		t.Error("unrelated names must not match")
+	}
+	if got := m.FindPrevious([]string{"use-foo"}, "test", "user"); got == nil {
+		t.Error("declared previous name should match")
+	}
+	if got := m.FindPrevious([]string{"use-foo"}, "other", "user"); got != nil {
+		t.Error("must not cross platform boundaries")
+	}
+}

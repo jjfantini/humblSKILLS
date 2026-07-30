@@ -48,6 +48,11 @@ type Metadata struct {
 	Platforms []string `yaml:"platforms,omitempty"`
 	Tags      []string `yaml:"tags,omitempty"`
 	Preserve  []string `yaml:"preserve,omitempty"`
+	// PreviousNames lists names this skill was published under before being
+	// renamed. Without it a rename reads as "a brand new skill installed next
+	// to an unrelated old one", and the user's preserved brain data is stranded
+	// in a directory nothing points at. See install.Engine for how it is used.
+	PreviousNames []string `yaml:"previous_names,omitempty"`
 }
 
 // Upstream declares that a skill is a mirror of a skill published elsewhere.
@@ -170,6 +175,13 @@ func (f Frontmatter) Preserve() []string {
 		return f.Metadata.Preserve
 	}
 	return f.legacyPreserve
+}
+
+// PreviousNames returns the names this skill was published under before a
+// rename. There is no deprecated top-level fallback - the key postdates the
+// legacy-field migration window.
+func (f Frontmatter) PreviousNames() []string {
+	return f.Metadata.PreviousNames
 }
 
 // DeprecationWarnings returns a list of human-readable strings describing

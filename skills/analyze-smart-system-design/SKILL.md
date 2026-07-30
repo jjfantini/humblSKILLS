@@ -5,6 +5,7 @@ license: MIT
 metadata:
   author: Jennings Fantini
   version: "2.0.3"
+  previous_names: ["analyze-system-design"]
   category: development
   tags: [system-design, interviews, architecture]
   platforms: [claude-code, cursor, codex]

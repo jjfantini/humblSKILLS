@@ -15,6 +15,7 @@ compatibility: Requires bash and Google Chrome (or Chromium) on PATH or in a sta
 metadata:
   author: jjfantini
   version: "0.1.0"
+  previous_names: ["generate-smart-html"]
   category: design
   tags: [html, pdf, print, us-letter, single-file, headless-chrome, typography, report, humblskill]
   platforms: [claude-code, cursor, codex]

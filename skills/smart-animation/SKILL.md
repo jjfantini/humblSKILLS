@@ -21,6 +21,7 @@ compatibility: Requires bash, POSIX utilities (awk, sed, find, grep), python3, w
 metadata:
   author: jjfantini
   version: "0.4.0"
+  previous_names: ["use-smart-animation"]
   category: design
   tags: [animation, transitions, frontend, motion, css, react, webgl, performance, accessibility, agent-ui, humblskill]
   platforms: [claude-code, cursor, codex]
