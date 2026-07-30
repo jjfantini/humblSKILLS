@@ -10,7 +10,7 @@ import (
 func TestLoadHumanizeSkillScenarios(t *testing.T) {
 	t.Parallel()
 	// From cli/internal/eval/scenarios -> repo root is ../../../../
-	rel := filepath.Join("..", "..", "..", "..", "skills", "use-smart-humanize-text")
+	rel := filepath.Join("..", "..", "..", "..", "skills", "smart-humanize-text")
 	p, err := filepath.Abs(rel)
 	if err != nil {
 		t.Fatal(err)
