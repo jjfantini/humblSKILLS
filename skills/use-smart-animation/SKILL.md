@@ -12,12 +12,15 @@ description: >
   premium/polished", "page transition", "reveal on scroll", or asks which
   animation library to use. Enforces compositor-only performance and a
   prefers-reduced-motion floor, and favors distinctive, non-generic motion.
+  This skill owns motion implementation - technique, orchestration, performance,
+  reduced-motion, and library choice. For whole-interface design direction
+  (aesthetic thesis, typography, color, layout) use smart-frontend-design.
   Do NOT use for non-frontend work or for static visual design with no motion.
 license: MIT
 compatibility: Requires bash, POSIX utilities (awk, sed, find, grep), python3, writable filesystem at the skill target path.
 metadata:
   author: jjfantini
-  version: "0.3.0"
+  version: "0.4.0"
   category: design
   tags: [animation, transitions, frontend, motion, css, react, webgl, performance, accessibility, agent-ui, humblskill]
   platforms: [claude-code, cursor, codex]

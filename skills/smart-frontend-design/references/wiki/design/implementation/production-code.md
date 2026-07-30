@@ -6,8 +6,8 @@ concept: production-code
 description: "Build real working UI in the detected stack with code complexity matched to the aesthetic vision"
 tags: implementation, production, react, css, frontend
 sources:
-  - "references/raw/user-frontend-design-brief.md"
-last_ingested: 2026-06-12
+  - "references/raw/frontend-design-SKILL.md"
+last_ingested: 2026-07-30
 ---
 
 ## Implement Production-Grade Frontend Code
@@ -35,9 +35,41 @@ component tests where the behavior is non-trivial.
 Match code complexity to the aesthetic. Maximalist concepts may need layered
 backgrounds, staggered animations, masking, or scroll choreography. Refined
 minimal concepts need tighter spacing, type scale, contrast, and state polish,
-not extra decoration.
+not extra decoration. Elegance is executing the chosen vision well, not
+executing a restrained vision.
+
+Build from the plan produced in `process/two-pass-plan` — follow the revised
+plan exactly and derive every color and type decision from it, rather than
+re-deciding in the editor.
+
+### Watch CSS selector specificity
+
+Be careful how you structure selector specificity. It is easy to generate
+classes that silently cancel each other out — especially a type-based selector
+like `.section` colliding with an element-based one like `.cta`. Spacing is
+where this bites most often: paddings and margins between sections.
+
+**Incorrect (two rules, one silently wins):**
+
+```css
+.section { padding-block: 6rem; }
+.section .cta { margin-block: 4rem; }
+.cta { margin-block: 0; }        /* loses to the line above; the gap stays */
+```
+
+**Correct (one owner per property, no cross-cutting override):**
+
+```css
+.section        { padding-block: var(--space-section); }
+.section > * + * { margin-block-start: var(--space-flow); }
+.cta            { /* owns its own internals only, never sibling spacing */ }
+```
+
+Decide once which selector owns spacing between sections, and keep every other
+rule out of that property.
 
 ## Sources
 
-- `references/raw/user-frontend-design-brief.md` - source for real working
-  code, production quality, and matching implementation complexity to vision.
+- `references/raw/frontend-design-SKILL.md` - source for real working code,
+  production quality, matching implementation complexity to vision, deriving
+  code from the revised plan, and the CSS selector-specificity warning.

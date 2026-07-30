@@ -51,3 +51,14 @@ Entry shape:
     React Bits dependency contract as headline.
 
 [LINT 2026-07-30] 16 wiki, 10 raw. Hard: 0, Soft: 11. Regenerated _index.md.
+
+[BOUNDARY 2026-07-30] Declared the smart-frontend-design boundary; version 0.3.0 -> 0.4.0.
+  - description gained: this skill owns motion implementation; whole-interface
+    design direction routes to smart-frontend-design.
+  - raw/frontend-design-motion-principles.md gained a provenance header naming the
+    shared upstream (claude-plugins-official/frontend-design) and stating that
+    smart-frontend-design mirrors the same sentence shallowly by design.
+  - 2 decisions recorded: reversal of the 2026-07-23 "fully standalone" call, and
+    holding scope at motion-only with Beautiful UI as the canary for a future split.
+
+[LINT 2026-07-30] 16 wiki, 10 raw. Hard: 0, Soft: 11. Regenerated _index.md.

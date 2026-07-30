@@ -8,6 +8,15 @@ description: >
   implement only when explicitly requested.
 license: MIT
 compatibility: "Requires the six named domain skills at runtime for complete coverage, plus bash and python3 for scripts/lint.sh."
+upstream:
+  name: better-interface
+  source: jakubkrehel/skills
+  url: https://github.com/jakubkrehel/skills
+  license: MIT
+  preserved: references/raw/
+  synced: 2026-07-29
+  deltas:
+    - "adds progressive-disclosure router, wiki distillation, brain, and lint (upstream files preserved verbatim under references/raw/)"
 metadata:
   author: jjfantini
   version: "1.0.0"

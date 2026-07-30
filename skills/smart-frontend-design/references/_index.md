@@ -11,7 +11,7 @@ files and re-run lint.
 
 Context -> categories. See `## Wiki` below for the concept enumeration.
 
-- **design** -> `aesthetics`, `anti-patterns`, `direction`, `discovery`, `implementation`, `intake`, `verification`
+- **design** -> `aesthetics`, `anti-patterns`, `direction`, `discovery`, `implementation`, `intake`, `process`, `verification`
 
 ## Wiki
 
@@ -19,6 +19,8 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 #### aesthetics
 
+- [hero-thesis.md](wiki/design/aesthetics/hero-thesis.md) - The Hero Is A Thesis
+- [structural-honesty.md](wiki/design/aesthetics/structural-honesty.md) - Structure Is Information
 - [typography-color-motion.md](wiki/design/aesthetics/typography-color-motion.md) - Use Distinctive Typography Color And Motion
 
 #### anti-patterns
@@ -41,6 +43,10 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 - [one-question.md](wiki/design/intake/one-question.md) - Ask One Design-Essence Question
 
+#### process
+
+- [two-pass-plan.md](wiki/design/process/two-pass-plan.md) - Two Passes: Plan A Token System, Then Critique It Before Building
+
 #### verification
 
 - [review-checklist.md](wiki/design/verification/review-checklist.md) - Verify Frontend Design Quality
@@ -49,7 +55,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 ## Raw Sources
 
-- [user-frontend-design-brief.md](raw/user-frontend-design-brief.md) - cited by: references/wiki/design/aesthetics/typography-color-motion.md, references/wiki/design/anti-patterns/generic-ai-slop.md, references/wiki/design/direction/bold-aesthetic.md, references/wiki/design/discovery/synthesize-style.md, references/wiki/design/implementation/production-code.md, references/wiki/design/intake/one-question.md, references/wiki/design/verification/review-checklist.md
+- [frontend-design-SKILL.md](raw/frontend-design-SKILL.md) - cited by: references/wiki/design/aesthetics/hero-thesis.md, references/wiki/design/aesthetics/structural-honesty.md, references/wiki/design/aesthetics/typography-color-motion.md, references/wiki/design/anti-patterns/generic-ai-slop.md, references/wiki/design/direction/bold-aesthetic.md, references/wiki/design/discovery/synthesize-style.md, references/wiki/design/implementation/production-code.md, references/wiki/design/intake/one-question.md, references/wiki/design/process/two-pass-plan.md, references/wiki/design/verification/review-checklist.md
 
 ---
 

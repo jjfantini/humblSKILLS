@@ -115,3 +115,46 @@ Entry shape:
   vestibular discomfort; since copy-paste means you own the file, the guidance is
   to add the gate in the file. License is MIT + Commons Clause (same as Canvas UI).
 - Result: `references/wiki/lib/react-bits/usage.md` + `references/raw/react-bits.md`.
+
+### 2026-07-30 | Reverses "fully standalone, no cross-links" (2026-07-23)
+- Context: the 2026-07-23 entry "Standalone skill, no cross-links to existing
+  animation skills" chose zero references to sibling skills, naming
+  smart-frontend-design explicitly. That decision was already being violated in
+  substance: `raw/frontend-design-motion-principles.md` is distilled from the
+  same upstream plugin skill that smart-frontend-design mirrors, and
+  `motion/principles/design.md` says so in its own body ("Rules distilled from
+  the frontend-design skill").
+- Options: (A) keep standalone and accept silent duplication, (B) declare the
+  boundary in both descriptions, (C) merge the two skills.
+- Chose: (B).
+- Why: the two skills are not duplicates, they are different *depths* of one
+  upstream sentence — smart-frontend-design mirrors "Leverage motion
+  deliberately" shallowly (correct for a mirror), this skill expands it into
+  three principle concepts. Undeclared, that reads as plagiarism in one
+  direction and as redundancy in the other; declared, it is clean layering.
+  (C) was rejected because narrow scope is the only thing keeping this skill's
+  trigger from colliding with smart-frontend-design's on prompts like "make
+  this look better".
+- Why-caveats: the boundary is declared in *this* skill's description and in
+  smart-frontend-design's router. smart-frontend-design is an upstream mirror,
+  so its side is limited to a routing pointer that does not alter mirrored
+  content.
+- Result: description gained the ownership sentence; raw file gained a
+  provenance header naming the shared upstream. Supersedes the 2026-07-23
+  standalone decision, which stands as history.
+
+### 2026-07-30 | Scope stays motion-only; Beautiful UI is the canary
+- Context: Beautiful UI was added under `lib/` in v0.3.0, but its own page
+  argues the state taxonomy matters more than its animation. It is the first
+  entry that is not primarily a motion library.
+- Options: (A) widen this skill to general frontend craft, (B) keep motion-only
+  and split a component-library skill when a second non-motion find arrives,
+  (C) reject Beautiful UI.
+- Chose: (B).
+- Why: (A) re-creates the exact trigger collision with smart-frontend-design
+  that the boundary decision above resolves — narrow scope is load-bearing.
+  (C) discards a genuinely useful reference over taxonomy purity. Beautiful UI
+  is defensible here today (streaming, shimmer, expand transitions, seven
+  keyframes) and is the signal to watch.
+- Result: no scope change. Revisit when a second non-motion component library
+  is worth documenting.

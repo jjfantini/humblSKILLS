@@ -6,8 +6,8 @@ concept: one-question
 description: "Force one style-defining answer before frontend generation without turning intake into a questionnaire"
 tags: intake, question, style, constraints, frontend
 sources:
-  - "references/raw/user-frontend-design-brief.md"
-last_ingested: 2026-06-12
+  - "references/raw/frontend-design-SKILL.md"
+last_ingested: 2026-07-30
 ---
 
 ## Ask One Design-Essence Question
@@ -39,5 +39,5 @@ Proceed to discovery and synthesis.
 
 ## Sources
 
-- `references/raw/user-frontend-design-brief.md` - source for purpose, tone,
+- `references/raw/frontend-design-SKILL.md` - source for purpose, tone,
   constraints, and differentiation as the core design-thinking inputs.
