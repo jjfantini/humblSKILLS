@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-30T18:59:50Z",
+  "generated_at": "2026-07-30T19:12:24Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "feat/standardize-smart-namespace",
-    "sha": "87e31702e8b59b6939e950c335c23286ed315a9e"
+    "sha": "baf155c8bd5c0a6d48963c678a1495a5089871c5"
   },
   "skills": [
     {
@@ -30,7 +30,7 @@
         "references/patterns.md"
       ],
       "path": "skills/analyze-smart-ml-system-design",
-      "dir_sha": "719c9be1f03b4c9ed6e77fad2891f49e30a3529cca161f225cbbca3af1f6e35a"
+      "dir_sha": "f604b5c42cc47c0f1ea85129ccca6a1df41ee3d28786ead11059cd68d19af4af"
     },
     {
       "name": "analyze-smart-system-design",
@@ -55,7 +55,7 @@
         "references/patterns.md"
       ],
       "path": "skills/analyze-smart-system-design",
-      "dir_sha": "1daf3d61a6441575c273e25f2a57fc060bdac82e13237d9e1a395cdb93f87397"
+      "dir_sha": "d93007a3fdc6fbd513adb5c12956226ab38a6da94f0130c6b99000b618d8e3a0"
     },
     {
       "name": "better-accessibility",
@@ -85,7 +85,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-accessibility",
-      "dir_sha": "3eacc6c6c426909f34a76763bec4022ff3ea8aa5a84beb5d9aad16b0957b2436"
+      "dir_sha": "925a9ff241e09e0e4128dccc4cc4d7caaa409d85e6a2d1d7eb1870f4b27af49b"
     },
     {
       "name": "better-colors",
@@ -116,7 +116,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-colors",
-      "dir_sha": "4a01b99216bc5344b6ffc74e2eb659e6bf70ff8dc66eb4f38731b386ff7bc540"
+      "dir_sha": "42c2e7f04276826f915409c52722116b46ec847fc1b7bba16585c6d5868fe8ed"
     },
     {
       "name": "better-interface",
@@ -147,7 +147,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-interface",
-      "dir_sha": "f9edb9db67badcfd4b95666d0e8badb00e584ba498b69013b3b238a3b082262d"
+      "dir_sha": "aeace45e2f36a6b7acb405f24b1ee6d0fbf8c82ad00b0e3131bb46ed3def69d5"
     },
     {
       "name": "better-layout",
@@ -177,7 +177,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-layout",
-      "dir_sha": "df450deb44faf5c932389d8e7717e1d9db3ed16a978c923bc897fee5d3509207"
+      "dir_sha": "0ed02bbf274aa6c618de7001b88d8b279302e7e1502a513961b8a7d7ce28e31d"
     },
     {
       "name": "better-typography",
@@ -207,7 +207,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-typography",
-      "dir_sha": "da29cd32b6d30b8132364fbb58bf106d2a9e090f599f2a330b9a56c1016c3547"
+      "dir_sha": "a5b39727565226859750d887c7cb80450ce44b1cb674865041c8ccb02a462fd2"
     },
     {
       "name": "better-ui",
@@ -238,7 +238,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-ui",
-      "dir_sha": "5d7f97cbd79d5c67d84353a20250d6aad83c47fe5c727716d25eb54c105df108"
+      "dir_sha": "a7167b9bc593ef005994f85563d49d507a9630a6dbe5b6304bbdbf0fc408b30f"
     },
     {
       "name": "better-writing",
@@ -267,7 +267,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-writing",
-      "dir_sha": "1eeebb4fee90130bf5aaa185d3712ced2fb0584ff1e55046b25c5a17386574d5"
+      "dir_sha": "cd95f1f6248b5ba02edf96e3eed7089b44cbcd1469b5392345ba8302a2d76c76"
     },
     {
       "name": "create-smart-html",
@@ -298,7 +298,7 @@
         "references/patterns.md"
       ],
       "path": "skills/create-smart-html",
-      "dir_sha": "32ec508293ad3b51631801de153c61409f8fffb1e05453aed18a9e97e46914b3"
+      "dir_sha": "2affc20f03a0315ce45316253d0070e940031ab06c56c2d81d69cb9f909aee52"
     },
     {
       "name": "create-smart-scroll-animation",
@@ -330,7 +330,7 @@
         "references/patterns.md"
       ],
       "path": "skills/create-smart-scroll-animation",
-      "dir_sha": "b6459eef78e0a268166b7322fcf3b087305e1186b9f86bf64daba52216dd4e06"
+      "dir_sha": "014a7db6a17d685edb75d50d6205a1f8cafec2598ddede9e68d40faf20d12a12"
     },
     {
       "name": "create-smart-video-transition",
@@ -358,7 +358,7 @@
         "references/patterns.md"
       ],
       "path": "skills/create-smart-video-transition",
-      "dir_sha": "b2cceb84926907e85fdc542577bfb6cb0d9c914e253c15ce1d08f756f5c09b79"
+      "dir_sha": "cf22bfc97d835a76404e90cfdea2737e65c0b5e5be6594a015dc6f4fc85b9c98"
     },
     {
       "name": "smart-animation",
@@ -391,7 +391,7 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-animation",
-      "dir_sha": "57e4e8ab53ad24f3c19f84154c4b7855ad3008d9168804861e9995d088e26905"
+      "dir_sha": "3f5b355fca1dde51ba5db34e72a06f5538351656768cb1308e3ba4d04a9731b6"
     },
     {
       "name": "smart-claude-init",
@@ -418,7 +418,7 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-claude-init",
-      "dir_sha": "06bac19a4c0b4e0fb7998e3d3ed1ec2c347af54c57ea699d6b114a8e2eaa5149"
+      "dir_sha": "ab2a00d67ebb3c3ebdf620a5020dc0a7b3a95b20be5be04fee56e34f7aed8924"
     },
     {
       "name": "smart-commit",
@@ -445,7 +445,7 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-commit",
-      "dir_sha": "1f096c9ed4c7e762824e1de09f4a64d593ce0d5c5dcaa039763ea35b24ca8f33"
+      "dir_sha": "e35f08d4807457e32329122bc51b731bfd419c6c43e2d1c517dff5f04297f476"
     },
     {
       "name": "smart-frontend-design",
@@ -474,7 +474,7 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-frontend-design",
-      "dir_sha": "7602a2cafeea498a0b002e6d48cbb203bdcc33c84e1030d313b9ee3d3bd54e6d"
+      "dir_sha": "e4403fcd7c16bf7378ab302683de152b6988b8cbfdc3ee633d97179a21689ee3"
     },
     {
       "name": "smart-humanize-text",
@@ -494,7 +494,7 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-humanize-text",
-      "dir_sha": "89feefe6b36fd40ca55969825b33ba93e87fe63c81007abb7bb6e53445327650"
+      "dir_sha": "1a3ddfb68718f15c10fa32da1706b599cbda1a8d0a6b2a68e7b1999122b258a1"
     },
     {
       "name": "smart-skill",
@@ -521,7 +521,7 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-skill",
-      "dir_sha": "b45539ebfca2d54476741bca44b6279d13516fc444d44a5007f108ca074558f8"
+      "dir_sha": "9b5661c5881285e9de0563836574b433755e3f3e3f1125f8a05272b37f1d5a87"
     },
     {
       "name": "smart-upload-thing",
@@ -549,7 +549,7 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-upload-thing",
-      "dir_sha": "7c0c952421da0d54d89a9994f7d82a2de701d6f414bd8681c26af8b07ea95876"
+      "dir_sha": "3b2c2314174b712bc3f0f0cd4946c6842321ce679a37ad8fd248d075c48b0f7d"
     },
     {
       "name": "smart-worktree-flow",
@@ -577,7 +577,7 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-worktree-flow",
-      "dir_sha": "1f86050ea6865c309d795cf5d01037d62fbb42a7667c93fc397fc49d8cc71697"
+      "dir_sha": "d3d9afe7eaf8023191eee024cc0ae4e75a9661729e2af88c80c02fa5afd6706f"
     }
   ]
 }
