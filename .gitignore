@@ -57,3 +57,7 @@ Icon
 
 # Nested cli build output
 /cli/bin/
+
+# mirrors plan output (work orders, regenerate with `humblskills mirrors plan`)
+.mirror-sync/
+bin/

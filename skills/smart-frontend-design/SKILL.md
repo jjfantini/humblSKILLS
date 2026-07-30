@@ -14,6 +14,7 @@ upstream:
   name: frontend-design
   source: claude-plugins-official/frontend-design
   url: https://github.com/anthropics/claude-code
+  fetch: ~/.claude/plugins/marketplaces/claude-plugins-official/plugins/frontend-design/skills/frontend-design/SKILL.md
   license: MIT
   preserved: references/raw/frontend-design-SKILL.md
   synced: 2026-07-30

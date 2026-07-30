@@ -2,6 +2,8 @@
 // fetcher / cache for consuming it from GitHub raw.
 package registry
 
+import "github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
+
 // SchemaVersion is the current registry schema. Bumped on breaking change.
 const SchemaVersion = 1
 
@@ -22,20 +24,24 @@ type Source struct {
 
 // Skill is one entry in the registry.
 type Skill struct {
-	Name        string   `json:"name"`
-	Version     string   `json:"version"`
-	Description string   `json:"description"`
-	Category    string   `json:"category,omitempty"`
+	Name        string `json:"name"`
+	Version     string `json:"version"`
+	Description string `json:"description"`
+	Category    string `json:"category,omitempty"`
 	// Role is the optional target role this skill is scoped to (closed set,
 	// see frontmatter.Roles). Empty means unscoped; single-valued like
 	// Category. Used to sub-group skills within a registry when browsing.
-	Role string   `json:"role,omitempty"`
-	Tags []string `json:"tags,omitempty"`
-	Platforms   []string `json:"platforms,omitempty"`
-	Requires    []string `json:"requires,omitempty"`
-	Preserve    []string `json:"preserve,omitempty"`
-	Path        string   `json:"path"`
-	DirSHA      string   `json:"dir_sha"`
+	Role      string   `json:"role,omitempty"`
+	Tags      []string `json:"tags,omitempty"`
+	Platforms []string `json:"platforms,omitempty"`
+	Requires  []string `json:"requires,omitempty"`
+	Preserve  []string `json:"preserve,omitempty"`
+	// Upstream is set for skills that mirror a skill published elsewhere.
+	// Carried through from SKILL.md so consumers can render provenance and
+	// detect drift without reading every skill directory.
+	Upstream *frontmatter.Upstream `json:"upstream,omitempty"`
+	Path     string                `json:"path"`
+	DirSHA   string                `json:"dir_sha"`
 	// Registry is the source-registry name, stamped at load time when skills
 	// from multiple registries are aggregated. It is never written to a
 	// registry.json on disk (build-registry leaves it empty), so it does not

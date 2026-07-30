@@ -50,6 +50,39 @@ type Metadata struct {
 	Preserve  []string `yaml:"preserve,omitempty"`
 }
 
+// Upstream declares that a skill is a mirror of a skill published elsewhere.
+//
+// It is the single source of truth for provenance: ATTRIBUTION.md is rendered
+// from it, and `humblskills mirrors` uses it to detect drift.
+//
+// Preserved is the key field. It points at a byte-for-byte copy of the upstream
+// artifact under references/raw/, which doubles as the drift baseline - the
+// current upstream is compared against it directly, so no hash or lockfile is
+// needed. Overwriting that file without re-distilling destroys the baseline.
+type Upstream struct {
+	// Name is the upstream skill's own name, which need not match ours.
+	Name string `yaml:"name" json:"name"`
+	// Source is a human-readable origin, e.g. "jakubkrehel/skills".
+	Source string `yaml:"source" json:"source"`
+	// URL is the origin's homepage, for attribution rendering.
+	URL string `yaml:"url,omitempty" json:"url,omitempty"`
+	// Fetch is where the CURRENT upstream can be read for drift detection:
+	// either an https:// URL to the raw file, or a path (may contain ~) to a
+	// local plugin cache. Empty means drift cannot be checked automatically.
+	Fetch string `yaml:"fetch,omitempty" json:"fetch,omitempty"`
+	// License is the upstream licence identifier.
+	License string `yaml:"license,omitempty" json:"license,omitempty"`
+	// Preserved is the repo-relative path to the verbatim upstream copy that
+	// serves as the drift baseline.
+	Preserved string `yaml:"preserved" json:"preserved"`
+	// Synced is the ISO date the preserved copy was last refreshed.
+	Synced string `yaml:"synced,omitempty" json:"synced,omitempty"`
+	// Deltas are intentional differences from upstream. A re-sync must NOT
+	// "fix" these; they are the guardrail that stops each sync from
+	// re-litigating deliberate choices.
+	Deltas []string `yaml:"deltas,omitempty" json:"deltas,omitempty"`
+}
+
 // Frontmatter is the typed view of a SKILL.md frontmatter block. Unknown keys
 // in the YAML are accepted but not surfaced; humblSKILLS only validates the
 // fields it owns.
@@ -60,12 +93,13 @@ type Metadata struct {
 // rather than reaching into [Frontmatter.Metadata] directly - the accessors
 // honour the legacy top-level fallback (except Category, which has none).
 type Frontmatter struct {
-	Name          string   `yaml:"name"`
-	Description   string   `yaml:"description"`
-	License       string   `yaml:"license,omitempty"`
-	Compatibility string   `yaml:"compatibility,omitempty"`
-	AllowedTools  string   `yaml:"allowed-tools,omitempty"`
-	Metadata      Metadata `yaml:"metadata"`
+	Name          string    `yaml:"name"`
+	Description   string    `yaml:"description"`
+	License       string    `yaml:"license,omitempty"`
+	Compatibility string    `yaml:"compatibility,omitempty"`
+	AllowedTools  string    `yaml:"allowed-tools,omitempty"`
+	Upstream      *Upstream `yaml:"upstream,omitempty"`
+	Metadata      Metadata  `yaml:"metadata"`
 
 	// Legacy top-level fields. Populated by [Parse] when present in the
 	// YAML. Kept unexported so callers are forced through the accessors,
@@ -167,12 +201,13 @@ func (f Frontmatter) DeprecationWarnings() []string {
 // captures BOTH the canonical metadata block AND the deprecated top-level
 // fields so [Parse] can reconcile them into [Frontmatter].
 type frontmatterWire struct {
-	Name          string   `yaml:"name"`
-	Description   string   `yaml:"description"`
-	License       string   `yaml:"license,omitempty"`
-	Compatibility string   `yaml:"compatibility,omitempty"`
-	AllowedTools  string   `yaml:"allowed-tools,omitempty"`
-	Metadata      Metadata `yaml:"metadata"`
+	Name          string    `yaml:"name"`
+	Description   string    `yaml:"description"`
+	License       string    `yaml:"license,omitempty"`
+	Compatibility string    `yaml:"compatibility,omitempty"`
+	AllowedTools  string    `yaml:"allowed-tools,omitempty"`
+	Upstream      *Upstream `yaml:"upstream,omitempty"`
+	Metadata      Metadata  `yaml:"metadata"`
 
 	Version   string   `yaml:"version,omitempty"`
 	Requires  []string `yaml:"requires,omitempty"`
@@ -220,6 +255,7 @@ func Parse(data []byte) (Frontmatter, []byte, error) {
 		License:         wire.License,
 		Compatibility:   wire.Compatibility,
 		AllowedTools:    wire.AllowedTools,
+		Upstream:        wire.Upstream,
 		Metadata:        wire.Metadata,
 		legacyVersion:   wire.Version,
 		legacyRequires:  wire.Requires,

@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-30T19:12:24Z",
+  "generated_at": "2026-07-30T19:13:06Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/standardize-smart-namespace",
-    "sha": "baf155c8bd5c0a6d48963c678a1495a5089871c5"
+    "ref": "main",
+    "sha": "9d2f5f55a43a9d0c650d1ea1ec66224abdb767c0"
   },
   "skills": [
     {
@@ -84,8 +84,20 @@
         "references/log.md",
         "references/patterns.md"
       ],
+      "upstream": {
+        "name": "better-accessibility",
+        "source": "jakubkrehel/skills",
+        "url": "https://github.com/jakubkrehel/skills",
+        "fetch": "https://raw.githubusercontent.com/jakubkrehel/skills/main/skills/better-accessibility/SKILL.md",
+        "license": "MIT",
+        "preserved": "references/raw/",
+        "synced": "2026-07-29",
+        "deltas": [
+          "adds progressive-disclosure router, wiki distillation, brain, and lint (upstream files preserved verbatim under references/raw/)"
+        ]
+      },
       "path": "skills/better-accessibility",
-      "dir_sha": "925a9ff241e09e0e4128dccc4cc4d7caaa409d85e6a2d1d7eb1870f4b27af49b"
+      "dir_sha": "d52eae30ea866bab4078cc3ba0644226d92a490f331fc8ac07e94b4dfbf72080"
     },
     {
       "name": "better-colors",
@@ -115,8 +127,20 @@
         "references/log.md",
         "references/patterns.md"
       ],
+      "upstream": {
+        "name": "better-colors",
+        "source": "jakubkrehel/skills",
+        "url": "https://github.com/jakubkrehel/skills",
+        "fetch": "https://raw.githubusercontent.com/jakubkrehel/skills/main/skills/better-colors/SKILL.md",
+        "license": "MIT",
+        "preserved": "references/raw/",
+        "synced": "2026-07-29",
+        "deltas": [
+          "adds progressive-disclosure router, wiki distillation, brain, and lint (upstream files preserved verbatim under references/raw/)"
+        ]
+      },
       "path": "skills/better-colors",
-      "dir_sha": "42c2e7f04276826f915409c52722116b46ec847fc1b7bba16585c6d5868fe8ed"
+      "dir_sha": "724d9e6f5740d38f6db032ffafceb45f54821d36a386f185f9fbacee219671c4"
     },
     {
       "name": "better-interface",
@@ -146,8 +170,20 @@
         "references/log.md",
         "references/patterns.md"
       ],
+      "upstream": {
+        "name": "better-interface",
+        "source": "jakubkrehel/skills",
+        "url": "https://github.com/jakubkrehel/skills",
+        "fetch": "https://raw.githubusercontent.com/jakubkrehel/skills/main/skills/better-interface/SKILL.md",
+        "license": "MIT",
+        "preserved": "references/raw/",
+        "synced": "2026-07-29",
+        "deltas": [
+          "adds progressive-disclosure router, wiki distillation, brain, and lint (upstream files preserved verbatim under references/raw/)"
+        ]
+      },
       "path": "skills/better-interface",
-      "dir_sha": "aeace45e2f36a6b7acb405f24b1ee6d0fbf8c82ad00b0e3131bb46ed3def69d5"
+      "dir_sha": "540b20172cb049cca58f80b2ceb32ba4872ea6a7a74a4b8cd68f53ce6be53bbe"
     },
     {
       "name": "better-layout",
@@ -176,8 +212,20 @@
         "references/log.md",
         "references/patterns.md"
       ],
+      "upstream": {
+        "name": "better-layout",
+        "source": "jakubkrehel/skills",
+        "url": "https://github.com/jakubkrehel/skills",
+        "fetch": "https://raw.githubusercontent.com/jakubkrehel/skills/main/skills/better-layout/SKILL.md",
+        "license": "MIT",
+        "preserved": "references/raw/",
+        "synced": "2026-07-29",
+        "deltas": [
+          "adds progressive-disclosure router, wiki distillation, brain, and lint (upstream files preserved verbatim under references/raw/)"
+        ]
+      },
       "path": "skills/better-layout",
-      "dir_sha": "0ed02bbf274aa6c618de7001b88d8b279302e7e1502a513961b8a7d7ce28e31d"
+      "dir_sha": "c15579c8f238c330a7ab9d90061ff01788d65e65e32f553cbeb1f724428eae9d"
     },
     {
       "name": "better-typography",
@@ -206,8 +254,20 @@
         "references/log.md",
         "references/patterns.md"
       ],
+      "upstream": {
+        "name": "better-typography",
+        "source": "jakubkrehel/skills",
+        "url": "https://github.com/jakubkrehel/skills",
+        "fetch": "https://raw.githubusercontent.com/jakubkrehel/skills/main/skills/better-typography/SKILL.md",
+        "license": "MIT",
+        "preserved": "references/raw/",
+        "synced": "2026-07-29",
+        "deltas": [
+          "adds progressive-disclosure router, wiki distillation, brain, and lint (upstream files preserved verbatim under references/raw/)"
+        ]
+      },
       "path": "skills/better-typography",
-      "dir_sha": "a5b39727565226859750d887c7cb80450ce44b1cb674865041c8ccb02a462fd2"
+      "dir_sha": "87438735ac2f24a8fbf94fbf0b90ef1762ebfea2a8fae3d66cc10af39e98abd5"
     },
     {
       "name": "better-ui",
@@ -237,8 +297,20 @@
         "references/log.md",
         "references/patterns.md"
       ],
+      "upstream": {
+        "name": "better-ui",
+        "source": "jakubkrehel/skills",
+        "url": "https://github.com/jakubkrehel/skills",
+        "fetch": "https://raw.githubusercontent.com/jakubkrehel/skills/main/skills/better-ui/SKILL.md",
+        "license": "MIT",
+        "preserved": "references/raw/",
+        "synced": "2026-07-29",
+        "deltas": [
+          "adds progressive-disclosure router, wiki distillation, brain, and lint (upstream files preserved verbatim under references/raw/)"
+        ]
+      },
       "path": "skills/better-ui",
-      "dir_sha": "a7167b9bc593ef005994f85563d49d507a9630a6dbe5b6304bbdbf0fc408b30f"
+      "dir_sha": "903b4673b7cc5d1fe1f2b25a1507e8a0bee4cd5edeba947673816afa327004c0"
     },
     {
       "name": "better-writing",
@@ -266,8 +338,20 @@
         "references/log.md",
         "references/patterns.md"
       ],
+      "upstream": {
+        "name": "better-writing",
+        "source": "jakubkrehel/skills",
+        "url": "https://github.com/jakubkrehel/skills",
+        "fetch": "https://raw.githubusercontent.com/jakubkrehel/skills/main/skills/better-writing/SKILL.md",
+        "license": "MIT",
+        "preserved": "references/raw/",
+        "synced": "2026-07-29",
+        "deltas": [
+          "adds progressive-disclosure router, wiki distillation, brain, and lint (upstream files preserved verbatim under references/raw/)"
+        ]
+      },
       "path": "skills/better-writing",
-      "dir_sha": "cd95f1f6248b5ba02edf96e3eed7089b44cbcd1469b5392345ba8302a2d76c76"
+      "dir_sha": "afb20ce14066f37be6ec4789b8c0496c566419922301baf4b1bb95ca0fdab5f3"
     },
     {
       "name": "create-smart-html",
@@ -473,8 +557,21 @@
         "references/log.md",
         "references/patterns.md"
       ],
+      "upstream": {
+        "name": "frontend-design",
+        "source": "claude-plugins-official/frontend-design",
+        "url": "https://github.com/anthropics/claude-code",
+        "fetch": "~/.claude/plugins/marketplaces/claude-plugins-official/plugins/frontend-design/skills/frontend-design/SKILL.md",
+        "license": "MIT",
+        "preserved": "references/raw/frontend-design-SKILL.md",
+        "synced": "2026-07-30",
+        "deltas": [
+          "adds design/intake/one-question (no upstream equivalent)",
+          "omits upstream 'More on writing in design' section - covered by better-writing"
+        ]
+      },
       "path": "skills/smart-frontend-design",
-      "dir_sha": "e4403fcd7c16bf7378ab302683de152b6988b8cbfdc3ee633d97179a21689ee3"
+      "dir_sha": "f73ef7f88e7eff69f7f44ded8a209d0843717f5f9e8cd61c91379536ef934e41"
     },
     {
       "name": "smart-humanize-text",

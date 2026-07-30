@@ -125,6 +125,7 @@ func newRootCmd() *cobra.Command {
 		newSyncCmd(app),
 		newProfileCmd(app),
 		newEvalCmd(app),
+		newMirrorsCmd(app),
 	)
 
 	return cmd

@@ -11,6 +11,7 @@ upstream:
   name: better-writing
   source: jakubkrehel/skills
   url: https://github.com/jakubkrehel/skills
+  fetch: https://raw.githubusercontent.com/jakubkrehel/skills/main/skills/better-writing/SKILL.md
   license: MIT
   preserved: references/raw/
   synced: 2026-07-29
