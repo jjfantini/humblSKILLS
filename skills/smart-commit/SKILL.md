@@ -12,6 +12,7 @@ license: MIT
 metadata:
   author: jjfantini
   version: "1.0.3"
+  previous_names: ["use-smart-commit"]
   category: development
   tags: [git, commits, conventional-commits, workflow, humblskill]
   platforms: [claude-code, cursor, codex]

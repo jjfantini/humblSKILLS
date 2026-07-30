@@ -104,18 +104,19 @@ func run(skillsDir, outFile, repo, ref, sha string, check bool) error {
 			return fmt.Errorf("dir_sha for %s: %w", p.fm.Name, err)
 		}
 		skills = append(skills, registry.Skill{
-			Name:        p.fm.Name,
-			Version:     p.fm.Version(),
-			Description: p.fm.Description,
-			Category:    p.fm.Category(),
-			Role:        p.fm.Role(),
-			Tags:        p.fm.Tags(),
-			Platforms:   p.fm.Platforms(),
-			Requires:    p.fm.Requires(),
-			Preserve:    p.fm.Preserve(),
-			Upstream:    p.fm.Upstream,
-			Path:        filepath.ToSlash(filepath.Join(filepath.Base(skillsDir), p.dirName)),
-			DirSHA:      dirSha,
+			Name:          p.fm.Name,
+			Version:       p.fm.Version(),
+			Description:   p.fm.Description,
+			Category:      p.fm.Category(),
+			Role:          p.fm.Role(),
+			Tags:          p.fm.Tags(),
+			Platforms:     p.fm.Platforms(),
+			Requires:      p.fm.Requires(),
+			Preserve:      p.fm.Preserve(),
+			PreviousNames: p.fm.PreviousNames(),
+			Upstream:      p.fm.Upstream,
+			Path:          filepath.ToSlash(filepath.Join(filepath.Base(skillsDir), p.dirName)),
+			DirSHA:        dirSha,
 		})
 	}
 	sort.Slice(skills, func(i, j int) bool { return skills[i].Name < skills[j].Name })

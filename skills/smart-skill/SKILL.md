@@ -15,6 +15,7 @@ allowed-tools: "Bash(bash:*) Bash(sh:*) Read Write Edit Glob Grep"
 metadata:
   author: jjfantini
   version: 1.1.3
+  previous_names: ["use-smart-skill"]
   category: meta
   tags: [meta, skill-authoring, smart-skill, scaffolding, humblskill]
   platforms: [claude-code, cursor, codex]

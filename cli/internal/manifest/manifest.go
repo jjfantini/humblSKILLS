@@ -184,3 +184,19 @@ func (m *Manifest) RemoveOne(skill, platform, scope string) bool {
 	}
 	return false
 }
+
+// FindPrevious returns the installation for the first of names that has an
+// entry on this platform/scope. It is how a renamed skill locates the
+// installation it supersedes, so the user's preserved data can be carried
+// forward instead of stranded under the old name.
+func (m *Manifest) FindPrevious(names []string, platform, scope string) *Installation {
+	for _, name := range names {
+		if name == "" {
+			continue
+		}
+		if inst := m.FindOne(name, platform, scope); inst != nil {
+			return inst
+		}
+	}
+	return nil
+}

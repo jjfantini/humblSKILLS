@@ -17,6 +17,7 @@ allowed-tools: "Read Write Edit Glob Grep Bash(ffmpeg:*) Bash(ffprobe:*) Bash(cw
 metadata:
   author: jjfantini
   version: "0.1.3"
+  previous_names: ["create-scroll-animation"]
   category: design
   tags: [scroll, canvas, framer-motion, nextjs, react, ffmpeg, webp, apple-style, hero, humblskill]
   platforms: [claude-code, cursor, codex]

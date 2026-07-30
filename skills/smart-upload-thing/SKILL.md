@@ -13,6 +13,7 @@ compatibility: "Requires bash, curl, jq, and network access to api.uploadthing.c
 metadata:
   author: jjfantini
   version: "1.0.3"
+  previous_names: ["use-upload-thing"]
   category: development
   tags: [uploadthing, file-upload, storage, rest-api, ufs, humblskill]
   platforms: [claude-code, cursor, codex]

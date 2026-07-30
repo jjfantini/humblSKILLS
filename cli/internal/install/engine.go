@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
@@ -284,6 +285,7 @@ func (e *Engine) installOne(
 	var toWrite []installPlanTarget
 	var skipped []TargetResult
 	preserveSource := ""
+	renamedFrom := ""
 	for _, pg := range pendings {
 		existing := m.FindOne(skill.Name, pg.adapter.Name, pg.target.Scope)
 		orphan := ""
@@ -324,6 +326,20 @@ func (e *Engine) installOne(
 			}
 		} else if preserveSource == "" && realDirExists(pg.final) {
 			preserveSource = pg.final
+		}
+		// A renamed skill has no installation under its new name, so the
+		// lookups above find nothing and every preserved path would be written
+		// fresh - silently discarding the user's log/decisions/patterns. Fall
+		// back to whatever this skill used to be called.
+		if preserveSource == "" && existing == nil {
+			if prev := m.FindPrevious(skill.PreviousNames, pg.adapter.Name, pg.target.Scope); prev != nil {
+				if prev.StorePath != "" {
+					preserveSource = prev.StorePath
+				} else {
+					preserveSource = prev.Path
+				}
+				renamedFrom = prev.Skill
+			}
 		}
 		switch {
 		case upToDate && !opts.Force:
@@ -401,6 +417,13 @@ func (e *Engine) installOne(
 				}
 			}
 			writeSrc = perStore
+			if renamedFrom != "" {
+				opts.OnEvent.emit(Event{
+					Phase: PhaseWarn, Skill: skill.Name,
+					Msg: fmt.Sprintf("renamed from %s — carried over preserved data (%s)",
+						renamedFrom, strings.Join(preserveList, ", ")),
+				})
+			}
 		}
 	}
 
@@ -456,7 +479,48 @@ func (e *Engine) installOne(
 			Outcome: pt.out, Path: pt.pending.final, Version: skill.Version, StorePath: storePath,
 		})
 	}
+
+	// The superseded installation is only retired once the new one is fully
+	// written and its data carried over. Leaving it would double-register the
+	// skill with every agent runtime; removing it earlier would risk losing the
+	// only copy of the user's brain data if anything above failed.
+	if renamedFrom != "" {
+		removed, err := e.retireRenamed(m, renamedFrom, storePath)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, removed...)
+	}
 	return results, nil
+}
+
+// retireRenamed removes installations published under a superseded name after
+// the renamed skill has been installed and its preserved data carried forward.
+// The canonical store is only deleted when nothing else references it.
+func (e *Engine) retireRenamed(m *manifest.Manifest, oldName, newStorePath string) ([]TargetResult, error) {
+	var out []TargetResult
+	stores := map[string]struct{}{}
+	for _, inst := range m.FindAll(oldName) {
+		if inst.StorePath != "" && inst.StorePath != newStorePath {
+			stores[inst.StorePath] = struct{}{}
+		}
+		if err := os.RemoveAll(inst.Path); err != nil {
+			return out, fmt.Errorf("retire renamed %s: %w", inst.Path, err)
+		}
+		out = append(out, TargetResult{
+			Skill: inst.Skill, Platform: inst.Platform, Scope: inst.Scope,
+			Path: inst.Path, Outcome: "removed",
+		})
+	}
+	m.Remove(oldName)
+	for store := range stores {
+		if !manifestReferencesStore(m, store) {
+			if err := os.RemoveAll(store); err != nil {
+				return out, fmt.Errorf("retire renamed store %s: %w", store, err)
+			}
+		}
+	}
+	return out, nil
 }
 
 func (e *Engine) preserveListForStore(

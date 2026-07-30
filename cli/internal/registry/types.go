@@ -36,6 +36,10 @@ type Skill struct {
 	Platforms []string `json:"platforms,omitempty"`
 	Requires  []string `json:"requires,omitempty"`
 	Preserve  []string `json:"preserve,omitempty"`
+	// PreviousNames are names this skill was published under before a rename.
+	// The installer uses them to find and carry over an existing installation's
+	// preserved data instead of stranding it under the old name.
+	PreviousNames []string `json:"previous_names,omitempty"`
 	// Upstream is set for skills that mirror a skill published elsewhere.
 	// Carried through from SKILL.md so consumers can render provenance and
 	// detect drift without reading every skill directory.
