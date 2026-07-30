@@ -9,7 +9,11 @@ import (
 // registry. Targets lists every (platform, scope) the skill is currently
 // installed onto.
 type UpdatePlan struct {
-	Skill       string          `json:"skill"`
+	Skill string `json:"skill"`
+	// RenamedFrom is set when the installed skill has been renamed upstream.
+	// Skill then holds the NEW name, which is what gets installed; the engine
+	// carries the old installation's preserved data forward and retires it.
+	RenamedFrom string          `json:"renamed_from,omitempty"`
 	FromVersion string          `json:"from_version"`
 	ToVersion   string          `json:"to_version"`
 	FromSHA     string          `json:"from_source_sha,omitempty"`
@@ -41,6 +45,8 @@ func PlanUpdates(reg *registry.Registry, m *manifest.Manifest, only []string) []
 		regIndex[s.Name] = s
 	}
 
+	renameIndex := buildRenameIndex(reg, regIndex)
+
 	filter := map[string]struct{}{}
 	for _, n := range only {
 		filter[n] = struct{}{}
@@ -50,7 +56,16 @@ func PlanUpdates(reg *registry.Registry, m *manifest.Manifest, only []string) []
 	bySkill := map[string][]manifest.Installation{}
 	for _, inst := range m.Installations {
 		if len(filter) > 0 {
-			if _, ok := filter[inst.Skill]; !ok {
+			_, wanted := filter[inst.Skill]
+			// `update <new-name>` should also reach an installation still
+			// recorded under the old name, or the rename would be unreachable
+			// by the name the user now knows the skill by.
+			if !wanted {
+				if renamed, ok := renameIndex[inst.Skill]; ok {
+					_, wanted = filter[renamed.Name]
+				}
+			}
+			if !wanted {
 				continue
 			}
 		}
@@ -59,9 +74,23 @@ func PlanUpdates(reg *registry.Registry, m *manifest.Manifest, only []string) []
 
 	var out []UpdatePlan
 	for name, insts := range bySkill {
+		renamedFrom := ""
 		regSkill, ok := regIndex[name]
 		if !ok {
-			continue
+			// The installed name is gone from the registry. It is a rename only
+			// if some registry skill explicitly claims it; otherwise the skill
+			// was withdrawn and there is nothing to upgrade to.
+			regSkill, ok = renameIndex[name]
+			if !ok {
+				continue
+			}
+			// Both names installed at once (a half-finished migration): the
+			// direct match already plans the new name, so planning it again
+			// from the old entry would execute the same install twice.
+			if _, alsoInstalled := bySkill[regSkill.Name]; alsoInstalled {
+				continue
+			}
+			renamedFrom = name
 		}
 		// Any target that's drifted triggers an UpdatePlan for the skill.
 		//
@@ -71,8 +100,15 @@ func PlanUpdates(reg *registry.Registry, m *manifest.Manifest, only []string) []
 		// commits that don't touch this skill, which would flag every
 		// installation as drifted after each CLI release. Source.SHA is
 		// kept in the manifest purely as install-time metadata.
-		drifted := false
+		//
+		// A rename is drift by definition — the installed directory carries a
+		// name the registry no longer publishes — so it short-circuits the
+		// version/DirSHA comparison, which cannot decide it.
+		drifted := renamedFrom != ""
 		for _, i := range insts {
+			if drifted {
+				break
+			}
 			if i.Version != regSkill.Version ||
 				i.RegistryRef != regSkill.DirSHA {
 				drifted = true
@@ -85,7 +121,8 @@ func PlanUpdates(reg *registry.Registry, m *manifest.Manifest, only []string) []
 
 		first := insts[0]
 		plan := UpdatePlan{
-			Skill:       name,
+			Skill:       regSkill.Name,
+			RenamedFrom: renamedFrom,
 			FromVersion: first.Version,
 			ToVersion:   regSkill.Version,
 			FromSHA:     first.SourceSHA,
@@ -99,6 +136,39 @@ func PlanUpdates(reg *registry.Registry, m *manifest.Manifest, only []string) []
 			})
 		}
 		out = append(out, plan)
+	}
+	return out
+}
+
+// buildRenameIndex maps a superseded skill name to the registry skill that
+// claims it via previous_names.
+//
+// Two guards keep this from ever guessing, because a wrong answer here installs
+// the wrong skill and retires a real one:
+//
+//   - A name that is still published in its own right is never treated as a
+//     rename target. A live skill always wins over someone else's claim on its
+//     name, so a stale or mistaken previous_names entry cannot hijack it.
+//   - A name claimed by two or more skills is ambiguous and is dropped
+//     entirely rather than resolved by ordering.
+func buildRenameIndex(reg *registry.Registry, regIndex map[string]registry.Skill) map[string]registry.Skill {
+	claims := map[string][]registry.Skill{}
+	for _, s := range reg.Skills {
+		for _, prev := range s.PreviousNames {
+			if prev == "" || prev == s.Name {
+				continue
+			}
+			if _, live := regIndex[prev]; live {
+				continue
+			}
+			claims[prev] = append(claims[prev], s)
+		}
+	}
+	out := make(map[string]registry.Skill, len(claims))
+	for prev, cs := range claims {
+		if len(cs) == 1 {
+			out[prev] = cs[0]
+		}
 	}
 	return out
 }

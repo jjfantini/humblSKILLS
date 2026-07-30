@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-30T22:01:32Z",
+  "generated_at": "2026-07-30T22:25:16Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/rename-preserves-user-data",
-    "sha": "8d41cec43764d15f95ff558d6326624cfccdcd7a"
+    "ref": "feat/update-follows-renames",
+    "sha": "14b51f91f3b4626d40927a6de6ec8d69dc86f5df"
   },
   "skills": [
     {
