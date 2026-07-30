@@ -318,6 +318,9 @@ func (u updatePlanItem) Detail(th *ui.Theme, width int) string {
 	var sb strings.Builder
 	sb.WriteString(th.DetailTitle.Render(u.p.Skill) + "  " +
 		th.DetailSub.Render("v"+u.p.FromVersion+" → v"+u.p.ToVersion) + "\n\n")
+	if u.p.RenamedFrom != "" {
+		sb.WriteString(kvRow(th, "renamed from", th.KVValue.Render(u.p.RenamedFrom)))
+	}
 	sb.WriteString(kvRow(th, "from", th.KVValue.Render("v"+u.p.FromVersion)))
 	sb.WriteString(kvRow(th, "to", th.KVValue.Render("v"+u.p.ToVersion)))
 	sb.WriteString(kvRow(th, "targets", th.KVValue.Render(fmt.Sprintf("%d", len(u.p.Targets)))))
@@ -349,8 +352,14 @@ func printUpdateCheck(app *App, plans []install.UpdatePlan) error {
 	}
 	app.UI.Info("%d skill%s can be updated:", len(plans), textutil.Plural(len(plans)))
 	for _, p := range plans {
+		name := p.Skill
+		if p.RenamedFrom != "" {
+			// Say the old name out loud — the user knows the skill by that,
+			// and a silent swap looks like an unrelated install.
+			name = p.RenamedFrom + " → " + p.Skill
+		}
 		app.UI.Detail("  %s  %s → %s  (%d target%s)",
-			p.Skill, p.FromVersion, p.ToVersion, len(p.Targets), textutil.Plural(len(p.Targets)))
+			name, p.FromVersion, p.ToVersion, len(p.Targets), textutil.Plural(len(p.Targets)))
 	}
 	return nil
 }
