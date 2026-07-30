@@ -113,6 +113,7 @@ func run(skillsDir, outFile, repo, ref, sha string, check bool) error {
 			Platforms:   p.fm.Platforms(),
 			Requires:    p.fm.Requires(),
 			Preserve:    p.fm.Preserve(),
+			Upstream:    p.fm.Upstream,
 			Path:        filepath.ToSlash(filepath.Join(filepath.Base(skillsDir), p.dirName)),
 			DirSHA:      dirSha,
 		})
