@@ -34,3 +34,20 @@ Entry shape:
   - Updated raw/canvas-ui.md + lib/canvas-ui/usage.md (no version change; 0.2.0 still in PR #195).
 
 [LINT 2026-07-23] 13 wiki, 7 raw. Hard: 0, Soft: 8. Regenerated _index.md.
+
+[INGEST 2026-07-30] Added three libraries: Motion, React Bits, Beautiful UI (5 -> 8).
+  - New raw: motion-react.md, react-bits.md, beautiful-ui.md.
+  - New wiki: lib/motion-react/usage, lib/react-bits/usage, lib/beautiful-ui/usage.
+  - SKILL.md: 3 router lines, description gained the AI/agent-state trigger, "four
+    bundled libraries" -> eight (was already stale, omitted Canvas UI), tag agent-ui,
+    version 0.2.0 -> 0.3.0.
+  - Motion: documented as "only for the four things CSS can't do" (exit, layout,
+    spring, interruption) with the verbatim bundle table (34kb vs 4.6kb LazyMotion).
+  - Beautiful UI: page payload inspected directly; extracted all 17 component sources
+    to audit imports (react + liveline only). Documented the three things a copied
+    file leaves behind (tokens, 7 keyframes, global reduced-motion block) — the
+    silent-failure mode where the component renders unstyled and still, with no error.
+  - 3 decisions recorded: motion-react slug, Beautiful UI despite no license,
+    React Bits dependency contract as headline.
+
+[LINT 2026-07-30] 16 wiki, 10 raw. Hard: 0, Soft: 11. Regenerated _index.md.

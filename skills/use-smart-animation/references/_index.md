@@ -12,7 +12,7 @@ files and re-run lint.
 Context -> categories. See `## Wiki` below for the concept enumeration.
 
 - **lang** -> `css`, `html`, `js`, `react`, `ts`
-- **lib** -> `beams`, `canvas-ui`, `metal`, `orbs`, `transitions`
+- **lib** -> `beams`, `beautiful-ui`, `canvas-ui`, `metal`, `motion-react`, `orbs`, `react-bits`, `transitions`
 - **motion** -> `principles`
 
 ## Wiki
@@ -45,6 +45,10 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 - [usage.md](wiki/lib/beams/usage.md) - border-beam: Animated Border Glow
 
+#### beautiful-ui
+
+- [usage.md](wiki/lib/beautiful-ui/usage.md) - Beautiful UI: Copy-Paste Primitives for AI-Native Interfaces
+
 #### canvas-ui
 
 - [usage.md](wiki/lib/canvas-ui/usage.md) - Canvas UI: Creative Canvas & WebGL Effects
@@ -53,9 +57,17 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 - [usage.md](wiki/lib/metal/usage.md) - metal-fx: Liquid-Metal Shader Accent
 
+#### motion-react
+
+- [usage.md](wiki/lib/motion-react/usage.md) - Motion for React: Springs, Layout, and Exit Animations
+
 #### orbs
 
 - [usage.md](wiki/lib/orbs/usage.md) - thinking-orbs: Agent Status Indicators
+
+#### react-bits
+
+- [usage.md](wiki/lib/react-bits/usage.md) - React Bits: 140+ Copy-Paste Animated React Components
 
 #### transitions
 
@@ -73,10 +85,13 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 ## Raw Sources
 
+- [beautiful-ui.md](raw/beautiful-ui.md) - cited by: references/wiki/lib/beautiful-ui/usage.md
 - [border-beam.md](raw/border-beam.md) - cited by: references/wiki/lib/beams/usage.md
 - [canvas-ui.md](raw/canvas-ui.md) - cited by: references/wiki/lib/canvas-ui/usage.md
 - [frontend-design-motion-principles.md](raw/frontend-design-motion-principles.md) - cited by: references/wiki/lang/react/animation.md, references/wiki/motion/principles/design.md
 - [metal-fx.md](raw/metal-fx.md) - cited by: references/wiki/lib/metal/usage.md
+- [motion-react.md](raw/motion-react.md) - cited by: references/wiki/lib/motion-react/usage.md
+- [react-bits.md](raw/react-bits.md) - cited by: references/wiki/lib/react-bits/usage.md
 - [thinking-orbs.md](raw/thinking-orbs.md) - cited by: references/wiki/lib/orbs/usage.md
 - [transitions-dev.md](raw/transitions-dev.md) - cited by: references/wiki/lang/ts/animation.md, references/wiki/lib/transitions/usage.md, references/wiki/motion/principles/accessibility.md
 - [web-animation-standards.md](raw/web-animation-standards.md) - cited by: references/wiki/lang/css/animation.md, references/wiki/lang/html/animation.md, references/wiki/lang/js/animation.md, references/wiki/lang/react/animation.md, references/wiki/lang/ts/animation.md, references/wiki/motion/principles/accessibility.md, references/wiki/motion/principles/performance.md
