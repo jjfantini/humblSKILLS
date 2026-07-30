@@ -62,11 +62,11 @@ humblskills doctor
 ```sh
 humblskills doctor
 humblskills search
-humblskills install use-smart-skill
+humblskills install smart-skill
 humblskills list
 humblskills update
 humblskills update --all --yes
-humblskills uninstall use-smart-skill
+humblskills uninstall smart-skill
 ```
 
 Every command accepts **`--json`** (machine-readable output) and **`--yes`** (skip prompts).

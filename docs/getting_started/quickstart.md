@@ -20,13 +20,13 @@ Non-interactive environments (pipes, CI, agents) do not get the TUI: the binary 
 ```sh
 humblskills doctor                    # verify the environment
 humblskills search                    # browse the registry
-humblskills install use-smart-skill
-humblskills install use-smart-skill --global --yes
+humblskills install smart-skill
+humblskills install smart-skill --global --yes
 humblskills migrate claude-code --global --yes
 humblskills list
 humblskills update                    # pick which drifted skills to upgrade
 humblskills update --all --yes        # non-interactive bulk upgrade
-humblskills uninstall use-smart-skill
+humblskills uninstall smart-skill
 humblskills init --from-installed      # scaffold a shareable humblskills.json
 humblskills sync                       # install everything a skillset lists
 ```

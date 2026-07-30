@@ -11,6 +11,7 @@ upstream:
   name: better-ui
   source: jakubkrehel/skills
   url: https://github.com/jakubkrehel/skills
+  fetch: https://raw.githubusercontent.com/jakubkrehel/skills/main/skills/better-ui/SKILL.md
   license: MIT
   preserved: references/raw/
   synced: 2026-07-29
@@ -72,7 +73,7 @@ For complete upstream detail, read the cited file under `references/raw/`.
 
 ## Motion Boundary
 
-`better-ui` reviews whether motion details fit the interface and flags concrete polish or performance issues. Route dedicated animation design or implementation to `use-smart-animation`; do not duplicate its performance-first animation system.
+`better-ui` reviews whether motion details fit the interface and flags concrete polish or performance issues. Route dedicated animation design or implementation to `smart-animation`; do not duplicate its performance-first animation system.
 
 ## Review Result
 
