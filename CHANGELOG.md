@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.41.0](https://github.com/jjfantini/humblSKILLS/compare/v2.40.0...v2.41.0) (2026-07-30)
+
+
+### Features
+
+* **cli:** add `mirrors` - deterministic drift detection for mirrored skills ([#217](https://github.com/jjfantini/humblSKILLS/issues/217))
+* **skills:** add Motion, React Bits, and Beautiful UI to the animation skill ([#214](https://github.com/jjfantini/humblSKILLS/issues/214))
+* **skills:** re-sync smart-frontend-design mirror and standardize provenance ([#215](https://github.com/jjfantini/humblSKILLS/issues/215))
+
+
+### Bug Fixes
+
+* **install:** carry preserved user data across a skill rename ([#218](https://github.com/jjfantini/humblSKILLS/issues/218))
+
+
+### Code Refactoring
+
+* **skills:** standardize on the `[<verb>-]smart-<noun>` namespace ([#217](https://github.com/jjfantini/humblSKILLS/issues/217))
+
 ## [2.40.0](https://github.com/jjfantini/humblSKILLS/compare/v2.39.0...v2.40.0) (2026-07-29)
 
 
