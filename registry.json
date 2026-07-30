@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-30T18:49:54Z",
+  "generated_at": "2026-07-30T18:59:03Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "feat/mirror-provenance-and-boundaries",
-    "sha": "93ff95b8b2a0772cb6b62ede8dbe3c23b08b01d1"
+    "sha": "cb542067eec1d30ef30e7cd71b81792d65920c2a"
   },
   "skills": [
     {
