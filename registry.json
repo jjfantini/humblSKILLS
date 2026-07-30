@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-30T18:59:03Z",
+  "generated_at": "2026-07-30T18:59:50Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/mirror-provenance-and-boundaries",
-    "sha": "cb542067eec1d30ef30e7cd71b81792d65920c2a"
+    "ref": "feat/standardize-smart-namespace",
+    "sha": "87e31702e8b59b6939e950c335c23286ed315a9e"
   },
   "skills": [
     {
-      "name": "analyze-ml-system-design",
+      "name": "analyze-smart-ml-system-design",
       "version": "2.0.3",
-      "description": "Drive an ML system design from an ambiguous prompt to a production-minded solution with a 6-step framework (problem framing, high-level design, data and features, modeling, inference and evaluation, deep dives). Use for an ML system design interview or any \"design X\" ML prompt - recommendation systems, fraud or bot detection, content moderation, ranking, search, personalization - or whenever the core problem is choosing data, features, a model, and an evaluation strategy. For infra or non-ML system design (URL shortener, chat, rate limiter, file sync), use analyze-system-design instead.",
+      "description": "Drive an ML system design from an ambiguous prompt to a production-minded solution with a 6-step framework (problem framing, high-level design, data and features, modeling, inference and evaluation, deep dives). Use for an ML system design interview or any \"design X\" ML prompt - recommendation systems, fraud or bot detection, content moderation, ranking, search, personalization - or whenever the core problem is choosing data, features, a model, and an evaluation strategy. For infra or non-ML system design (URL shortener, chat, rate limiter, file sync), use analyze-smart-system-design instead.",
       "category": "development",
       "tags": [
         "ml-system-design",
@@ -29,13 +29,13 @@
         "references/log.md",
         "references/patterns.md"
       ],
-      "path": "skills/analyze-ml-system-design",
-      "dir_sha": "97b246ae86501e304ed32e21ea32d0c38ea50015f545b35a9619509a3ceaa6b3"
+      "path": "skills/analyze-smart-ml-system-design",
+      "dir_sha": "719c9be1f03b4c9ed6e77fad2891f49e30a3529cca161f225cbbca3af1f6e35a"
     },
     {
-      "name": "analyze-system-design",
+      "name": "analyze-smart-system-design",
       "version": "2.0.3",
-      "description": "Drive a system design interview from a blank prompt to a simple, complete, defensible design using a 6-step framework (requirements, core entities, API, optional data flow, high-level design, deep dives). Use it for system design interviews, \"design X system\" prompts, high-level design and architecture sketches, deep dives, scaling and data-modeling questions, and choosing technologies (Redis, Kafka, Cassandra, DynamoDB, Postgres). For ML-centric problems (recommendations, fraud or bot detection, ranking, content moderation) use analyze-ml-system-design instead.",
+      "description": "Drive a system design interview from a blank prompt to a simple, complete, defensible design using a 6-step framework (requirements, core entities, API, optional data flow, high-level design, deep dives). Use it for system design interviews, \"design X system\" prompts, high-level design and architecture sketches, deep dives, scaling and data-modeling questions, and choosing technologies (Redis, Kafka, Cassandra, DynamoDB, Postgres). For ML-centric problems (recommendations, fraud or bot detection, ranking, content moderation) use analyze-smart-ml-system-design instead.",
       "category": "development",
       "tags": [
         "system-design",
@@ -54,8 +54,8 @@
         "references/log.md",
         "references/patterns.md"
       ],
-      "path": "skills/analyze-system-design",
-      "dir_sha": "083508d595d0e7c728de83c5c4db8a4efa9ba60df7654eaf1231c6075313a47f"
+      "path": "skills/analyze-smart-system-design",
+      "dir_sha": "1daf3d61a6441575c273e25f2a57fc060bdac82e13237d9e1a395cdb93f87397"
     },
     {
       "name": "better-accessibility",
@@ -85,7 +85,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-accessibility",
-      "dir_sha": "4ceab4a269c72972f10f2a385f1a2f784b2bbe9b5994e775a117e54d8d33b794"
+      "dir_sha": "3eacc6c6c426909f34a76763bec4022ff3ea8aa5a84beb5d9aad16b0957b2436"
     },
     {
       "name": "better-colors",
@@ -116,7 +116,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-colors",
-      "dir_sha": "31aceb0db3c314d31856638f799ebddf75ca615a26c4feb2c4b9530997072ce5"
+      "dir_sha": "4a01b99216bc5344b6ffc74e2eb659e6bf70ff8dc66eb4f38731b386ff7bc540"
     },
     {
       "name": "better-interface",
@@ -177,7 +177,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-layout",
-      "dir_sha": "a1e72b23ebfd4a0f169b7b03e6ab39c8390f9735cb6880006da9f31c97bc3bc2"
+      "dir_sha": "df450deb44faf5c932389d8e7717e1d9db3ed16a978c923bc897fee5d3509207"
     },
     {
       "name": "better-typography",
@@ -207,7 +207,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-typography",
-      "dir_sha": "832e65e268457f0de0b5e0c97b426854f3891be676dbbe098b37e409f9ad791c"
+      "dir_sha": "da29cd32b6d30b8132364fbb58bf106d2a9e090f599f2a330b9a56c1016c3547"
     },
     {
       "name": "better-ui",
@@ -238,7 +238,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-ui",
-      "dir_sha": "29bb71826625c5bc5022c313c6c18a043568f3783bd0b2e004b7ebdd26e636c1"
+      "dir_sha": "5d7f97cbd79d5c67d84353a20250d6aad83c47fe5c727716d25eb54c105df108"
     },
     {
       "name": "better-writing",
@@ -267,12 +267,43 @@
         "references/patterns.md"
       ],
       "path": "skills/better-writing",
-      "dir_sha": "ffb5cd3e4a7e20b4267196ba10d66ebcd51f1880966db3d1bcbc65419d10951c"
+      "dir_sha": "1eeebb4fee90130bf5aaa185d3712ced2fb0584ff1e55046b25c5a17386574d5"
     },
     {
-      "name": "create-scroll-animation",
+      "name": "create-smart-html",
+      "version": "0.1.0",
+      "description": "Gather requirements, then generate a sleek, zero-dependency, single-file HTML page (inline CSS/JS, system-stack typography, no CDNs) that is print-faithful on US Letter paper — portrait or landscape — and export it to PDF with headless Google Chrome. Use when the user says \"generate an HTML page/report\", \"single-file HTML\", \"make this printable\", \"export HTML to PDF\", \"US letter PDF\", \"landscape/portrait PDF\", or wants data or a document visualized as a portable webpage plus a matching PDF. Do NOT use for multi-page web apps, HTML emails, or animation work (use smart-animation for motion).\n",
+      "category": "design",
+      "tags": [
+        "html",
+        "pdf",
+        "print",
+        "us-letter",
+        "single-file",
+        "headless-chrome",
+        "typography",
+        "report",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "preserve": [
+        "references/raw/",
+        "references/wiki/",
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/create-smart-html",
+      "dir_sha": "32ec508293ad3b51631801de153c61409f8fffb1e05453aed18a9e97e46914b3"
+    },
+    {
+      "name": "create-smart-scroll-animation",
       "version": "0.1.3",
-      "description": "Generates a production-grade React/Next.js scroll-driven canvas hero from an MP4. Extracts frames via FFmpeg, batch-converts to WebP, emits a single .tsx that scrubs frames against scroll progress using Framer Motion's useScroll + useMotionValueEvent. Mobile-first, LCP target under 1.2s, JS budget under 100KB. Trigger on \"scroll-stop build\", \"scroll animation website\", \"scroll-driven video\", \"Apple-style scroll animation\", \"video on scroll\", or when the user provides an MP4 and asks for a scroll-scrubbed React hero. Do NOT use for HTML-only sites (use scroll-stop-builder), two-frame transitions (use create-video-transition), or non-scroll canvas animations.\n",
+      "description": "Generates a production-grade React/Next.js scroll-driven canvas hero from an MP4. Extracts frames via FFmpeg, batch-converts to WebP, emits a single .tsx that scrubs frames against scroll progress using Framer Motion's useScroll + useMotionValueEvent. Mobile-first, LCP target under 1.2s, JS budget under 100KB. Trigger on \"scroll-stop build\", \"scroll animation website\", \"scroll-driven video\", \"Apple-style scroll animation\", \"video on scroll\", or when the user provides an MP4 and asks for a scroll-scrubbed React hero. Do NOT use for HTML-only sites (use scroll-stop-builder), two-frame transitions (use create-smart-video-transition), or non-scroll canvas animations.\n",
       "category": "design",
       "tags": [
         "scroll",
@@ -298,11 +329,11 @@
         "references/log.md",
         "references/patterns.md"
       ],
-      "path": "skills/create-scroll-animation",
-      "dir_sha": "c2e5e970ab28a557c920a105b4414b10a871fd9e7d711e76a58af013a489f665"
+      "path": "skills/create-smart-scroll-animation",
+      "dir_sha": "b6459eef78e0a268166b7322fcf3b087305e1186b9f86bf64daba52216dd4e06"
     },
     {
-      "name": "create-video-transition",
+      "name": "create-smart-video-transition",
       "version": "1.0.3",
       "description": "Generates the prompts needed to produce a video transition between two frames: Prompt A (start image), Prompt B (end image), and Prompt C (video transition, decomposed into exact 2-second blocks). Detects which prompts to produce based on whether the user uploaded a start image, an end image, both, or neither. Prompt C interpolates $VIDEO_LENGTH, $VIDEO_ASPECT_RATIO, $VIDEO_AUDIO, $VIDEO_FPS. Delivers an HTML page with tabbed A/B/C copy buttons and a settings modal for live variable swaps. Trigger when the user says \"video transition prompt\", \"start frame to end frame\", \"animate between these images\", \"transition video from image to image\", or uploads a reference image and asks for a transition. Do NOT use for standalone image prompts (use scroll-stop-prompter) or for writing Runway/Kling UI copy.\n",
       "category": "design",
@@ -326,23 +357,25 @@
         "references/log.md",
         "references/patterns.md"
       ],
-      "path": "skills/create-video-transition",
-      "dir_sha": "43be9c82a06e2e6f1c31c7636e12523ca257729cbef821b01146062fb9d733af"
+      "path": "skills/create-smart-video-transition",
+      "dir_sha": "b2cceb84926907e85fdc542577bfb6cb0d9c914e253c15ce1d08f756f5c09b79"
     },
     {
-      "name": "generate-smart-html",
-      "version": "0.1.0",
-      "description": "Gather requirements, then generate a sleek, zero-dependency, single-file HTML page (inline CSS/JS, system-stack typography, no CDNs) that is print-faithful on US Letter paper — portrait or landscape — and export it to PDF with headless Google Chrome. Use when the user says \"generate an HTML page/report\", \"single-file HTML\", \"make this printable\", \"export HTML to PDF\", \"US letter PDF\", \"landscape/portrait PDF\", or wants data or a document visualized as a portable webpage plus a matching PDF. Do NOT use for multi-page web apps, HTML emails, or animation work (use use-smart-animation for motion).\n",
+      "name": "smart-animation",
+      "version": "0.4.0",
+      "description": "Professional, performance-first frontend animation and transition guidance that routes by the codebase you are in (HTML, CSS, JavaScript, TypeScript, React) and by ready-made libraries (thinking-orbs, border-beam, metal-fx, transitions.dev, Canvas UI, Motion/Framer Motion, React Bits, Beautiful UI). Use when adding animations, motion, transitions, page or route transitions, scroll reveals, hover micro-interactions, loading/thinking indicators, agent and AI-interface states (streaming text, tool calls, approval gates), or when the user says \"animate this\", \"add motion\", \"make it feel premium/polished\", \"page transition\", \"reveal on scroll\", or asks which animation library to use. Enforces compositor-only performance and a prefers-reduced-motion floor, and favors distinctive, non-generic motion. This skill owns motion implementation - technique, orchestration, performance, reduced-motion, and library choice. For whole-interface design direction (aesthetic thesis, typography, color, layout) use smart-frontend-design. Do NOT use for non-frontend work or for static visual design with no motion.\n",
       "category": "design",
       "tags": [
-        "html",
-        "pdf",
-        "print",
-        "us-letter",
-        "single-file",
-        "headless-chrome",
-        "typography",
-        "report",
+        "animation",
+        "transitions",
+        "frontend",
+        "motion",
+        "css",
+        "react",
+        "webgl",
+        "performance",
+        "accessibility",
+        "agent-ui",
         "humblskill"
       ],
       "platforms": [
@@ -357,8 +390,8 @@
         "references/log.md",
         "references/patterns.md"
       ],
-      "path": "skills/generate-smart-html",
-      "dir_sha": "7a807716f2c58f1f1b09130bcef4f2fc2a9911fe18eff94079eb1e5053d71639"
+      "path": "skills/smart-animation",
+      "dir_sha": "57e4e8ab53ad24f3c19f84154c4b7855ad3008d9168804861e9995d088e26905"
     },
     {
       "name": "smart-claude-init",
@@ -386,6 +419,33 @@
       ],
       "path": "skills/smart-claude-init",
       "dir_sha": "06bac19a4c0b4e0fb7998e3d3ed1ec2c347af54c57ea699d6b114a8e2eaa5149"
+    },
+    {
+      "name": "smart-commit",
+      "version": "1.0.3",
+      "description": "Inspect the working tree, group pending changes into atomic related buckets, and author one conventional commit per bucket. Every message covers what changed, why, and the impact (what it resolves or unblocks). Use when the user says \"commit\", \"commit my changes\", \"make a commit\", \"stage and commit\", or after finishing a unit of work and wanting to land it. Do NOT use for squashing existing history, rebasing, force-pushing, or writing PR descriptions.\n",
+      "category": "development",
+      "tags": [
+        "git",
+        "commits",
+        "conventional-commits",
+        "workflow",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "preserve": [
+        "references/raw/",
+        "references/wiki/",
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/smart-commit",
+      "dir_sha": "1f096c9ed4c7e762824e1de09f4a64d593ce0d5c5dcaa039763ea35b24ca8f33"
     },
     {
       "name": "smart-frontend-design",
@@ -417,67 +477,7 @@
       "dir_sha": "7602a2cafeea498a0b002e6d48cbb203bdcc33c84e1030d313b9ee3d3bd54e6d"
     },
     {
-      "name": "use-smart-animation",
-      "version": "0.4.0",
-      "description": "Professional, performance-first frontend animation and transition guidance that routes by the codebase you are in (HTML, CSS, JavaScript, TypeScript, React) and by ready-made libraries (thinking-orbs, border-beam, metal-fx, transitions.dev, Canvas UI, Motion/Framer Motion, React Bits, Beautiful UI). Use when adding animations, motion, transitions, page or route transitions, scroll reveals, hover micro-interactions, loading/thinking indicators, agent and AI-interface states (streaming text, tool calls, approval gates), or when the user says \"animate this\", \"add motion\", \"make it feel premium/polished\", \"page transition\", \"reveal on scroll\", or asks which animation library to use. Enforces compositor-only performance and a prefers-reduced-motion floor, and favors distinctive, non-generic motion. This skill owns motion implementation - technique, orchestration, performance, reduced-motion, and library choice. For whole-interface design direction (aesthetic thesis, typography, color, layout) use smart-frontend-design. Do NOT use for non-frontend work or for static visual design with no motion.\n",
-      "category": "design",
-      "tags": [
-        "animation",
-        "transitions",
-        "frontend",
-        "motion",
-        "css",
-        "react",
-        "webgl",
-        "performance",
-        "accessibility",
-        "agent-ui",
-        "humblskill"
-      ],
-      "platforms": [
-        "claude-code",
-        "cursor",
-        "codex"
-      ],
-      "preserve": [
-        "references/raw/",
-        "references/wiki/",
-        "references/decisions.md",
-        "references/log.md",
-        "references/patterns.md"
-      ],
-      "path": "skills/use-smart-animation",
-      "dir_sha": "2477fa79ea4e475b8b7aa12dd84ddfcf1db343ee75c60759f2f60868f726e026"
-    },
-    {
-      "name": "use-smart-commit",
-      "version": "1.0.3",
-      "description": "Inspect the working tree, group pending changes into atomic related buckets, and author one conventional commit per bucket. Every message covers what changed, why, and the impact (what it resolves or unblocks). Use when the user says \"commit\", \"commit my changes\", \"make a commit\", \"stage and commit\", or after finishing a unit of work and wanting to land it. Do NOT use for squashing existing history, rebasing, force-pushing, or writing PR descriptions.\n",
-      "category": "development",
-      "tags": [
-        "git",
-        "commits",
-        "conventional-commits",
-        "workflow",
-        "humblskill"
-      ],
-      "platforms": [
-        "claude-code",
-        "cursor",
-        "codex"
-      ],
-      "preserve": [
-        "references/raw/",
-        "references/wiki/",
-        "references/decisions.md",
-        "references/log.md",
-        "references/patterns.md"
-      ],
-      "path": "skills/use-smart-commit",
-      "dir_sha": "0c09d32fa688ff19bbe1e8741c8c3f877b6953dbcdb45c2a3e1796f51784c780"
-    },
-    {
-      "name": "use-smart-humanize-text",
+      "name": "smart-humanize-text",
       "version": "2.0.3",
       "description": "Strip AI-generated writing patterns from text to make it sound authentically human. Use when writing or editing any content that must not read as AI-generated - outreach, blog posts, applications, social posts, emails, marketing copy. Detects and fixes AI vocabulary, structural tells, soulless tone, filler, hedging, and formatting artifacts. Based on Wikipedia's \"Signs of AI writing\" guide and associated research.\n",
       "category": "writing",
@@ -493,11 +493,11 @@
         "references/log.md",
         "references/patterns.md"
       ],
-      "path": "skills/use-smart-humanize-text",
-      "dir_sha": "b723272cce54353fd0e789fc9abcc1e1659806fb473339ccdfd3fec74273e0ad"
+      "path": "skills/smart-humanize-text",
+      "dir_sha": "89feefe6b36fd40ca55969825b33ba93e87fe63c81007abb7bb6e53445327650"
     },
     {
-      "name": "use-smart-skill",
+      "name": "smart-skill",
       "version": "1.1.3",
       "description": "Scaffold production-grade humblSKILLS with progressive disclosure, self-learning memory (patterns/decisions/session log), and lint tooling. Use when creating a new humblSKILL (also known as a smart skill), scaffolding a SKILL.md, migrating a flat skill to a smart skill, refactoring a skill that exceeds ~300 lines, or adding memory/patterns tracking to an existing skill. Do NOT use for editing skill content after scaffold - use the skill directly. Uses CCCCC layering internally (Core/Context/Category/Concept/Command).\n",
       "category": "meta",
@@ -520,11 +520,11 @@
         "references/log.md",
         "references/patterns.md"
       ],
-      "path": "skills/use-smart-skill",
-      "dir_sha": "1708175cdcdc77ef239039701d540b3a6d91de66687ffc34e48b9e9e96868fa5"
+      "path": "skills/smart-skill",
+      "dir_sha": "b45539ebfca2d54476741bca44b6279d13516fc444d44a5007f108ca074558f8"
     },
     {
-      "name": "use-upload-thing",
+      "name": "smart-upload-thing",
       "version": "1.0.3",
       "description": "Drive the UploadThing REST API end-to-end from the shell: authenticate with an API key, upload files (v7 prepareUpload + ingest PUT), download by key or URL, and list, delete, rename, set ACLs, or read usage. Use when the user wants to upload/download/manage files on UploadThing, mentions UploadThing, ufs.sh, prepareUpload, an sk_live key, or \"put this file on UploadThing\". Also guides first-time API-key setup. Do NOT use for building an app's File Router / React upload components (that is the TS SDK), or for non-UploadThing storage (S3, GCS).\n",
       "category": "development",
@@ -548,13 +548,13 @@
         "references/log.md",
         "references/patterns.md"
       ],
-      "path": "skills/use-upload-thing",
-      "dir_sha": "ed7031de6c8d28a9dd007b25f2ae45e04ca5f4a7cdaee03ce6a1feac8c40d25f"
+      "path": "skills/smart-upload-thing",
+      "dir_sha": "7c0c952421da0d54d89a9994f7d82a2de701d6f414bd8681c26af8b07ea95876"
     },
     {
-      "name": "use-worktree-flow",
+      "name": "smart-worktree-flow",
       "version": "1.0.3",
-      "description": "Run a worktree-first development workflow from intent gathering through feature PR, develop merge, main merge, release PR, brew verification, and cleanup. Use when the user says \"worktree flow\", \"start a feature\", \"ship this feature\", \"PR into develop\", \"full dev workflow\", or wants a feature isolated from parallel agents. Do NOT use for atomic commit authoring (use use-smart-commit) or merge-conflict repair.\n",
+      "description": "Run a worktree-first development workflow from intent gathering through feature PR, develop merge, main merge, release PR, brew verification, and cleanup. Use when the user says \"worktree flow\", \"start a feature\", \"ship this feature\", \"PR into develop\", \"full dev workflow\", or wants a feature isolated from parallel agents. Do NOT use for atomic commit authoring (use smart-commit) or merge-conflict repair.\n",
       "category": "development",
       "tags": [
         "git",
@@ -576,8 +576,8 @@
         "references/log.md",
         "references/patterns.md"
       ],
-      "path": "skills/use-worktree-flow",
-      "dir_sha": "84263c6f16ebbbedc1c4dcef930728004dfff8afe43297c775ef9e9017f80928"
+      "path": "skills/smart-worktree-flow",
+      "dir_sha": "1f86050ea6865c309d795cf5d01037d62fbb42a7667c93fc397fc49d8cc71697"
     }
   ]
 }

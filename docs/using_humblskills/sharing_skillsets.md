@@ -6,8 +6,8 @@ A **skillset** is a small, version-controlled manifest (default `humblskills.jso
 {
   "schema_version": 1,
   "skills": [
-    { "name": "use-smart-commit", "version": "1.0.3" },
-    { "name": "use-worktree-flow", "version": "0.4.0" }
+    { "name": "smart-commit", "version": "1.0.3" },
+    { "name": "smart-worktree-flow", "version": "0.4.0" }
   ]
 }
 ```

@@ -28,17 +28,17 @@ vet:
 tidy:
 	go -C cli mod tidy
 
-# Run the eval harness against the bundled use-smart-skill scenarios using
+# Run the eval harness against the bundled smart-skill scenarios using
 # the mock runner. Emits artifacts to ./.eval-workspace/ so the run is easy
 # to inspect without touching the user's persistent workspace.
 eval-mock: build
 	@rm -rf .eval-workspace
 	@HUMBLSKILLS_EVAL_WORKSPACE=$(ROOT)/.eval-workspace \
-	  $(ROOT)/bin/humblskills eval run use-smart-skill --runner mock --yes
+	  $(ROOT)/bin/humblskills eval run smart-skill --runner mock --yes
 	@echo "--- artifacts ---"
-	@ls $(ROOT)/.eval-workspace/use-smart-skill/iteration-1/
+	@ls $(ROOT)/.eval-workspace/smart-skill/iteration-1/
 
-# Open the canonical demo against use-smart-skill using whichever runner
+# Open the canonical demo against smart-skill using whichever runner
 # the environment offers (first CLI or API runner in the registry).
 eval-showcase: build
 	$(ROOT)/bin/humblskills eval showcase

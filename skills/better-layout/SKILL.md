@@ -70,7 +70,7 @@ For complete upstream detail, read the cited file under `references/raw/`.
 
 ## Motion Boundary
 
-Motion details outside this domain remain owned by `better-ui`; dedicated animation design and implementation remain owned by `use-smart-animation`.
+Motion details outside this domain remain owned by `better-ui`; dedicated animation design and implementation remain owned by `smart-animation`.
 
 ## Review Result
 

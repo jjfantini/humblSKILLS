@@ -82,11 +82,11 @@ Use explicit subcommands below for scripts, CI, or non-TTY environments.
 ```sh
 humblskills doctor                    # verify the environment
 humblskills search                    # browse the registry
-humblskills install use-smart-skill
+humblskills install smart-skill
 humblskills list
 humblskills update                    # pick which drifted skills to upgrade
 humblskills update --all --yes        # non-interactive bulk upgrade
-humblskills uninstall use-smart-skill
+humblskills uninstall smart-skill
 humblskills export                    # snapshot installed skills to humblskills.json
 humblskills sync                      # install everything in humblskills.json
 ```
@@ -204,7 +204,7 @@ in an ablation.
 
 **Latest published showcase:** [adaptive-brand-voice-discovery · 2026-04-20](https://jjfantini.github.io/humblSKILLS/eval/reports/) — a 6-session compounding scenario over 10 idiosyncratic brand-voice rules. On cursor-agent, `smart_skill` scored pass_rate **0.935** vs `no_skill` **0.740** (**+26.3%**) and `flat_skill` **0.679** (**+37.7%**), while using **67% fewer tokens** than `no_skill`. Reproduce locally with `humblskills eval brand-voice`. Full index: [live docs](https://jjfantini.github.io/humblSKILLS/eval/reports/) · [source](docs/eval/reports/).
 
-**4-arm ablation showcase:** [indie-launch-copy-iteration](https://jjfantini.github.io/humblSKILLS/eval/indie-launch-analysis/) — 6 sessions over 13 indie-launch voice rules, three runs per arm (72 sessions total) on claudecode. Separates **brain value** (`smart_skill` vs `flat_skill_wiki`) from **wiki value** (`flat_skill_wiki` vs `flat_skill`) with identical preamble and scaffolding. The cumulative-retention outcome assertion (S5 + S6 violations ≤ 1) passes **3/3 for `smart_skill` and 0/3 for every other arm**. `smart_skill` hits 43% fewer violations than `flat_skill_wiki` while using 2.6% fewer tokens and 8.9% less wall time. Surprising finding surfaced by the ablation: `flat_skill_wiki` is the **worst** of the four arms — static wiki knowledge adjacent to the task can distract without helping. Reproduce with `humblskills eval run use-smart-humanize-text --scenario indie-launch-copy-iteration`. Full analysis: [docs/eval/indie-launch-analysis.md](docs/eval/indie-launch-analysis.md).
+**4-arm ablation showcase:** [indie-launch-copy-iteration](https://jjfantini.github.io/humblSKILLS/eval/indie-launch-analysis/) — 6 sessions over 13 indie-launch voice rules, three runs per arm (72 sessions total) on claudecode. Separates **brain value** (`smart_skill` vs `flat_skill_wiki`) from **wiki value** (`flat_skill_wiki` vs `flat_skill`) with identical preamble and scaffolding. The cumulative-retention outcome assertion (S5 + S6 violations ≤ 1) passes **3/3 for `smart_skill` and 0/3 for every other arm**. `smart_skill` hits 43% fewer violations than `flat_skill_wiki` while using 2.6% fewer tokens and 8.9% less wall time. Surprising finding surfaced by the ablation: `flat_skill_wiki` is the **worst** of the four arms — static wiki knowledge adjacent to the task can distract without helping. Reproduce with `humblskills eval run smart-humanize-text --scenario indie-launch-copy-iteration`. Full analysis: [docs/eval/indie-launch-analysis.md](docs/eval/indie-launch-analysis.md).
 
 Six runners ship behind one interface - pick whichever agent you already
 use, or point an API key directly at the hosted model:
@@ -225,11 +225,11 @@ humblskills doctor                          # check runner availability
 humblskills eval set-key anthropic          # store key in the OS keyring
 humblskills eval runners                    # one-liner per-runner status
 humblskills eval                            # dashboard entry → Eval Home TUI
-humblskills eval run use-smart-skill        # non-TUI run
-humblskills eval showcase                   # the canonical use-smart-skill demo
+humblskills eval run smart-skill        # non-TUI run
+humblskills eval showcase                   # the canonical smart-skill demo
 humblskills eval brand-voice                # the adaptive-brand-voice-discovery showcase (3-arm compounding)
 humblskills eval ls                         # iterations per skill
-humblskills eval prune use-smart-skill --keep-last 5
+humblskills eval prune smart-skill --keep-last 5
 ```
 
 Secrets never land in the profile JSON. `eval set-key` resolves env >
@@ -268,7 +268,7 @@ Each skill ships an `evals/scenarios.json`. Sessions run in order; assertions
 are either `llm` (sent to a judge model) or scripted (`path_exists`, `exec`,
 `regex`, `script`, `json_valid`) - scripted beats LLM-judge for determinism.
 `humblskills eval init <skill>` scaffolds a template. See
-[`skills/use-smart-skill/evals/`](skills/use-smart-skill/evals/) for the
+[`skills/smart-skill/evals/`](skills/smart-skill/evals/) for the
 canonical example with retention checks across sessions.
 
 ## Preserving user content across updates

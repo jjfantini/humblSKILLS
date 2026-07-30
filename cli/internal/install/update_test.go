@@ -100,25 +100,25 @@ func TestPlanUpdates_StaleSourceSHAIsNotDrift(t *testing.T) {
 		SchemaVersion: registry.SchemaVersion,
 		Source:        registry.Source{Repo: "github.com/example/repo", SHA: "sha-after-cli-release"},
 		Skills: []registry.Skill{
-			{Name: "use-smart-humanize-text", Version: "2.0.0", DirSHA: "dirSHA-humanize-v2"},
-			{Name: "use-smart-skill", Version: "1.1.0", DirSHA: "dirSHA-smart-skill-v1-1"},
+			{Name: "smart-humanize-text", Version: "2.0.0", DirSHA: "dirSHA-humanize-v2"},
+			{Name: "smart-skill", Version: "1.1.0", DirSHA: "dirSHA-smart-skill-v1-1"},
 		},
 	}
 	m := &manifest.Manifest{
 		SchemaVersion: manifest.SchemaVersion,
 		Installations: []manifest.Installation{
 			{
-				Skill: "use-smart-humanize-text", Version: "2.0.0",
+				Skill: "smart-humanize-text", Version: "2.0.0",
 				Platform: "claude-code", Scope: "user", Path: "/u/humanize",
 				SourceSHA: "sha-before-cli-release", RegistryRef: "dirSHA-humanize-v2",
 			},
 			{
-				Skill: "use-smart-humanize-text", Version: "2.0.0",
+				Skill: "smart-humanize-text", Version: "2.0.0",
 				Platform: "cursor", Scope: "user", Path: "/u/humanize-cursor",
 				SourceSHA: "sha-before-cli-release", RegistryRef: "dirSHA-humanize-v2",
 			},
 			{
-				Skill: "use-smart-skill", Version: "1.1.0",
+				Skill: "smart-skill", Version: "1.1.0",
 				Platform: "claude-code", Scope: "user", Path: "/u/smart-skill",
 				SourceSHA: "sha-before-cli-release", RegistryRef: "dirSHA-smart-skill-v1-1",
 			},
