@@ -10,9 +10,19 @@ description: >
   critique where no frontend implementation is requested.
 license: MIT
 compatibility: "Requires python3 only for scripts/lint.sh. Frontend implementation uses whatever stack exists in the target repo."
+upstream:
+  name: frontend-design
+  source: claude-plugins-official/frontend-design
+  url: https://github.com/anthropics/claude-code
+  license: MIT
+  preserved: references/raw/frontend-design-SKILL.md
+  synced: 2026-07-30
+  deltas:
+    - "adds design/intake/one-question (no upstream equivalent)"
+    - "omits upstream 'More on writing in design' section - covered by better-writing"
 metadata:
   author: jjfantini
-  version: "1.0.3"
+  version: "1.1.0"
   category: design
   tags: [frontend, design, ui, ux, react, css, humblskill]
   platforms: [claude-code, cursor, codex]
@@ -96,13 +106,27 @@ Read `references/wiki/design/discovery/synthesize-style.md`.
 **Commit to the aesthetic thesis:**
 Read `references/wiki/design/direction/bold-aesthetic.md`.
 
+**Plan the token system, then critique it before writing code:**
+Read `references/wiki/design/process/two-pass-plan.md`.
+
 **Translate the thesis into visual craft:**
-Read `references/wiki/design/aesthetics/typography-color-motion.md` and
+Read `references/wiki/design/aesthetics/typography-color-motion.md`,
+`references/wiki/design/aesthetics/hero-thesis.md`,
+`references/wiki/design/aesthetics/structural-honesty.md`, and
 `references/wiki/design/anti-patterns/generic-ai-slop.md`.
 
 **Implement and verify production UI:**
 Read `references/wiki/design/implementation/production-code.md` and
 `references/wiki/design/verification/review-checklist.md`.
+
+**For motion implementation** — easing, orchestration, performance budgets,
+reduced-motion substitutions, animation libraries — use the animation skill.
+This skill decides *whether and where* motion serves the design; it does not
+own *how* the motion is built.
+
+**For interface copy** — button labels, error messages, empty states — use
+`better-writing`. Upstream folds writing guidance into its own skill text; this
+port deliberately omits it (see the `upstream.deltas` block).
 
 ## Examples
 

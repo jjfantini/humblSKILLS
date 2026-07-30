@@ -7,6 +7,15 @@ description: >
   smart-frontend-design.
 license: MIT
 compatibility: "Requires bash and python3 for scripts/lint.sh; review guidance is framework-agnostic."
+upstream:
+  name: better-typography
+  source: jakubkrehel/skills
+  url: https://github.com/jakubkrehel/skills
+  license: MIT
+  preserved: references/raw/
+  synced: 2026-07-29
+  deltas:
+    - "adds progressive-disclosure router, wiki distillation, brain, and lint (upstream files preserved verbatim under references/raw/)"
 metadata:
   author: jjfantini
   version: "1.0.0"

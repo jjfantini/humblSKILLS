@@ -22,3 +22,5 @@ Entry shape:
   - Added progressive-disclosure wiki concepts, brain files, attribution, and lint
 
 [LINT 2026-07-29] 7 wiki, 7 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[LINT 2026-07-30] 7 wiki, 7 raw. Hard: 0, Soft: 0. Regenerated _index.md.

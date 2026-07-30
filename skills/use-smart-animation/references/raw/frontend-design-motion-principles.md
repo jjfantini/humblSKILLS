@@ -4,6 +4,20 @@ Distilled from the Claude "frontend-design" plugin skill, researched 2026-07-23.
 This is the taste layer: WHERE and IF motion should exist, and how to avoid
 motion that reads as AI-generated slop.
 
+**Provenance.** This is a *distillation*, not a preserved upstream copy. The
+same upstream is mirrored verbatim by the `smart-frontend-design` skill at
+`references/raw/frontend-design-SKILL.md`.
+
+- Upstream: `claude-plugins-official/frontend-design`
+- Expands: one sentence of upstream ("Leverage motion deliberately …") into the
+  three `motion/principles/*` concepts of this skill
+- Last checked against upstream: 2026-07-30
+
+`smart-frontend-design` mirrors that sentence shallowly, as one of several
+aesthetic dimensions — correct for a mirror. This skill is the deep expansion.
+The two are not duplicates; they are different depths of the same source. If
+upstream rewrites its motion guidance, both need re-checking.
+
 ## Core directive: leverage motion deliberately
 Think about *where and if* animation serves the subject. Named motion moments:
 - **Page-load sequence** — an orchestrated entrance.

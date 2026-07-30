@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-30T18:48:17Z",
+  "generated_at": "2026-07-30T18:59:03Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/animation-motion-reactbits-beautifului",
-    "sha": "329e1aabe772cdc27508ddc872ec87151229d6f8"
+    "ref": "feat/mirror-provenance-and-boundaries",
+    "sha": "cb542067eec1d30ef30e7cd71b81792d65920c2a"
   },
   "skills": [
     {
@@ -85,7 +85,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-accessibility",
-      "dir_sha": "bfbb5001c92a436b302aa64227ba3f50bd9d4b8f6beb728f79e124868828632f"
+      "dir_sha": "4ceab4a269c72972f10f2a385f1a2f784b2bbe9b5994e775a117e54d8d33b794"
     },
     {
       "name": "better-colors",
@@ -116,7 +116,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-colors",
-      "dir_sha": "d7b50e634c971c3ae835e7b5e0eb140242933e8a2338a38da5de98e570bbf227"
+      "dir_sha": "31aceb0db3c314d31856638f799ebddf75ca615a26c4feb2c4b9530997072ce5"
     },
     {
       "name": "better-interface",
@@ -147,7 +147,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-interface",
-      "dir_sha": "68c59c74ab4ca0937591462fb682d30968e18a7867a66f11dd3e2d2aaef48c97"
+      "dir_sha": "f9edb9db67badcfd4b95666d0e8badb00e584ba498b69013b3b238a3b082262d"
     },
     {
       "name": "better-layout",
@@ -177,7 +177,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-layout",
-      "dir_sha": "2819ad5c6927595b5e9e852b577e9def558c6de7b002e0ac3bad93044c839cda"
+      "dir_sha": "a1e72b23ebfd4a0f169b7b03e6ab39c8390f9735cb6880006da9f31c97bc3bc2"
     },
     {
       "name": "better-typography",
@@ -207,7 +207,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-typography",
-      "dir_sha": "3679582c1a9ca0781c53f2b057b50bdfa86f9edb3f97b5ae6d0d7a00bc39afae"
+      "dir_sha": "832e65e268457f0de0b5e0c97b426854f3891be676dbbe098b37e409f9ad791c"
     },
     {
       "name": "better-ui",
@@ -238,7 +238,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-ui",
-      "dir_sha": "6cac7c792877bd6d4792c4894eb52dbdbe1b48cc3fa34e88937a5e4e84aefdbd"
+      "dir_sha": "29bb71826625c5bc5022c313c6c18a043568f3783bd0b2e004b7ebdd26e636c1"
     },
     {
       "name": "better-writing",
@@ -267,7 +267,7 @@
         "references/patterns.md"
       ],
       "path": "skills/better-writing",
-      "dir_sha": "4339c9bcb9f3fc5bb379cf40db5e05c2116dfbe1aea8572b239e5849d9f3bfe0"
+      "dir_sha": "ffb5cd3e4a7e20b4267196ba10d66ebcd51f1880966db3d1bcbc65419d10951c"
     },
     {
       "name": "create-scroll-animation",
@@ -389,7 +389,7 @@
     },
     {
       "name": "smart-frontend-design",
-      "version": "1.0.3",
+      "version": "1.1.0",
       "description": "Create distinctive, production-grade frontend interfaces with a synthesized design system and one style-defining intake question. Use when the user asks to build or redesign web components, pages, apps, dashboards, landing pages, UI flows, React/Vue/HTML/CSS interfaces, or \"make this look better\". Avoids generic AI aesthetics by discovering the existing frontend style before coding. Do NOT use for backend-only work, copy-only edits, or pure design critique where no frontend implementation is requested.\n",
       "category": "design",
       "tags": [
@@ -414,12 +414,12 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-frontend-design",
-      "dir_sha": "4ce3280e2df5909cad0dd440040bd1b194aafff4e87bffb47d8a781072d4a002"
+      "dir_sha": "7602a2cafeea498a0b002e6d48cbb203bdcc33c84e1030d313b9ee3d3bd54e6d"
     },
     {
       "name": "use-smart-animation",
-      "version": "0.3.0",
-      "description": "Professional, performance-first frontend animation and transition guidance that routes by the codebase you are in (HTML, CSS, JavaScript, TypeScript, React) and by ready-made libraries (thinking-orbs, border-beam, metal-fx, transitions.dev, Canvas UI, Motion/Framer Motion, React Bits, Beautiful UI). Use when adding animations, motion, transitions, page or route transitions, scroll reveals, hover micro-interactions, loading/thinking indicators, agent and AI-interface states (streaming text, tool calls, approval gates), or when the user says \"animate this\", \"add motion\", \"make it feel premium/polished\", \"page transition\", \"reveal on scroll\", or asks which animation library to use. Enforces compositor-only performance and a prefers-reduced-motion floor, and favors distinctive, non-generic motion. Do NOT use for non-frontend work or for static visual design with no motion.\n",
+      "version": "0.4.0",
+      "description": "Professional, performance-first frontend animation and transition guidance that routes by the codebase you are in (HTML, CSS, JavaScript, TypeScript, React) and by ready-made libraries (thinking-orbs, border-beam, metal-fx, transitions.dev, Canvas UI, Motion/Framer Motion, React Bits, Beautiful UI). Use when adding animations, motion, transitions, page or route transitions, scroll reveals, hover micro-interactions, loading/thinking indicators, agent and AI-interface states (streaming text, tool calls, approval gates), or when the user says \"animate this\", \"add motion\", \"make it feel premium/polished\", \"page transition\", \"reveal on scroll\", or asks which animation library to use. Enforces compositor-only performance and a prefers-reduced-motion floor, and favors distinctive, non-generic motion. This skill owns motion implementation - technique, orchestration, performance, reduced-motion, and library choice. For whole-interface design direction (aesthetic thesis, typography, color, layout) use smart-frontend-design. Do NOT use for non-frontend work or for static visual design with no motion.\n",
       "category": "design",
       "tags": [
         "animation",
@@ -447,7 +447,7 @@
         "references/patterns.md"
       ],
       "path": "skills/use-smart-animation",
-      "dir_sha": "0227cfc98bae7c69f1cb83ea8836475aefd38ce0b2963583feed1f8e37b05373"
+      "dir_sha": "2477fa79ea4e475b8b7aa12dd84ddfcf1db343ee75c60759f2f60868f726e026"
     },
     {
       "name": "use-smart-commit",

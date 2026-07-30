@@ -6,8 +6,8 @@ concept: typography-color-motion
 description: "Translate the aesthetic thesis into type, theme, motion, space, and atmospheric details"
 tags: typography, color, motion, layout, atmosphere
 sources:
-  - "references/raw/user-frontend-design-brief.md"
-last_ingested: 2026-06-12
+  - "references/raw/frontend-design-SKILL.md"
+last_ingested: 2026-07-30
 ---
 
 ## Use Distinctive Typography Color And Motion
@@ -47,5 +47,5 @@ decorative borders, or custom cursors when they fit the aesthetic.
 
 ## Sources
 
-- `references/raw/user-frontend-design-brief.md` - source for typography,
+- `references/raw/frontend-design-SKILL.md` - source for typography,
   color, motion, spatial composition, and visual-detail guidance.
