@@ -9,8 +9,9 @@ agent platform you use — Claude Code, Cursor, Codex, and friends.
 ## What's in this repo
 
 1. **Skill registry** — a monorepo of agent skills authored in the
-   agentskills.io format with light humblSKILLS frontmatter extensions
-   (`requires`, `platforms`, `tags`, `preserve`).
+   agentskills.io format with light humblSKILLS frontmatter extensions under
+   `metadata:` (`version`, `category`, `role`, `requires`, `platforms`, `tags`,
+   `previous_names`, `preserve`).
 2. **`humblskills` CLI** — fetches a skill directory and drops it in the right
    place for your agent platform. Zero servers, zero accounts, zero telemetry.
 
@@ -81,15 +82,32 @@ Use explicit subcommands below for scripts, CI, or non-TTY environments.
 
 ```sh
 humblskills doctor                    # verify the environment
-humblskills search                    # browse the registry
+humblskills search                    # browse the registry (--category=, --role=)
 humblskills install smart-skill
 humblskills list
 humblskills update                    # pick which drifted skills to upgrade
 humblskills update --all --yes        # non-interactive bulk upgrade
+humblskills upgrade                   # upgrade the CLI binary itself
 humblskills uninstall smart-skill
 humblskills export                    # snapshot installed skills to humblskills.json
 humblskills sync                      # install everything in humblskills.json
+humblskills export desktop            # zips to upload at claude.ai / Claude Desktop
 ```
+
+Full skill catalog, generated from `registry.json`:
+[jjfantini.github.io/humblSKILLS/skills](https://jjfantini.github.io/humblSKILLS/skills/).
+
+### Platforms
+
+Installs land in one canonical store (`~/.humblskills/skills/<skill>` by default)
+and are exposed per platform. `claude-code`, `cursor`, and `codex` get symlinks
+(`~/.claude/skills`, `~/.cursor/skills`, `~/.agents/skills`); **`claude-desktop`**
+gets an upload **zip** in `~/.humblskills/desktop/`, because Claude Desktop and
+claude.ai can't read skills off the filesystem — upload it at *Settings →
+Capabilities → Skills*, and re-upload after an update. Restrict targets with
+`--platform`, or persist a default with `humblskills profile set platforms
+claude-code,cursor`. Details:
+[Platforms](https://jjfantini.github.io/humblSKILLS/using_humblskills/platforms/).
 
 ### Private registries
 
@@ -157,6 +175,9 @@ skill against **its** registry, and `doctor` reports each registry's reachabilit
 and skill count. When none are configured, everything falls back to the single registry
 above (`--registry`/`HUMBLSKILLS_REGISTRY`/`profile set registry`/hosted default).
 
+Beginner-friendly walkthrough:
+[Registries](https://jjfantini.github.io/humblSKILLS/using_humblskills/registries/).
+
 ### Sharing skill sets across a team
 
 `humblskills export` snapshots the skills you have installed into a
@@ -188,6 +209,12 @@ set match the file exactly — any installed skill the skillset doesn't list is
 uninstalled (you're asked to confirm unless `--yes`). Platforms/scope follow the
 same rules as `install`.
 
+If any of your skills come from a **named** registry, `export` records that
+registry in the file too (under `"registries"`), and `sync` on another machine
+adds it to that user's profile and walks them through a token if it's private.
+Registries you already have keep your own URL. Everything there is non-fatal — an
+unreachable registry degrades to per-skill "not found" warnings.
+
 Every command accepts `--json` for machine-readable output and `--yes` to
 skip confirmation prompts.
 
@@ -204,7 +231,7 @@ in an ablation.
 
 **Latest published showcase:** [adaptive-brand-voice-discovery · 2026-04-20](https://jjfantini.github.io/humblSKILLS/eval/reports/) — a 6-session compounding scenario over 10 idiosyncratic brand-voice rules. On cursor-agent, `smart_skill` scored pass_rate **0.935** vs `no_skill` **0.740** (**+26.3%**) and `flat_skill` **0.679** (**+37.7%**), while using **67% fewer tokens** than `no_skill`. Reproduce locally with `humblskills eval brand-voice`. Full index: [live docs](https://jjfantini.github.io/humblSKILLS/eval/reports/) · [source](docs/eval/reports/).
 
-**4-arm ablation showcase:** [indie-launch-copy-iteration](https://jjfantini.github.io/humblSKILLS/eval/indie-launch-analysis/) — 6 sessions over 13 indie-launch voice rules, three runs per arm (72 sessions total) on claudecode. Separates **brain value** (`smart_skill` vs `flat_skill_wiki`) from **wiki value** (`flat_skill_wiki` vs `flat_skill`) with identical preamble and scaffolding. The cumulative-retention outcome assertion (S5 + S6 violations ≤ 1) passes **3/3 for `smart_skill` and 0/3 for every other arm**. `smart_skill` hits 43% fewer violations than `flat_skill_wiki` while using 2.6% fewer tokens and 8.9% less wall time. Surprising finding surfaced by the ablation: `flat_skill_wiki` is the **worst** of the four arms — static wiki knowledge adjacent to the task can distract without helping. Reproduce with `humblskills eval run smart-humanize-text --scenario indie-launch-copy-iteration`. Full analysis: [docs/eval/indie-launch-analysis.md](docs/eval/indie-launch-analysis.md).
+**4-arm ablation showcase:** [indie-launch-copy-iteration · 2026-04-27](https://jjfantini.github.io/humblSKILLS/eval/reports/smart-humanize-text/indie-launch-copy-iteration/) — 6 sessions over 13 indie-launch voice rules, three runs per arm (72 sessions total) on cursor-agent. Separates **brain value** (`smart_skill` vs `flat_skill_wiki`) from **wiki value** (`flat_skill_wiki` vs `flat_skill`) with identical preamble and scaffolding. `smart_skill` is the only arm above 0.9 pass rate on **both** no-feedback sessions (S5 0.922, S6 0.944); the brain-only delta over `flat_skill_wiki` is **+9.4% on S5 and +13.3% on S6**, and it beats `flat_skill` on quality while using **29% fewer tokens**. Surprising finding surfaced by the ablation: `flat_skill_wiki` lands *below* `no_skill` on aggregate and is the weakest arm on S6 — static wiki knowledge adjacent to the task can distract without helping. Reproduce with `humblskills eval run smart-humanize-text --scenario indie-launch-copy-iteration --runner cursor-agent`. Full write-up: [docs/eval/reports/smart-humanize-text/indie-launch-copy-iteration.md](docs/eval/reports/smart-humanize-text/indie-launch-copy-iteration.md).
 
 Six runners ship behind one interface - pick whichever agent you already
 use, or point an API key directly at the hosted model:
@@ -367,6 +394,21 @@ humblskills uninstall <skill> && humblskills install <skill>   # equivalent
 with exactly what the registry ships. This is the escape hatch for "throw
 away my customizations and give me the author's version."
 
+### When a skill is renamed upstream
+
+`update` **follows** renames instead of skipping them. A skill that declares the
+old name in **`metadata.previous_names`** is installed under its new name, your
+**preserved files are carried across** from the old install, and the old
+installation is retired. The picker and summary show it as
+`use-smart-commit → smart-commit`, and the detail pane carries a `renamed from`
+row, so nothing happens invisibly.
+
+`humblskills update <new-name>` also reaches an install still recorded under the
+old name. A rename is never guessed: a name still published in its own right is
+never treated as a rename target, a name claimed by two skills is ignored, and a
+skill that simply left the registry is left alone. (The `use-*` → `smart-*`
+namespace change in v2.41 is the reason this exists.)
+
 ## Developing the CLI
 
 The CLI source lives under [`cli/`](cli) as a nested Go module.
@@ -376,6 +418,26 @@ make build           # builds ./bin/humblskills
 make test            # runs go test ./...
 make registry        # regenerates registry.json from skills/ + embedded adapters
 ```
+
+### Mirrored skills
+
+Skills distilled from an upstream source (the `better-*` family, and
+`smart-frontend-design`) declare a top-level `upstream:` block naming where the
+source lives, which file preserves the copy the distillation was written
+against, and any deliberate `deltas:`. Because the preserved copy *is* the
+baseline, drift needs no hashes or lockfile:
+
+```sh
+humblskills mirrors check         # which mirrors drifted, and how badly
+humblskills mirrors plan <skill>  # emit a re-sync work order
+```
+
+`check` reports `current` / `drifted` / `rewritten` / `unknown` (a failed fetch is
+never reported as healthy). `plan` writes the two files to diff, the wiki
+concepts that cite the preserved copy, the declared deltas that must survive, and
+a completion checklist. Detection is deterministic and automated;
+re-distillation is judgment and is never automated. Both read a source checkout,
+not installed copies.
 
 Releases are cut by pushing a semver tag (e.g. `git tag v0.1.0 && git push
 origin v0.1.0`); the workflow in [`.github/workflows/release.yml`](.github/workflows/release.yml)
