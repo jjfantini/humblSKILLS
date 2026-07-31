@@ -69,4 +69,38 @@ Each release publishes `checksums.txt` with SHA-256 sums.
 humblskills doctor
 ```
 
-See [Quickstart](quickstart.md) for everyday commands.
+`doctor` prints the agent platforms it found, whether each install target is
+writable, and the health of every configured registry. If it reports a problem,
+fix that before installing skills.
+
+## Staying up to date
+
+```sh
+humblskills upgrade              # self-update: download, verify, swap the binary
+humblskills upgrade --dry-run    # just show the version you'd move to
+```
+
+Homebrew installs are upgraded through Homebrew instead, so its bookkeeping stays
+correct — `upgrade` will tell you so:
+
+```sh
+brew upgrade humblskills
+```
+
+`upgrade` updates the **CLI**; `humblskills update` updates your installed
+**skills**. See [Updating skills](../using_humblskills/updating.md).
+
+## Optional: shell completions
+
+Tab-complete skill names, registry names, and flag values:
+
+```sh
+humblskills completion zsh --help    # also: bash, fish, powershell
+```
+
+Each shell's `--help` prints the exact line to add to your shell config.
+
+## Next
+
+See [Quickstart](quickstart.md) for everyday commands, or jump straight to the
+[skill catalog](../skills.md).
