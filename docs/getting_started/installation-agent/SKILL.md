@@ -52,6 +52,15 @@ Download the archive for your OS and architecture from [GitHub releases](https:/
 humblskills doctor
 ```
 
+### Upgrade the CLI later
+
+```sh
+humblskills upgrade            # self-update; --dry-run to check only
+brew upgrade humblskills       # use this instead for Homebrew installs
+```
+
+`upgrade` updates the CLI binary; `update` updates installed skills.
+
 ## CLI behavior
 
 - **Interactive TTY:** `humblskills` or `humblskills start` opens the dashboard. Use **`--fullscreen`** for full-screen TUI when supported.
@@ -61,18 +70,53 @@ humblskills doctor
 
 ```sh
 humblskills doctor
-humblskills search
-humblskills install smart-skill
+humblskills search                       # --category=<c> / --role=<r> to narrow
+humblskills install smart-skill          # --platform, --scope/--global, --from, --force
 humblskills list
-humblskills update
+humblskills update                       # --check to dry-run
 humblskills update --all --yes
 humblskills uninstall smart-skill
 ```
 
 Every command accepts **`--json`** (machine-readable output) and **`--yes`** (skip prompts).
 
+### Platforms
+
+Installs go to every detected platform: `claude-code`, `cursor`, `codex`
+(symlinks into `~/.claude/skills`, `~/.cursor/skills`, `~/.agents/skills`) and
+`claude-desktop`, which writes an upload zip to `~/.humblskills/desktop/` because
+Claude Desktop and claude.ai can't read skills from disk. Restrict with
+`--platform`, or persist a default with
+`humblskills profile set platforms claude-code,cursor`.
+
+### Private / additional registries
+
+```sh
+humblskills registry add work my-company/our-skills   # owner/repo shorthand works
+humblskills registry login --name work                # token → OS keychain (or pipe it on stdin)
+humblskills registry list
+humblskills install <skill> --from work               # if a name exists in several registries
+```
+
+Non-interactive alternative: `HUMBLSKILLS_REGISTRY` + `HUMBLSKILLS_TOKEN`, or the
+global `--registry` / `--token` flags.
+
+### Team skillsets
+
+```sh
+humblskills init --from-installed        # scaffold ./humblskills.json
+humblskills export -o humblskills.json   # snapshot installed skills (+ their named registries)
+humblskills sync                         # install everything the file lists
+humblskills sync --prune --yes           # make the local set match the file exactly
+```
+
 ## Deeper topics
 
+- [Skill catalog](https://jjfantini.github.io/humblSKILLS/skills/)
+- [Platforms and where skills land](https://jjfantini.github.io/humblSKILLS/using_humblskills/platforms/)
+- [Registries](https://jjfantini.github.io/humblSKILLS/using_humblskills/registries/)
+- [Updating skills](https://jjfantini.github.io/humblSKILLS/using_humblskills/updating/)
 - [Registry and skill format](https://jjfantini.github.io/humblSKILLS/using_humblskills/registry_and_format/)
 - [Preserving user content](https://jjfantini.github.io/humblSKILLS/using_humblskills/preserving_user_content/)
+- [Sharing skillsets](https://jjfantini.github.io/humblSKILLS/using_humblskills/sharing_skillsets/)
 - [Eval quickstart](https://jjfantini.github.io/humblSKILLS/eval/quickstart/)

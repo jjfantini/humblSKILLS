@@ -11,6 +11,12 @@ exclude_docs: |
   requirements.txt
   getting_started/installation-agent/SKILL.md
 
+# Cross-page heading links are the easiest thing to break in a docs refactor;
+# with `mkdocs build --strict` in CI these warnings fail the build.
+validation:
+  anchors: warn
+  unrecognized_links: warn
+
 watch:
   - docs/
   - mkdocs.yml
@@ -21,10 +27,14 @@ nav:
     - getting_started/index.md
     - Installation: getting_started/installation.md
     - Quickstart: getting_started/quickstart.md
+  - Skills: skills.md
   - Using humblskills:
-    - Registry & skill format: using_humblskills/registry_and_format.md
+    - Platforms & where skills land: using_humblskills/platforms.md
+    - Registries: using_humblskills/registries.md
+    - Updating skills: using_humblskills/updating.md
     - Preserving user content: using_humblskills/preserving_user_content.md
     - Sharing skillsets: using_humblskills/sharing_skillsets.md
+    - Registry & skill format: using_humblskills/registry_and_format.md
   - Eval:
     - Overview: eval/index.md
     - Quickstart: eval/quickstart.md

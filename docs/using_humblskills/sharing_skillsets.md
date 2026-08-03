@@ -14,6 +14,41 @@ A **skillset** is a small, version-controlled manifest (default `humblskills.jso
 
 `version` is informational only (the version captured when the file was written); `sync` always installs whatever the registry currently ships for that skill, matching `install` semantics.
 
+## Skillsets can carry their registries
+
+If any of your skills come from a **named** registry (a private company one, say),
+`export` records that registry in the file so `sync` can configure it on the
+other machine for you:
+
+```json
+{
+  "schema_version": 1,
+  "registries": [
+    { "name": "work", "url": "https://raw.githubusercontent.com/my-company/our-skills/main/registry.json" }
+  ],
+  "skills": [
+    { "name": "internal-deploy-runbook", "version": "0.3.0" },
+    { "name": "smart-commit", "version": "1.0.3" }
+  ]
+}
+```
+
+On `sync`, for each listed registry the CLI:
+
+1. **Adds it** to your profile if you don't have it (a registry you already have
+   under that name keeps *your* URL — the CLI tells you and moves on).
+2. **Checks it's readable**, and if it isn't and no token is stored, walks you
+   through creating and storing one — the same path as
+   [`registry login`](registries.md#private-registries-add-a-token).
+
+None of this is fatal: if a registry stays unreachable, `sync` continues and
+reports the skills it couldn't find as warnings.
+
+Skills from the public default registry contribute nothing here — every install
+of the CLI already has it. When a skill name exists in more than one registry,
+`sync` prefers the order the skillset lists them in, on the grounds that the
+file's author knows where their skills live.
+
 ## Create a skillset
 
 ```sh
@@ -53,6 +88,8 @@ Pruning is destructive, so it asks for confirmation (skip with `--yes`, or run w
 
 ## Related topics
 
+- [Registries](registries.md)
+- [Platforms & where skills land](platforms.md)
 - [Registry & skill format](registry_and_format.md)
 - [Preserving user content](preserving_user_content.md)
 - [Quickstart](../getting_started/quickstart.md)
