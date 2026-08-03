@@ -285,3 +285,91 @@ func TestPlanUpdates_RenameReachableByEitherName(t *testing.T) {
 		t.Errorf("an unrelated filter must match nothing, got %+v", plans)
 	}
 }
+
+// TestPlanUpdatesFor_PlatformBackfill: a skill whose content is current but
+// which is missing a wanted platform still yields a plan, flagged LinkOnly so
+// no caller describes it as an upgrade.
+func TestPlanUpdatesFor_PlatformBackfill(t *testing.T) {
+	reg := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/example/repo", SHA: "src"},
+		Skills: []registry.Skill{
+			{Name: "current", Version: "1.0.0", DirSHA: "sha-current"},
+			{Name: "drifted", Version: "2.0.0", DirSHA: "sha-drifted-new"},
+			{Name: "picky", Version: "1.0.0", DirSHA: "sha-picky", Platforms: []string{"claude-code"}},
+		},
+	}
+	m := &manifest.Manifest{
+		SchemaVersion: manifest.SchemaVersion,
+		Installations: []manifest.Installation{
+			{Skill: "current", Version: "1.0.0", Platform: "claude-code", Scope: "user",
+				RegistryRef: "sha-current", InstallMode: InstallModeLinked},
+			{Skill: "drifted", Version: "1.0.0", Platform: "claude-code", Scope: "user",
+				RegistryRef: "sha-drifted-old", InstallMode: InstallModeLinked},
+			{Skill: "picky", Version: "1.0.0", Platform: "claude-code", Scope: "user",
+				RegistryRef: "sha-picky", InstallMode: InstallModeLinked},
+		},
+	}
+
+	byName := map[string]UpdatePlan{}
+	for _, p := range PlanUpdatesFor(reg, m, nil, []string{"claude-code", "codex"}) {
+		byName[p.Skill] = p
+	}
+
+	cur, ok := byName["current"]
+	if !ok {
+		t.Fatal("a current skill missing a wanted platform must still be planned")
+	}
+	if !cur.LinkOnly {
+		t.Error("no content drift, so the plan must be LinkOnly")
+	}
+	if len(cur.AddPlatforms) != 1 || cur.AddPlatforms[0] != "codex" {
+		t.Errorf("AddPlatforms = %v, want [codex]", cur.AddPlatforms)
+	}
+
+	dr, ok := byName["drifted"]
+	if !ok {
+		t.Fatal("drifted skill missing from plans")
+	}
+	if dr.LinkOnly {
+		t.Error("drifted skill must not be LinkOnly")
+	}
+	if len(dr.AddPlatforms) != 1 || dr.AddPlatforms[0] != "codex" {
+		t.Errorf("drift + backfill should fold into one plan, got %v", dr.AddPlatforms)
+	}
+
+	// `picky` declares platforms: [claude-code], so codex is not a legal
+	// target and must not be promised.
+	if p, planned := byName["picky"]; planned {
+		t.Errorf("allow-list violated: %+v", p)
+	}
+
+	// Without wantPlatforms the behaviour is unchanged: drift only.
+	plans := PlanUpdatesFor(reg, m, nil, nil)
+	if len(plans) != 1 || plans[0].Skill != "drifted" {
+		t.Errorf("no wantPlatforms should mean drift-only, got %+v", plans)
+	}
+}
+
+// A --global install bypasses the platforms[] allow-list in the engine, so the
+// plan must bypass it too or it would hide a target Execute accepts.
+func TestPlanUpdatesFor_GlobalIgnoresAllowList(t *testing.T) {
+	reg := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/example/repo", SHA: "src"},
+		Skills: []registry.Skill{
+			{Name: "picky", Version: "1.0.0", DirSHA: "sha", Platforms: []string{"claude-code"}},
+		},
+	}
+	m := &manifest.Manifest{
+		SchemaVersion: manifest.SchemaVersion,
+		Installations: []manifest.Installation{
+			{Skill: "picky", Version: "1.0.0", Platform: "claude-code", Scope: "user",
+				RegistryRef: "sha", InstallMode: InstallModeGlobal},
+		},
+	}
+	plans := PlanUpdatesFor(reg, m, nil, []string{"codex"})
+	if len(plans) != 1 || len(plans[0].AddPlatforms) != 1 || plans[0].AddPlatforms[0] != "codex" {
+		t.Fatalf("global install should allow any platform, got %+v", plans)
+	}
+}

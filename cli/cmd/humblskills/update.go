@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -21,6 +22,9 @@ type updateFlags struct {
 	all   bool
 	check bool
 	force bool
+	// platforms reconciles each installed skill against the profile's
+	// default_platforms, adding any it doesn't target yet.
+	platforms bool
 }
 
 // regUpdatePlan records which registry (document + token + name) an update plan
@@ -42,14 +46,18 @@ func newUpdateCmd(app *App) *cobra.Command {
 			"--check prints the diff and exits without changing anything. " +
 			"By default, the preserve list on each installed SKILL.md is honored so " +
 			"your local customizations survive. --force ignores local preserve edits " +
-			"and reinstalls cleanly from the registry (equivalent to uninstall + install).",
+			"and reinstalls cleanly from the registry (equivalent to uninstall + install), " +
+			"and asks for confirmation first. --platforms additionally adds any platform " +
+			"in your profile's default_platforms that a skill doesn't target yet; that is " +
+			"a symlink plus a manifest entry, with no refetch when the skill is current.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runUpdate(app, args, f)
 		},
 	}
 	cmd.Flags().BoolVar(&f.all, "all", false, "update every drifted skill without prompting")
 	cmd.Flags().BoolVar(&f.check, "check", false, "print what would change and exit")
-	cmd.Flags().BoolVar(&f.force, "force", false, "bypass local preserve edits; reinstall cleanly from registry")
+	cmd.Flags().BoolVar(&f.force, "force", false, "bypass local preserve edits; reinstall cleanly from registry (asks to confirm)")
+	cmd.Flags().BoolVar(&f.platforms, "platforms", false, "also add missing platforms from your profile's default_platforms (symlink only)")
 	return cmd
 }
 
@@ -76,6 +84,21 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	// --platforms turns the profile's default_platforms into the target set every
+	// installed skill should cover, so adding a platform to the profile and
+	// running update is enough to backfill it everywhere.
+	var wantPlatforms []string
+	if f.platforms {
+		p, err := profile.Load(app.Config.ProfilePath)
+		if err != nil {
+			return err
+		}
+		wantPlatforms = p.DefaultPlatforms
+		if len(wantPlatforms) == 0 {
+			app.UI.Warn("--platforms needs default_platforms in your profile — run 'humblskills profile' to set them")
+		}
 	}
 
 	// Plan updates per ORIGIN registry so each installed skill is checked (and
@@ -107,7 +130,7 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 			continue // registry unavailable/unknown — skip its installs
 		}
 		fm := &manifest.Manifest{SchemaVersion: m.SchemaVersion, Installations: insts}
-		for _, pl := range install.PlanUpdates(rs.Reg, fm, only) {
+		for _, pl := range install.PlanUpdatesFor(rs.Reg, fm, only, wantPlatforms) {
 			bySkill[pl.Skill] = regUpdatePlan{reg: rs.Reg, token: rs.Token, name: name}
 			plans = append(plans, pl)
 		}
@@ -119,21 +142,41 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 	}
 
 	if len(plans) == 0 {
-		if len(only) > 0 {
+		switch {
+		case len(only) > 0:
 			app.UI.Info("selected skills are already up-to-date")
-		} else {
+		case f.platforms:
+			app.UI.Info("all skills are up-to-date and cover every platform in your profile")
+		default:
 			app.UI.Info("all skills are up-to-date")
 		}
 		return nil
 	}
 
-	selected, err := chooseUpdates(app, plans, f.all)
+	selected, forceOne, err := chooseUpdates(app, plans, f.all)
 	if err != nil {
 		return err
 	}
+	force := f.force || forceOne
 	if len(selected) == 0 {
 		app.UI.Info("nothing selected")
 		return nil
+	}
+
+	// --force here means "ignore my local preserve edits", which is the one
+	// update mode that destroys content. Confirm against the real file list.
+	if force {
+		names := make([]string, 0, len(selected))
+		for _, pl := range selected {
+			names = append(names, pl.Skill)
+		}
+		if err := confirmForce(app, "update --force", names); err != nil {
+			if errors.Is(err, errCancelled) {
+				app.UI.Info("cancelled")
+				return nil
+			}
+			return err
+		}
 	}
 
 	adapters, err := app.Adapters()
@@ -188,6 +231,28 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 				return groups[i].scope < groups[j].scope
 			})
 
+			// Backfilled platforms join an existing group rather than forming
+			// their own, so one Execute call covers "refresh this skill" and
+			// "also link it here". Two calls would fetch twice and, worse, the
+			// second would see the store mid-refresh.
+			if len(plan.AddPlatforms) > 0 {
+				add := make([]string, 0, len(plan.AddPlatforms))
+				for _, p := range plan.AddPlatforms {
+					if _, ok := adapterKnown[p]; !ok {
+						app.UI.Warn("skipping unknown platform %q for %s", p, plan.Skill)
+						continue
+					}
+					add = append(add, p)
+				}
+				if len(groups) == 0 {
+					if len(add) > 0 {
+						app.UI.Warn("skipping %s: no known platform to anchor %v to", plan.Skill, add)
+					}
+				} else {
+					byGroup[groups[0]] = append(byGroup[groups[0]], add...)
+				}
+			}
+
 			for _, group := range groups {
 				plats := byGroup[group]
 				sort.Strings(plats)
@@ -195,7 +260,7 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 					Adapters:     adapters,
 					Platforms:    plats,
 					Scope:        group.scope,
-					Force:        f.force,
+					Force:        force,
 					Global:       group.global,
 					OnEvent:      sink,
 					RegistryName: rp.name,
@@ -238,12 +303,12 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 // inspect each drifted skill before applying. Non-interactive (pipe, --json)
 // returns every plan so scripts that don't pass --all still work — matching
 // the pre-refactor behaviour.
-func chooseUpdates(app *App, plans []install.UpdatePlan, all bool) ([]install.UpdatePlan, error) {
+func chooseUpdates(app *App, plans []install.UpdatePlan, all bool) ([]install.UpdatePlan, bool, error) {
 	if all || app.Config.Yes {
-		return plans, nil
+		return plans, false, nil
 	}
 	if !tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
-		return plans, nil
+		return plans, false, nil
 	}
 
 	items := make([]tui.Item, 0, len(plans))
@@ -274,24 +339,27 @@ func chooseUpdates(app *App, plans []install.UpdatePlan, all bool) ([]install.Up
 		Actions: []tui.ActionSpec{
 			{Key: "u", Label: "apply all", Action: "all"},
 			{Key: "enter", Label: "apply one", Action: "one"},
+			{Key: "f", Label: "force one", Action: "force"},
 		},
 		EmptyMsg: "all skills are up-to-date",
 	})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	switch res.Action {
 	case "all":
-		return plans, nil
-	case "one":
+		return plans, false, nil
+	case "one", "force":
 		it, ok := res.Item.(updatePlanItem)
 		if !ok {
-			return nil, nil
+			return nil, false, nil
 		}
-		return []install.UpdatePlan{it.p}, nil
+		// "force one" is the TUI's counterpart to `update --force <skill>`;
+		// runUpdate still routes it through the confirmation gate.
+		return []install.UpdatePlan{it.p}, res.Action == "force", nil
 	}
-	return nil, nil
+	return nil, false, nil
 }
 
 // updatePlanItem adapts install.UpdatePlan to tui.Item.
@@ -302,22 +370,48 @@ func (u updatePlanItem) FilterValue() string {
 	return strings.ToLower(u.p.Skill)
 }
 func (u updatePlanItem) NaturalWidth(th *ui.Theme) int {
+	if u.p.LinkOnly {
+		what := "link " + strings.Join(u.p.AddPlatforms, ", ")
+		badge := tui.Badge(th, tui.BadgeRO, "no content change")
+		return 1 + 1 + lipgloss.Width(u.p.Skill) + 2 + lipgloss.Width(what) + 2 + lipgloss.Width(badge)
+	}
 	ver := u.p.FromVersion + " → " + u.p.ToVersion
 	badge := tui.Badge(th, tui.BadgeRO, fmt.Sprintf("%d target%s", len(u.p.Targets), textutil.Plural(len(u.p.Targets))))
 	// 1 (arrow) + 1 (space) + skill + 2 (gap) + version + 2 (gap) + badge.
 	return 1 + 1 + lipgloss.Width(u.p.Skill) + 2 + lipgloss.Width(ver) + 2 + lipgloss.Width(badge)
 }
 func (u updatePlanItem) Row(th *ui.Theme, width int, selected bool) string {
-	arrow := th.DotWarn.Render("↑")
 	name := rowName(th, u.p.Skill, selected, true)
+	// A link-only plan changes no content, so it must not borrow the visual
+	// language of an upgrade: no ↑, no version transition.
+	if u.p.LinkOnly {
+		arrow := th.DotOK.Render("+")
+		what := th.Version.Render("link " + strings.Join(u.p.AddPlatforms, ", "))
+		badge := tui.Badge(th, tui.BadgeRO, "no content change")
+		return rowWithTrailingBadge(arrow+" "+name+"  "+what, badge, width)
+	}
+	arrow := th.DotWarn.Render("↑")
 	ver := th.Version.Render(u.p.FromVersion + " → " + u.p.ToVersion)
-	badge := tui.Badge(th, tui.BadgeRO, fmt.Sprintf("%d target%s", len(u.p.Targets), textutil.Plural(len(u.p.Targets))))
+	label := fmt.Sprintf("%d target%s", len(u.p.Targets), textutil.Plural(len(u.p.Targets)))
+	if len(u.p.AddPlatforms) > 0 {
+		label += " +" + strings.Join(u.p.AddPlatforms, " +")
+	}
+	badge := tui.Badge(th, tui.BadgeRO, label)
 	return rowWithTrailingBadge(arrow+" "+name+"  "+ver, badge, width)
 }
 func (u updatePlanItem) Detail(th *ui.Theme, width int) string {
 	var sb strings.Builder
-	sb.WriteString(th.DetailTitle.Render(u.p.Skill) + "  " +
-		th.DetailSub.Render("v"+u.p.FromVersion+" → v"+u.p.ToVersion) + "\n\n")
+	sub := "v" + u.p.FromVersion + " → v" + u.p.ToVersion
+	if u.p.LinkOnly {
+		sub = "v" + u.p.FromVersion + " (already current)"
+	}
+	sb.WriteString(th.DetailTitle.Render(u.p.Skill) + "  " + th.DetailSub.Render(sub) + "\n\n")
+	if len(u.p.AddPlatforms) > 0 {
+		sb.WriteString(kvRow(th, "add platforms", th.Platform.Render(strings.Join(u.p.AddPlatforms, "  "))))
+		sb.WriteString(kvRow(th, "changes files", th.KVValue.Render(map[bool]string{
+			true: "no — symlink + manifest only", false: "yes — content refresh",
+		}[u.p.LinkOnly])))
+	}
 	if u.p.RenamedFrom != "" {
 		sb.WriteString(kvRow(th, "renamed from", th.KVValue.Render(u.p.RenamedFrom)))
 	}
@@ -350,7 +444,13 @@ func printUpdateCheck(app *App, plans []install.UpdatePlan) error {
 		app.UI.Info("all skills are up-to-date")
 		return nil
 	}
-	app.UI.Info("%d skill%s can be updated:", len(plans), textutil.Plural(len(plans)))
+	app.UI.Info("%d skill%s to act on:", len(plans), textutil.Plural(len(plans)))
+	// Println, not Detail: --check exists to show this list, and Detail is
+	// verbose-only — so the list was invisible unless you also passed -v.
+	th := app.UI.Theme()
+	line := func(format string, args ...any) {
+		app.UI.Println(th.Detail.Render(fmt.Sprintf(format, args...)))
+	}
 	for _, p := range plans {
 		name := p.Skill
 		if p.RenamedFrom != "" {
@@ -358,8 +458,19 @@ func printUpdateCheck(app *App, plans []install.UpdatePlan) error {
 			// and a silent swap looks like an unrelated install.
 			name = p.RenamedFrom + " → " + p.Skill
 		}
-		app.UI.Detail("  %s  %s → %s  (%d target%s)",
-			name, p.FromVersion, p.ToVersion, len(p.Targets), textutil.Plural(len(p.Targets)))
+		// Never print a version transition for a plan that changes no content:
+		// "1.0.0 → 1.0.0" reads as a bug, and the real work is the link.
+		if p.LinkOnly {
+			line("  %s  link only  (+%s, no content change)",
+				name, strings.Join(p.AddPlatforms, " +"))
+			continue
+		}
+		extra := ""
+		if len(p.AddPlatforms) > 0 {
+			extra = ", +" + strings.Join(p.AddPlatforms, " +")
+		}
+		line("  %s  %s → %s  (%d target%s%s)",
+			name, p.FromVersion, p.ToVersion, len(p.Targets), textutil.Plural(len(p.Targets)), extra)
 	}
 	return nil
 }
