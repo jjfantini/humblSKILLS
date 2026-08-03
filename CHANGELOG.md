@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.43.0](https://github.com/jjfantini/humblSKILLS/compare/v2.42.0...v2.43.0) (2026-08-03)
+
+
+### Features
+
+* **install:** confirm destructive actions explicitly, in the TUI as well as the CLI ([da18db0](https://github.com/jjfantini/humblSKILLS/commit/da18db05c71070c113859c183f2d67c919f2c727))
+* **update:** add --platforms to backfill profile platforms without refetching ([a1bc15c](https://github.com/jjfantini/humblSKILLS/commit/a1bc15c408bd37d6082e8cf98f7a1d3402332281))
+
+
+### Bug Fixes
+
+* **install:** preserve user content when adding a platform to an installed skill ([ad82cef](https://github.com/jjfantini/humblSKILLS/commit/ad82cef4cabffd6d941bfcec5025c6cbc6e63cf0))
+* **install:** stop platform-adds from destroying preserved skill memory; add update --platforms ([83dbb03](https://github.com/jjfantini/humblSKILLS/commit/83dbb0376a03449126e28f3b843c90519399a7cf))
+
 ## [2.42.0](https://github.com/jjfantini/humblSKILLS/compare/v2.41.0...v2.42.0) (2026-07-30)
 
 
