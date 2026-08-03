@@ -17,7 +17,9 @@ import (
 
 // seedTarball writes a fake GitHub-style tarball into cacheDir in the exact
 // location the Fetcher expects, so Execute's Fetch call becomes a cache hit.
-func seedTarball(t *testing.T, cacheDir, owner, name, sha, repoPrefix string, files map[string]string) {
+// seedTarball writes the fixture tarball and returns its path, so a test can
+// delete it to prove a later run does not fetch.
+func seedTarball(t *testing.T, cacheDir, owner, name, sha, repoPrefix string, files map[string]string) string {
 	t.Helper()
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
@@ -49,9 +51,11 @@ func seedTarball(t *testing.T, cacheDir, owner, name, sha, repoPrefix string, fi
 		t.Fatal(err)
 	}
 	fname := owner + "-" + name + "-" + sha + ".tar.gz"
-	if err := os.WriteFile(filepath.Join(dir, fname), buf.Bytes(), 0o644); err != nil {
+	path := filepath.Join(dir, fname)
+	if err := os.WriteFile(path, buf.Bytes(), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	return path
 }
 
 // expectedDirSHA extracts a copy of the skill tree to a temp dir and computes
@@ -128,7 +132,7 @@ func TestEngine_InstallReplaceSkipForce(t *testing.T) {
 		DefaultScope:   "user",
 	}
 
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 
 	plan, err := Plan(reg, "foo")
@@ -240,7 +244,7 @@ func TestEngine_SkipOnStaleSourceSHA(t *testing.T) {
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
 	}
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 
 	// Install under sha1.
@@ -316,7 +320,7 @@ func TestEngine_ProjectScopeMovesOldInstall(t *testing.T) {
 		DefaultScope:   "project",
 	}
 
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 	plan, err := Plan(reg, "foo")
 	if err != nil {
@@ -386,7 +390,7 @@ func TestInstall_PreserveFreshInstall_SeedsFromStaging(t *testing.T) {
 		DefaultScope:   "user",
 	}
 
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 	plan, _ := Plan(reg, "foo")
 	if _, err := engine.Execute(reg, plan, ExecuteOpts{
@@ -434,7 +438,7 @@ func TestInstall_PreserveFile_UserWinsOnReplace(t *testing.T) {
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
 	}
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 
 	// Install v1.
@@ -518,7 +522,7 @@ func TestInstall_PreserveDir_DeepMerge(t *testing.T) {
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
 	}
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 
 	reg1 := &registry.Registry{
@@ -607,7 +611,7 @@ func TestInstall_ForceBypassesPreserve(t *testing.T) {
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
 	}
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 
 	plan, _ := Plan(reg, "foo")
@@ -688,7 +692,7 @@ func TestUpdate_UsesLocalPreserveList(t *testing.T) {
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
 	}
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 
 	reg1 := &registry.Registry{
@@ -795,7 +799,7 @@ func TestUpdate_MergesPreserveKeyKeepsUpstreamBody(t *testing.T) {
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
 	}
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 
 	reg1 := &registry.Registry{
@@ -898,7 +902,7 @@ func TestUpdate_PreserveSurvivesMultipleUpdates(t *testing.T) {
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
 	}
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 
 	reg := func(version, sha, dirSHA string) *registry.Registry {
@@ -997,7 +1001,7 @@ func TestUpdate_LocalPreserveRemovedEntryWipes(t *testing.T) {
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
 	}
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 
 	reg1 := &registry.Registry{
@@ -1080,7 +1084,7 @@ func TestUpdate_LocalSkillMdUnparseable_FallsBackToRegistry(t *testing.T) {
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
 	}
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 
 	reg1 := &registry.Registry{
@@ -1166,7 +1170,7 @@ func TestUpdate_LocalPreserveInvalid_FallsBackToRegistry(t *testing.T) {
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
 	}
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 
 	reg1 := &registry.Registry{
@@ -1274,7 +1278,7 @@ func TestInstall_PreserveScopeMove(t *testing.T) {
 		InstallTargets: map[string]string{"project": newRoot},
 		DefaultScope:   "project",
 	}
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 	plan, _ := Plan(reg, "foo")
 	if _, err := engine.Execute(reg, plan, ExecuteOpts{
@@ -1323,7 +1327,7 @@ func TestInstall_PreserveMissingOnDisk_UsesStaging(t *testing.T) {
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
 	}
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 
 	reg1 := &registry.Registry{
@@ -1396,7 +1400,7 @@ func TestInstall_PreserveTypeMismatch_Errors(t *testing.T) {
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
 	}
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 
 	reg1 := &registry.Registry{
@@ -1468,7 +1472,7 @@ func TestEngine_DirSHAMismatchFails(t *testing.T) {
 		DefaultScope:   "user",
 	}
 
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	plan, _ := Plan(reg, "foo")
 	_, err := engine.Execute(reg, plan, ExecuteOpts{
 		Adapters:  []adapters.Adapter{adapter},
@@ -1513,7 +1517,7 @@ func TestRename_CarriesPreservedDataToNewName(t *testing.T) {
 		InstallTargets: map[string]string{"user": installRoot},
 		DefaultScope:   "user",
 	}
-	engine := NewEngine(cacheDir, manifestPath)
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
 	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
 
 	reg1 := &registry.Registry{
@@ -1607,5 +1611,254 @@ func TestRename_WithoutPreviousNamesLeavesOldAlone(t *testing.T) {
 	}
 	if got := m.FindPrevious([]string{"use-foo"}, "other", "user"); got != nil {
 		t.Error("must not cross platform boundaries")
+	}
+}
+
+// TestInstall_AddPlatform_KeepsPreservedContentWithoutFetching reproduces the
+// incident this whole path exists for: a skill installed --global for one
+// platform, then installed for a SECOND platform. The canonical store is
+// shared, so the second install must not overwrite it — the user's
+// metadata.preserve files are their accumulated memory, and --force was never
+// passed.
+//
+// The cached tarball is deleted before the second run: any fetch attempt fails
+// the test, which is what locks in "adding a platform costs no network".
+func TestInstall_AddPlatform_KeepsPreservedContentWithoutFetching(t *testing.T) {
+	root := t.TempDir()
+	cacheDir := filepath.Join(root, "cache")
+	claudeRoot := filepath.Join(root, "home", ".claude", "skills")
+	agentsRoot := filepath.Join(root, "home", ".agents", "skills")
+	manifestPath := filepath.Join(root, "manifest.json")
+
+	body := skillMD("foo", "0.1.0", []string{"references/log.md"})
+	files := map[string]string{
+		"skills/foo/SKILL.md":          body,
+		"skills/foo/references/log.md": "seed\n",
+	}
+	dirSHA := expectedDirSHA(t, map[string]string{
+		"SKILL.md": body, "references/log.md": "seed\n",
+	})
+	sha := "shaaddplat111"
+	tarName := seedTarball(t, cacheDir, "ex", "r", sha, "ex-r-abc", files)
+
+	claude := adapters.Adapter{
+		Name: "claude-code", InstallTargets: map[string]string{"user": claudeRoot}, DefaultScope: "user",
+	}
+	codex := adapters.Adapter{
+		Name: "codex", InstallTargets: map[string]string{"user": agentsRoot}, DefaultScope: "user",
+	}
+	all := []adapters.Adapter{claude, codex}
+
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
+	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
+
+	reg := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/ex/r", SHA: sha},
+		Skills: []registry.Skill{{
+			Name: "foo", Version: "0.1.0", Path: "skills/foo",
+			DirSHA: dirSHA, Preserve: []string{"references/log.md"},
+		}},
+	}
+	plan, err := Plan(reg, "foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := engine.Execute(reg, plan, ExecuteOpts{
+		Adapters: all, Platforms: []string{"claude-code"}, Global: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	storePath, err := CanonicalSkillPath("foo", "user", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logPath := filepath.Join(storePath, "references", "log.md")
+
+	// Real accumulated use: content no upstream revision ever shipped.
+	userLog := "seed\n[SESSION] decisions the user cannot get back\n"
+	if err := os.WriteFile(logPath, []byte(userLog), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Nothing has drifted, so nothing may be downloaded. Removing the cache
+	// entry turns any fetch into a hard failure instead of a silent refetch.
+	if err := os.Remove(tarName); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := engine.Execute(reg, plan, ExecuteOpts{
+		Adapters: all, Platforms: []string{"codex"}, Global: true,
+	})
+	if err != nil {
+		t.Fatalf("adding a platform must not fetch: %v", err)
+	}
+
+	got, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("preserved file gone: %v", err)
+	}
+	if string(got) != userLog {
+		t.Errorf("preserved file was overwritten by the platform add:\n got %q\nwant %q", got, userLog)
+	}
+
+	if len(res.Results) != 1 || res.Results[0].Outcome != OutcomeLinked {
+		t.Fatalf("want one linked target, got %+v", res.Results)
+	}
+	link, err := os.Readlink(filepath.Join(agentsRoot, "foo"))
+	if err != nil {
+		t.Fatalf("codex target is not a symlink: %v", err)
+	}
+	if link != storePath {
+		t.Errorf("codex symlink -> %q, want the shared store %q", link, storePath)
+	}
+
+	// The first platform keeps working: same store, still one canonical copy.
+	if l, err := os.Readlink(filepath.Join(claudeRoot, "foo")); err != nil || l != storePath {
+		t.Errorf("claude-code symlink broke: %q %v", l, err)
+	}
+	m, err := manifest.Load(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Installations) != 2 {
+		t.Errorf("want 2 manifest entries (one per platform), got %d", len(m.Installations))
+	}
+}
+
+// TestInstall_AddPlatformWithDrift_UpdatesStoreAndPreserves covers the awkward
+// case: the registry moved on AND the user is adding a platform in the same
+// run. The store must be refreshed to the new revision with preserved content
+// carried over, not skipped and not clobbered.
+func TestInstall_AddPlatformWithDrift_UpdatesStoreAndPreserves(t *testing.T) {
+	root := t.TempDir()
+	cacheDir := filepath.Join(root, "cache")
+	claudeRoot := filepath.Join(root, "home", ".claude", "skills")
+	agentsRoot := filepath.Join(root, "home", ".agents", "skills")
+	manifestPath := filepath.Join(root, "manifest.json")
+
+	v1 := skillMD("foo", "0.1.0", []string{"references/log.md"})
+	seedTarball(t, cacheDir, "ex", "r", "shadrift1aaa", "ex-r-abc", map[string]string{
+		"skills/foo/SKILL.md":          v1,
+		"skills/foo/references/log.md": "seed\n",
+	})
+	sha1 := expectedDirSHA(t, map[string]string{"SKILL.md": v1, "references/log.md": "seed\n"})
+
+	v2 := skillMD("foo", "0.2.0", []string{"references/log.md"})
+	seedTarball(t, cacheDir, "ex", "r", "shadrift2bbb", "ex-r-def", map[string]string{
+		"skills/foo/SKILL.md":          v2,
+		"skills/foo/references/log.md": "seed-v2\n",
+		"skills/foo/NEW.md":            "upstream addition\n",
+	})
+	sha2 := expectedDirSHA(t, map[string]string{
+		"SKILL.md": v2, "references/log.md": "seed-v2\n", "NEW.md": "upstream addition\n",
+	})
+
+	claude := adapters.Adapter{
+		Name: "claude-code", InstallTargets: map[string]string{"user": claudeRoot}, DefaultScope: "user",
+	}
+	codex := adapters.Adapter{
+		Name: "codex", InstallTargets: map[string]string{"user": agentsRoot}, DefaultScope: "user",
+	}
+	all := []adapters.Adapter{claude, codex}
+
+	engine := newTestEngine(t, root, cacheDir, manifestPath)
+	engine.Now = func() time.Time { return time.Unix(1700000000, 0).UTC() }
+
+	mkReg := func(sha, version, dirSHA string) *registry.Registry {
+		return &registry.Registry{
+			SchemaVersion: registry.SchemaVersion,
+			Source:        registry.Source{Repo: "github.com/ex/r", SHA: sha},
+			Skills: []registry.Skill{{
+				Name: "foo", Version: version, Path: "skills/foo",
+				DirSHA: dirSHA, Preserve: []string{"references/log.md"},
+			}},
+		}
+	}
+
+	reg1 := mkReg("shadrift1aaa", "0.1.0", sha1)
+	plan1, _ := Plan(reg1, "foo")
+	if _, err := engine.Execute(reg1, plan1, ExecuteOpts{
+		Adapters: all, Platforms: []string{"claude-code"}, Global: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	storePath, err := CanonicalSkillPath("foo", "user", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	userLog := "seed\n[SESSION] hard-won context\n"
+	if err := os.WriteFile(filepath.Join(storePath, "references", "log.md"), []byte(userLog), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	reg2 := mkReg("shadrift2bbb", "0.2.0", sha2)
+	plan2, _ := Plan(reg2, "foo")
+	res, err := engine.Execute(reg2, plan2, ExecuteOpts{
+		Adapters: all, Platforms: []string{"codex"}, Global: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, _ := os.ReadFile(filepath.Join(storePath, "references", "log.md"))
+	if string(got) != userLog {
+		t.Errorf("preserved file lost across the drifted platform add:\n got %q\nwant %q", got, userLog)
+	}
+	if _, err := os.Stat(filepath.Join(storePath, "NEW.md")); err != nil {
+		t.Errorf("upstream addition missing — store was not refreshed: %v", err)
+	}
+	if len(res.Results) != 1 || res.Results[0].Outcome != OutcomeInstalled {
+		t.Fatalf("want one installed target, got %+v", res.Results)
+	}
+
+	// The platform that wasn't named in this run shares the store, so its
+	// manifest row must report the revision that's actually on disk.
+	m, err := manifest.Load(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, inst := range m.Installations {
+		if inst.Version != "0.2.0" || inst.RegistryRef != sha2 {
+			t.Errorf("stale manifest row for %s: v%s ref %s", inst.Platform, inst.Version, inst.RegistryRef)
+		}
+	}
+}
+
+func TestPreservedAtRisk(t *testing.T) {
+	store := t.TempDir()
+	body := skillMD("foo", "0.1.0", []string{"references/log.md", "references/wiki/", "gone.md"})
+	if err := os.WriteFile(filepath.Join(store, "SKILL.md"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(store, "references", "wiki"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(store, "references", "log.md"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := PreservedAtRisk(store, nil)
+	want := []string{"references/log.md", "references/wiki/"}
+	if len(got) != len(want) {
+		t.Fatalf("got %v want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("got %v want %v", got, want)
+		}
+	}
+
+	// No local SKILL.md: fall back to the registry's list, still filtered by
+	// what exists on disk.
+	bare := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bare, "keep.md"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got = PreservedAtRisk(bare, []string{"keep.md", "absent.md"})
+	if len(got) != 1 || got[0] != "keep.md" {
+		t.Errorf("registry fallback: got %v", got)
 	}
 }

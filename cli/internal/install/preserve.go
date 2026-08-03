@@ -43,6 +43,36 @@ func loadLocalPreserve(installPath string) (entries []string, ok bool, reason st
 	return preserve, true, ""
 }
 
+// PreservedAtRisk returns the preserve-list entries that actually exist inside
+// storePath — the user-owned files a --force reinstall or an uninstall
+// destroys. The installed SKILL.md's metadata.preserve wins; registryPreserve
+// is the fallback when that file is missing or unparseable.
+//
+// This exists so a destructive prompt can name the files by path instead of
+// asking "are you sure?" about an abstraction. Entries keep their declared
+// form (trailing slash for directories) so callers can print them verbatim.
+func PreservedAtRisk(storePath string, registryPreserve []string) []string {
+	if storePath == "" {
+		return nil
+	}
+	list, ok, _ := loadLocalPreserve(storePath)
+	if !ok {
+		list = registryPreserve
+	}
+	var out []string
+	for _, raw := range list {
+		rel := strings.TrimPrefix(strings.TrimSpace(raw), "./")
+		clean := filepath.FromSlash(strings.TrimSuffix(rel, "/"))
+		if clean == "" || clean == "." {
+			continue
+		}
+		if _, err := os.Lstat(filepath.Join(storePath, clean)); err == nil {
+			out = append(out, rel)
+		}
+	}
+	return out
+}
+
 const frontmatterDelimiter = "---"
 
 // mergePreserveIntoSkillMD rewrites path so its frontmatter's `preserve:` key
