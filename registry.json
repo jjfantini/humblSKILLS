@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-03T21:48:18Z",
+  "generated_at": "2026-08-03T21:51:16Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "fix/install-platform-add-preserve",
-    "sha": "dc97ce6d5e32b6e6bab92610da041d4dc919586f"
+    "ref": "main",
+    "sha": "83dbb0376a03449126e28f3b843c90519399a7cf"
   },
   "skills": [
     {
