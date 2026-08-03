@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
 )
 
@@ -224,4 +225,80 @@ func TestUpdate_OnlyNamedSkillUpToDate(t *testing.T) {
 	if !strings.Contains(res.Out+res.Err, "up-to-date") {
 		t.Errorf("expected up-to-date message, got:\n%s", res.Out+res.Err)
 	}
+}
+
+// `update --platforms` is the CLI half of profile-driven backfill: add a
+// platform to the profile, run update, and every installed skill gains it —
+// as a symlink, with no content change and no refetch.
+func TestUpdate_PlatformsBackfillsFromProfile(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	regURL, store := installFooWithMemory(t, s)
+	logPath := filepath.Join(store, "references", "log.md")
+	before, _ := os.ReadFile(logPath)
+
+	if err := profile.Save(s.ProfilePath, &profile.Profile{
+		DefaultPlatforms: []string{"claude-code", "codex"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// --check first: it must describe the work without implying an upgrade.
+	chk := runCLIWithStdoutCapture(t,
+		"update", "--check", "--platforms",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--profile", s.ProfilePath,
+	)
+	if chk.RunErr != nil {
+		t.Fatalf("update --check --platforms: %v\n%s", chk.RunErr, chk.Err)
+	}
+	assertContains(t, chk.Out+chk.Err, "link only")
+	assertContains(t, chk.Out+chk.Err, "codex")
+	assertNotContains(t, chk.Out+chk.Err, "1.0.0 → 1.0.0")
+
+	// --check must not have changed anything.
+	if m, _ := manifest.Load(s.ManifestPath); len(m.Installations) != 1 {
+		t.Fatalf("--check must not install: %+v", m.Installations)
+	}
+
+	res := runCLIWithStdoutCapture(t,
+		"update", "--platforms", "--all",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--profile", s.ProfilePath,
+		"--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("update --platforms: %v\n%s", res.RunErr, res.Err)
+	}
+	assertContains(t, res.Out, `"outcome": "linked"`)
+
+	m, _ := manifest.Load(s.ManifestPath)
+	plats := map[string]bool{}
+	for _, inst := range m.Installations {
+		plats[inst.Platform] = true
+	}
+	if !plats["claude-code"] || !plats["codex"] {
+		t.Errorf("backfill did not cover the profile platforms: %+v", m.Installations)
+	}
+
+	after, _ := os.ReadFile(logPath)
+	if string(after) != string(before) {
+		t.Errorf("backfill overwrote preserved content:\n got %q\nwant %q", after, before)
+	}
+
+	// Second run: nothing left to do, and it says so without inventing drift.
+	again := runCLIWithStdoutCapture(t,
+		"update", "--platforms", "--all",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--profile", s.ProfilePath,
+	)
+	if again.RunErr != nil {
+		t.Fatalf("idempotent re-run failed: %v\n%s", again.RunErr, again.Err)
+	}
+	assertContains(t, again.Out+again.Err, "every platform in your profile")
 }

@@ -21,6 +21,14 @@ type UpdatePlan struct {
 	FromDirSHA  string          `json:"from_dir_sha,omitempty"`
 	ToDirSHA    string          `json:"to_dir_sha,omitempty"`
 	Targets     []ManifestEntry `json:"targets"`
+	// AddPlatforms are platforms this skill should also be installed onto but
+	// isn't yet (see PlanUpdatesFor). Adding one is a symlink plus a manifest
+	// row; it never changes skill content.
+	AddPlatforms []string `json:"add_platforms,omitempty"`
+	// LinkOnly is true when the skill's content is already current and the only
+	// work is AddPlatforms. Callers must not describe such a plan as an
+	// upgrade: nothing is fetched and no file changes.
+	LinkOnly bool `json:"link_only,omitempty"`
 }
 
 // ManifestEntry mirrors the subset of manifest.Installation a caller needs to
@@ -37,6 +45,18 @@ type ManifestEntry struct {
 // missing is skipped (there's nothing to upgrade to). When `only` is
 // non-empty, only those skill names are considered.
 func PlanUpdates(reg *registry.Registry, m *manifest.Manifest, only []string) []UpdatePlan {
+	return PlanUpdatesFor(reg, m, only, nil)
+}
+
+// PlanUpdatesFor is PlanUpdates plus platform reconciliation: any platform in
+// wantPlatforms that an installed skill doesn't target yet is reported in the
+// plan's AddPlatforms.
+//
+// A skill with no content drift but a missing platform still yields a plan
+// (LinkOnly). That's deliberate — it's what makes a backfill visible in
+// --check, --json and the TUI picker instead of happening invisibly inside
+// whichever command the user happened to run.
+func PlanUpdatesFor(reg *registry.Registry, m *manifest.Manifest, only, wantPlatforms []string) []UpdatePlan {
 	if reg == nil || m == nil {
 		return nil
 	}
@@ -115,20 +135,23 @@ func PlanUpdates(reg *registry.Registry, m *manifest.Manifest, only []string) []
 				break
 			}
 		}
-		if !drifted {
+		add := missingPlatforms(insts, regSkill, wantPlatforms)
+		if !drifted && len(add) == 0 {
 			continue
 		}
 
 		first := insts[0]
 		plan := UpdatePlan{
-			Skill:       regSkill.Name,
-			RenamedFrom: renamedFrom,
-			FromVersion: first.Version,
-			ToVersion:   regSkill.Version,
-			FromSHA:     first.SourceSHA,
-			ToSHA:       reg.Source.SHA,
-			FromDirSHA:  first.RegistryRef,
-			ToDirSHA:    regSkill.DirSHA,
+			Skill:        regSkill.Name,
+			RenamedFrom:  renamedFrom,
+			FromVersion:  first.Version,
+			ToVersion:    regSkill.Version,
+			FromSHA:      first.SourceSHA,
+			ToSHA:        reg.Source.SHA,
+			FromDirSHA:   first.RegistryRef,
+			ToDirSHA:     regSkill.DirSHA,
+			AddPlatforms: add,
+			LinkOnly:     !drifted,
 		}
 		for _, i := range insts {
 			plan.Targets = append(plan.Targets, ManifestEntry{
@@ -136,6 +159,44 @@ func PlanUpdates(reg *registry.Registry, m *manifest.Manifest, only []string) []
 			})
 		}
 		out = append(out, plan)
+	}
+	return out
+}
+
+// missingPlatforms returns the wanted platforms this skill isn't installed on
+// yet, in the caller's order.
+//
+// The skill's own platforms[] allow-list is honoured so a plan never promises
+// a target the engine will drop on the floor — except for global installs,
+// which bypass the allow-list in installOne, and must bypass it here too or
+// the plan would hide a target the engine does accept.
+func missingPlatforms(insts []manifest.Installation, s registry.Skill, want []string) []string {
+	if len(want) == 0 {
+		return nil
+	}
+	have := make(map[string]struct{}, len(insts))
+	global := false
+	for _, i := range insts {
+		have[i.Platform] = struct{}{}
+		if i.InstallMode == InstallModeGlobal {
+			global = true
+		}
+	}
+	allow := make(map[string]struct{}, len(s.Platforms))
+	for _, p := range s.Platforms {
+		allow[p] = struct{}{}
+	}
+	var out []string
+	for _, p := range want {
+		if _, installed := have[p]; installed {
+			continue
+		}
+		if !global && len(allow) > 0 {
+			if _, ok := allow[p]; !ok {
+				continue
+			}
+		}
+		out = append(out, p)
 	}
 	return out
 }

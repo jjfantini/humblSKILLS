@@ -88,11 +88,44 @@ func TestInstallModal_EnterAdvancesFromScope(t *testing.T) {
 	m.cursor = 2
 	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = out.(installModalModel)
-	if m.group != groupAction {
-		t.Errorf("enter should advance to action; got %v", m.group)
+	if m.group != groupOptions {
+		t.Errorf("enter should advance to options; got %v", m.group)
 	}
 	if m.scopeIdx != 2 {
 		t.Errorf("scopeIdx = %d, want 2", m.scopeIdx)
+	}
+	out, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if m = out.(installModalModel); m.group != groupAction {
+		t.Errorf("enter should advance from options to action; got %v", m.group)
+	}
+}
+
+// The force toggle is the TUI's counterpart to `install --force`. It must
+// default off and reach the caller, which is what makes the two surfaces
+// capable of the same thing.
+func TestInstallModal_ForceToggleDefaultsOffAndCommits(t *testing.T) {
+	m := newTestModal(map[string]bool{"claude-code": true}, map[string]bool{"claude-code": true})
+	if m.force {
+		t.Fatal("force must default off")
+	}
+
+	m.group = groupAction
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if got := out.(installModalModel).result; got.Force {
+		t.Error("untouched modal must not request force")
+	}
+
+	m = newTestModal(map[string]bool{"claude-code": true}, map[string]bool{"claude-code": true})
+	m.group = groupOptions
+	out, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{' '}})
+	m = out.(installModalModel)
+	if !m.force {
+		t.Fatal("space should toggle force on")
+	}
+	m.group = groupAction
+	out, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if got := out.(installModalModel).result; !got.Force || !got.Confirmed {
+		t.Errorf("force toggle did not reach the result: %+v", got)
 	}
 }
 

@@ -42,6 +42,46 @@ To throw your local changes away and take exactly what the registry ships:
 humblskills update --force <skill>
 ```
 
+`--force` is the one update mode that destroys content, so it now **lists the
+user-owned files it would overwrite and asks you to confirm**. In a pipe, in CI,
+or with `--json` there is nobody to ask, so it stops instead of guessing:
+
+```console
+$ humblskills update --force smart-commit --json
+humblskills: update --force: overwrites user-owned files: smart-commit
+(references/log.md, references/decisions.md) — re-run with --yes to confirm
+```
+
+The same gate covers `install --force`, `sync --force`, `sync --prune` and
+`uninstall`. In the TUI, `f` on the update list and the **force reinstall**
+toggle in the install modal reach the same behaviour, so neither surface can do
+something the other can't.
+
+## Adding a platform to skills you already have
+
+Installed a new agent (Codex, say) and want your existing skills on it too? Add
+it to your profile's `default_platforms`, then:
+
+```sh
+humblskills update --platforms          # add missing platforms + apply any drift
+humblskills update --check --platforms  # preview, change nothing
+```
+
+Every platform target is a symlink into one canonical store, so covering a new
+platform is a symlink plus a manifest entry. When the skill is already current
+nothing is downloaded and **no file in the store is touched** — the summary says
+`linked` rather than `installed` to make that explicit:
+
+```console
+$ humblskills update --check --platforms
+1 skill to act on:
+  smart-commit  link only  (+codex, no content change)
+```
+
+If a skill *is* drifted, the refresh and the new platform happen in one pass, so
+you don't need two commands. Skills that declare a `platforms` allow-list are
+only offered the platforms they support.
+
 ## When a skill gets renamed
 
 Skills occasionally get renamed upstream (for example, the `use-*` family was

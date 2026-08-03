@@ -16,7 +16,6 @@ import (
 	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
 	"github.com/jjfantini/humblSKILLS/cli/internal/skillset"
 	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
-	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
 )
 
 // --- init -------------------------------------------------------------------
@@ -256,6 +255,18 @@ func runSync(app *App, path string, f installFlags, prune bool) error {
 
 	names := set.Names()
 	sort.Strings(names)
+
+	// Same gate as `install --force`: a sync that reinstalls cleanly wipes
+	// preserved files on every skill it touches, not just one.
+	if f.force {
+		if err := confirmForce(app, "sync --force", names); err != nil {
+			if errors.Is(err, errCancelled) {
+				app.UI.Info("cancelled")
+				return nil
+			}
+			return err
+		}
+	}
 	for _, name := range names {
 		matches := allRegistriesForSkill(loaded, name)
 		if len(matches) == 0 {
@@ -450,27 +461,32 @@ func pruneToSkillset(app *App, set *skillset.Set) ([]install.TargetResult, error
 	}
 	sort.Strings(extra)
 
-	if !app.Config.Yes && !app.Config.JSON {
-		theme := app.UI.Theme()
-		lines := make([]string, 0, len(extra))
-		for _, name := range extra {
-			lines = append(lines, theme.Name.Render(name))
+	theme := app.UI.Theme()
+	lines := make([]string, 0, len(extra)*3)
+	var entries []*manifest.Installation
+	for _, name := range extra {
+		lines = append(lines, theme.Name.Render(name))
+		entries = append(entries, m.FindAll(name)...)
+	}
+	// Prune is uninstall in bulk, so it destroys the same preserved memory
+	// files an uninstall does. Name them rather than just counting skills.
+	atRisk := preservedAcrossStores(entries)
+	for _, name := range extra {
+		for _, p := range atRisk[name] {
+			lines = append(lines, "  "+theme.Warn.Render("deletes")+"  "+theme.Detail.Render(p))
 		}
-		ok, err := tui.ConfirmWithSummary(
-			theme,
-			"Prune skills not in the skillset",
-			fmt.Sprintf("Uninstall %d skill%s not listed in the skillset?", len(extra), textutil.Plural(len(extra))),
-			lines,
-			false,
-			app.Prompt.Interactive,
-		)
-		if err != nil {
-			return nil, err
-		}
-		if !ok {
+	}
+	if err := confirmDestructive(app,
+		"Prune skills not in the skillset",
+		fmt.Sprintf("Uninstall %d skill%s not listed in the skillset?", len(extra), textutil.Plural(len(extra))),
+		flattenPreserved(atRisk, "deletes"),
+		lines,
+	); err != nil {
+		if errors.Is(err, errCancelled) {
 			app.UI.Info("prune cancelled — installed skills left untouched")
 			return nil, nil
 		}
+		return nil, err
 	}
 
 	engine := app.installEngine()

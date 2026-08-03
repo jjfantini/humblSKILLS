@@ -157,6 +157,42 @@ func (m *Manifest) Upsert(inst Installation) {
 	m.Installations = append(m.Installations, inst)
 }
 
+// RefreshStoreRevision moves every entry pointing at storePath to the given
+// revision, and returns how many it touched. Entries whose InstallMode is in
+// skipModes are left alone.
+//
+// Platform targets are symlinks into one shared canonical store, so replacing
+// that store's content silently moves every platform to the new revision.
+// Without this, the platform that wasn't named in the run keeps reporting the
+// version it was installed at — a number no longer on disk — and `update`
+// re-plans work that's already done. Derived artifacts (zip targets) are the
+// exception a caller passes in skipModes: theirs really is stale until it's
+// regenerated.
+func (m *Manifest) RefreshStoreRevision(storePath, version, sourceSHA, registryRef string, skipModes ...string) int {
+	if storePath == "" {
+		return 0
+	}
+	skip := make(map[string]struct{}, len(skipModes))
+	for _, s := range skipModes {
+		skip[s] = struct{}{}
+	}
+	n := 0
+	for i := range m.Installations {
+		e := &m.Installations[i]
+		if e.StorePath != storePath {
+			continue
+		}
+		if _, skipped := skip[e.InstallMode]; skipped {
+			continue
+		}
+		e.Version = version
+		e.SourceSHA = sourceSHA
+		e.RegistryRef = registryRef
+		n++
+	}
+	return n
+}
+
 // Remove drops every Installation matching skill (all platforms and scopes)
 // and returns how many were removed.
 func (m *Manifest) Remove(skill string) int {

@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-30T22:25:16Z",
+  "generated_at": "2026-08-03T21:48:18Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/update-follows-renames",
-    "sha": "14b51f91f3b4626d40927a6de6ec8d69dc86f5df"
+    "ref": "fix/install-platform-add-preserve",
+    "sha": "dc97ce6d5e32b6e6bab92610da041d4dc919586f"
   },
   "skills": [
     {

@@ -27,6 +27,11 @@ const (
 	OutcomeSkipped Outcome = "skipped"
 	// OutcomeForced means --force replaced an up-to-date target anyway.
 	OutcomeForced Outcome = "forced"
+	// OutcomeLinked means the canonical store already held this exact registry
+	// revision, so the target was symlinked to it and the manifest updated
+	// without fetching or rewriting any content. This is what adding a platform
+	// to an already-installed skill does.
+	OutcomeLinked Outcome = "linked"
 )
 
 // TargetResult is the outcome of installing one skill onto one adapter+scope.
@@ -312,7 +317,7 @@ func (e *Engine) installOne(
 		} else if !targetLinksToStore(pg.final, storePath) {
 			upToDate = false
 		}
-		if _, err := os.Stat(filepath.Join(storePath, "SKILL.md")); err != nil {
+		if !storeHasSkill(storePath) {
 			upToDate = false
 		}
 
@@ -365,70 +370,36 @@ func (e *Engine) installOne(
 		}
 	}
 
+	// Every platform for one skill shares a single canonical store, so adding a
+	// NEW platform finds that store already populated even though every
+	// per-adapter lookup above missed. Without this fallback the freshly
+	// fetched tree overwrites the store and silently discards the user's
+	// metadata.preserve files (references/log.md and friends) — data loss with
+	// --force never passed.
+	if preserveSource == "" && storeHasSkill(storePath) {
+		preserveSource = storePath
+	}
+
 	if len(toWrite) == 0 {
 		return skipped, nil
 	}
 
-	staging := filepath.Join(e.StagingDir, skill.Name+"-"+shortSHA(reg.Source.SHA))
-	if err := os.RemoveAll(staging); err != nil {
-		return nil, fmt.Errorf("clean staging: %w", err)
-	}
-
-	tarPath, err := e.Fetcher.Fetch(reg.Source.Repo, reg.Source.SHA)
-	if err != nil {
-		return nil, err
-	}
-	if err := fetch.Extract(tarPath, skill.Path, staging); err != nil {
-		return nil, fmt.Errorf("extract: %w", err)
-	}
-
-	gotSHA, err := registry.DirSHA(staging)
-	if err != nil {
-		return nil, fmt.Errorf("hash staging: %w", err)
-	}
-	if gotSHA != skill.DirSHA {
-		return nil, fmt.Errorf("dir_sha mismatch for %s: want %s got %s", skill.Name, skill.DirSHA, gotSHA)
-	}
-
-	writeSrc := staging
-	if preserveSource != "" && !opts.Force {
-		preserveList, userOwnsPreserve, err := e.preserveListForStore(skill, preserveSource, toWrite, opts)
-		if err != nil {
+	// When the store already holds this exact registry revision, the only thing
+	// these targets lack is a symlink. Refetching would rewrite a directory
+	// full of live user data to arrive at content that's already there, so link
+	// straight off the store and touch nothing. This is the common case for
+	// "I installed a new agent and want my skills on it too".
+	linkOnly := !opts.Force && storeIsCurrent(m, skill, storePath)
+	if !linkOnly {
+		if err := e.refreshStore(reg, skill, storePath, preserveSource, renamedFrom, toWrite, opts); err != nil {
 			return nil, err
 		}
-		if len(preserveList) > 0 || userOwnsPreserve {
-			perStore := filepath.Join(e.StagingDir, skill.Name+"-"+shortSHA(reg.Source.SHA)+"-store")
-			if err := os.RemoveAll(perStore); err != nil {
-				return nil, fmt.Errorf("clean store staging: %w", err)
-			}
-			defer os.RemoveAll(perStore)
-			if err := fsutil.CopyTree(staging, perStore, fsutil.Options{RejectSymlinks: true}); err != nil {
-				return nil, fmt.Errorf("copy store staging: %w", err)
-			}
-			if len(preserveList) > 0 {
-				if err := applyPreserve(preserveSource, perStore, preserveList); err != nil {
-					return nil, err
-				}
-			}
-			if userOwnsPreserve {
-				skillMDPath := filepath.Join(perStore, "SKILL.md")
-				if err := mergePreserveIntoSkillMD(skillMDPath, preserveList); err != nil {
-					return nil, fmt.Errorf("merge preserve into SKILL.md: %w", err)
-				}
-			}
-			writeSrc = perStore
-			if renamedFrom != "" {
-				opts.OnEvent.emit(Event{
-					Phase: PhaseWarn, Skill: skill.Name,
-					Msg: fmt.Sprintf("renamed from %s — carried over preserved data (%s)",
-						renamedFrom, strings.Join(preserveList, ", ")),
-				})
-			}
-		}
-	}
-
-	if err := replaceDir(writeSrc, storePath); err != nil {
-		return nil, fmt.Errorf("place canonical store %s: %w", storePath, err)
+		// Sibling targets on other platforms point at this same store, so the
+		// refresh moved them to the new revision too. Leaving their manifest
+		// rows behind makes `list` report a version that's no longer on disk
+		// and makes `update` re-plan work that is already done. Zip targets are
+		// excluded: their artifact really is stale until regenerated.
+		m.RefreshStoreRevision(storePath, skill.Version, reg.Source.SHA, skill.DirSHA, InstallModeZip)
 	}
 
 	results := append([]TargetResult(nil), skipped...)
@@ -443,13 +414,23 @@ func (e *Engine) installOne(
 			}
 		}
 		targetMode := mode
+		out := pt.out
 		if pt.pending.adapter.Transform == adapters.TransformZip {
 			targetMode = InstallModeZip
 			if err := WriteSkillZip(storePath, skill.Name, pt.pending.final); err != nil {
 				return nil, fmt.Errorf("zip %s -> %s: %w", storePath, pt.pending.final, err)
 			}
-		} else if err := linkStore(storePath, pt.pending.final); err != nil {
-			return nil, fmt.Errorf("link %s -> %s: %w", pt.pending.final, storePath, err)
+		} else {
+			if err := linkStore(storePath, pt.pending.final); err != nil {
+				return nil, fmt.Errorf("link %s -> %s: %w", pt.pending.final, storePath, err)
+			}
+			// Nothing was fetched or rewritten, so "installed"/"replaced" would
+			// overstate what happened: only a symlink appeared. A zip target
+			// keeps its own outcome — the archive really is new bytes on disk,
+			// just derived from the store instead of downloaded.
+			if linkOnly {
+				out = OutcomeLinked
+			}
 		}
 		m.Upsert(manifest.Installation{
 			Skill:        skill.Name,
@@ -471,12 +452,12 @@ func (e *Engine) installOne(
 			Scope:     pt.pending.target.Scope,
 			Path:      pt.pending.final,
 			StorePath: storePath,
-			Outcome:   pt.out,
+			Outcome:   out,
 		})
 		opts.OnEvent.emit(Event{
 			Phase: PhaseTargetDone, Skill: skill.Name, IsDep: step.IsDep,
 			Platform: pt.pending.adapter.Name, Scope: pt.pending.target.Scope,
-			Outcome: pt.out, Path: pt.pending.final, Version: skill.Version, StorePath: storePath,
+			Outcome: out, Path: pt.pending.final, Version: skill.Version, StorePath: storePath,
 		})
 	}
 
@@ -492,6 +473,113 @@ func (e *Engine) installOne(
 		results = append(results, removed...)
 	}
 	return results, nil
+}
+
+// refreshStore fetches the skill at the registry's revision, verifies its
+// content hash, carries user-owned preserved paths over from preserveSource
+// (unless --force), and replaces the canonical store with the result.
+//
+// Split out of installOne so the "store is already current" path can skip all
+// of it — including the network round trip — instead of rewriting a directory
+// full of live user data to reproduce content that's already on disk.
+func (e *Engine) refreshStore(
+	reg *registry.Registry,
+	skill registry.Skill,
+	storePath, preserveSource, renamedFrom string,
+	toWrite []installPlanTarget,
+	opts ExecuteOpts,
+) error {
+	staging := filepath.Join(e.StagingDir, skill.Name+"-"+shortSHA(reg.Source.SHA))
+	if err := os.RemoveAll(staging); err != nil {
+		return fmt.Errorf("clean staging: %w", err)
+	}
+
+	tarPath, err := e.Fetcher.Fetch(reg.Source.Repo, reg.Source.SHA)
+	if err != nil {
+		return err
+	}
+	if err := fetch.Extract(tarPath, skill.Path, staging); err != nil {
+		return fmt.Errorf("extract: %w", err)
+	}
+
+	gotSHA, err := registry.DirSHA(staging)
+	if err != nil {
+		return fmt.Errorf("hash staging: %w", err)
+	}
+	if gotSHA != skill.DirSHA {
+		return fmt.Errorf("dir_sha mismatch for %s: want %s got %s", skill.Name, skill.DirSHA, gotSHA)
+	}
+
+	writeSrc := staging
+	if preserveSource != "" && !opts.Force {
+		preserveList, userOwnsPreserve, err := e.preserveListForStore(skill, preserveSource, toWrite, opts)
+		if err != nil {
+			return err
+		}
+		if len(preserveList) > 0 || userOwnsPreserve {
+			perStore := filepath.Join(e.StagingDir, skill.Name+"-"+shortSHA(reg.Source.SHA)+"-store")
+			if err := os.RemoveAll(perStore); err != nil {
+				return fmt.Errorf("clean store staging: %w", err)
+			}
+			defer os.RemoveAll(perStore)
+			if err := fsutil.CopyTree(staging, perStore, fsutil.Options{RejectSymlinks: true}); err != nil {
+				return fmt.Errorf("copy store staging: %w", err)
+			}
+			if len(preserveList) > 0 {
+				if err := applyPreserve(preserveSource, perStore, preserveList); err != nil {
+					return err
+				}
+			}
+			if userOwnsPreserve {
+				skillMDPath := filepath.Join(perStore, "SKILL.md")
+				if err := mergePreserveIntoSkillMD(skillMDPath, preserveList); err != nil {
+					return fmt.Errorf("merge preserve into SKILL.md: %w", err)
+				}
+			}
+			writeSrc = perStore
+			if renamedFrom != "" {
+				opts.OnEvent.emit(Event{
+					Phase: PhaseWarn, Skill: skill.Name,
+					Msg: fmt.Sprintf("renamed from %s — carried over preserved data (%s)",
+						renamedFrom, strings.Join(preserveList, ", ")),
+				})
+			}
+		}
+	}
+
+	if err := replaceDir(writeSrc, storePath); err != nil {
+		return fmt.Errorf("place canonical store %s: %w", storePath, err)
+	}
+	return nil
+}
+
+// storeHasSkill reports whether storePath holds a real skill (its SKILL.md is
+// readable). Used both to invalidate an up-to-date claim the manifest makes
+// about a store that's gone, and to decide that a store is worth preserving
+// from before it gets replaced.
+func storeHasSkill(storePath string) bool {
+	_, err := os.Stat(filepath.Join(storePath, "SKILL.md"))
+	return err == nil
+}
+
+// storeIsCurrent reports whether the canonical store already holds this exact
+// registry revision, according to any manifest entry pointing at it — on any
+// platform, which is what makes "add a platform" a no-fetch operation.
+//
+// Content hashing deliberately isn't used: a store carrying preserved user
+// edits legitimately differs from the registry's dir_sha, so hashing would
+// report drift forever and refetch on every run.
+func storeIsCurrent(m *manifest.Manifest, skill registry.Skill, storePath string) bool {
+	if !storeHasSkill(storePath) {
+		return false
+	}
+	for _, inst := range m.Installations {
+		if inst.Skill == skill.Name && inst.StorePath == storePath &&
+			inst.Version == skill.Version && inst.RegistryRef == skill.DirSHA {
+			return true
+		}
+	}
+	return false
 }
 
 // retireRenamed removes installations published under a superseded name after
