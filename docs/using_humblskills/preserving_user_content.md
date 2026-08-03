@@ -15,6 +15,15 @@ Entries are **paths relative to the skill directory**. A trailing **`/`** means 
 
 Fresh installs always seed everything from the registry. `preserve` applies when **replacing** an existing install. `humblskills uninstall` removes platform symlinks and removes the canonical store when no remaining platform target references it.
 
+## What can and cannot overwrite these files
+
+Every platform target is a symlink into **one canonical store**, so the store is the only copy of your preserved files. Two rules protect it:
+
+- **Adding a platform never rewrites the store.** `install <skill> --platform <new>` on a skill you already have (or `update --platforms`) adds a symlink and a manifest entry. When the store already holds the registry's current revision, nothing is fetched and no file is touched — the outcome is reported as `linked`, not `installed`.
+- **Only an explicit request overwrites them.** `--force` (on `install`, `update` or `sync`), or an `uninstall` followed by a fresh install. Both now print the exact paths at risk and require confirmation; non-interactive runs must pass `--yes` rather than having consent assumed.
+
+An update with real drift refreshes everything *except* your preserved paths, per the table above.
+
 ### Example `SKILL.md` frontmatter
 
 ```yaml
