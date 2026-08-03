@@ -103,8 +103,12 @@ type modalGroup int
 const (
 	groupPlatforms modalGroup = iota
 	groupScope
+	groupOptions
 	groupAction
 )
+
+// modalGroupCount is the number of focusable groups tab cycles through.
+const modalGroupCount = 4
 
 type installModalModel struct {
 	theme    *ui.Theme
@@ -119,8 +123,11 @@ type installModalModel struct {
 	// "adapter default" — there's no concrete option for that here, so the
 	// scope group shows a note explaining why nothing started pre-selected.
 	adapterDefaultNote bool
-	actions            []actionOpt
-	actionIdx          int
+	// force mirrors `install --force`. It lives here rather than as a flag-only
+	// option so the TUI can reach every install the CLI can.
+	force     bool
+	actions   []actionOpt
+	actionIdx int
 
 	group  modalGroup
 	cursor int
@@ -163,8 +170,11 @@ func (m installModalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "shift+tab":
 			return m.nextGroup(-1), nil
 		case " ":
-			if m.group == groupPlatforms {
+			switch m.group {
+			case groupPlatforms:
 				m = m.togglePlatform()
+			case groupOptions:
+				m.force = !m.force
 			}
 			return m, nil
 		}
@@ -173,9 +183,9 @@ func (m installModalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m installModalModel) nextGroup(dir int) installModalModel {
-	m.group = modalGroup((int(m.group) + dir + 3) % 3)
+	m.group = modalGroup((int(m.group) + dir + modalGroupCount) % modalGroupCount)
 	switch m.group {
-	case groupPlatforms:
+	case groupPlatforms, groupOptions:
 		m.cursor = 0
 	case groupScope:
 		m.cursor = m.scopeIdx
@@ -214,6 +224,8 @@ func (m installModalModel) onEnter() (tea.Model, tea.Cmd) {
 	case groupScope:
 		m.scopeIdx = m.cursor
 		return m.nextGroup(1), nil
+	case groupOptions:
+		return m.nextGroup(1), nil
 	case groupAction:
 		m.actionIdx = m.cursor
 		return m.commit()
@@ -244,6 +256,7 @@ func (m installModalModel) commit() (tea.Model, tea.Cmd) {
 			Platforms: plats,
 			Scope:     scope,
 			Global:    global,
+			Force:     m.force,
 			Confirmed: true,
 		}
 	}
@@ -257,6 +270,8 @@ func (m installModalModel) groupLen() int {
 		return len(m.adapters)
 	case groupScope:
 		return len(m.scopes)
+	case groupOptions:
+		return 1
 	case groupAction:
 		return len(m.actions)
 	}
@@ -292,6 +307,8 @@ func (m installModalModel) groupLabel() string {
 		return "platforms"
 	case groupScope:
 		return "scope"
+	case groupOptions:
+		return "options"
 	case groupAction:
 		return "action"
 	}
@@ -349,6 +366,8 @@ func (m installModalModel) renderLeftStacked(width int) string {
 		sb.WriteString("  " + th.Detail.Render(
 			"profile default is \"adapter default\" — pick a concrete scope for this install") + "\n")
 	}
+	sb.WriteString("\n")
+	sb.WriteString(m.renderGroup(groupOptions, "OPTIONS", m.optionRows(), width))
 	sb.WriteString("\n")
 	sb.WriteString(m.renderGroup(groupAction, "ACTION", m.actionRows(), width))
 
@@ -511,6 +530,30 @@ func (m installModalModel) scopeRows() []string {
 	return rows
 }
 
+// optionRows renders the force toggle. The consequence is spelled out in the
+// row itself rather than a footnote: this is the one option here that can
+// delete something the user cannot get back.
+func (m installModalModel) optionRows() []string {
+	th := m.theme
+	box := "[ ]"
+	if m.force {
+		box = "[✓]"
+	}
+	label := "force reinstall  " + th.RowDim.Render("(discards preserved files)")
+	if m.force {
+		label = "force reinstall  " + th.Warn.Render("(discards preserved files — you'll confirm)")
+	}
+	if m.group == groupOptions {
+		return []string{th.Bullet.Render("▸") + " " + th.RowSelected.Render(box+" force reinstall") + "  " +
+			th.Warn.Render("(discards preserved files)")}
+	}
+	marker := th.RowDim.Render(box)
+	if m.force {
+		marker = th.Warn.Render(box)
+	}
+	return []string{"  " + marker + " " + th.RowUnselected.Render(label)}
+}
+
 func (m installModalModel) actionRows() []string {
 	th := m.theme
 	rows := make([]string, 0, len(m.actions))
@@ -537,6 +580,11 @@ func (m installModalModel) hints() []KeyHint {
 		)
 	case groupScope:
 		base = append(base, KeyHint{Keys: "↵", Label: "next"})
+	case groupOptions:
+		base = append(base,
+			KeyHint{Keys: "space", Label: "toggle"},
+			KeyHint{Keys: "↵", Label: "next"},
+		)
 	case groupAction:
 		base = append(base, KeyHint{Keys: "↵", Label: "confirm"})
 	}

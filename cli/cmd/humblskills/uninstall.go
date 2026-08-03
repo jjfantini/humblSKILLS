@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -85,7 +86,7 @@ func runUninstall(app *App, skill string) error {
 	}
 
 	theme := app.UI.Theme()
-	lines := make([]string, 0, len(entries))
+	lines := make([]string, 0, len(entries)+4)
 	for _, e := range entries {
 		lines = append(lines, fmt.Sprintf(
 			"%s  %s  %s",
@@ -94,24 +95,29 @@ func runUninstall(app *App, skill string) error {
 			theme.Detail.Render(e.Path),
 		))
 	}
-	ok := true
-	if !app.Config.Yes && !app.Config.JSON {
-		got, err := tui.ConfirmWithSummary(
-			theme,
-			fmt.Sprintf("Uninstall %s", skill),
-			fmt.Sprintf("Remove %d target%s?", len(entries), textutil.Plural(len(entries))),
-			lines,
-			true,
-			app.Prompt.Interactive,
-		)
-		if err != nil {
-			return err
+	// Uninstall deletes the canonical store once no target references it, and
+	// the store is where the skill's user-owned memory lives. Naming those
+	// files is the difference between an informed yes and a surprise.
+	atRisk := preservedAcrossStores(entries)
+	for _, paths := range atRisk {
+		lines = append(lines, "")
+		lines = append(lines, theme.Warn.Render("deletes user-owned files:"))
+		for _, p := range paths {
+			lines = append(lines, "  "+theme.Detail.Render(p))
 		}
-		ok = got
 	}
-	if !ok {
-		app.UI.Info("cancelled")
-		return nil
+
+	if err := confirmDestructive(app,
+		fmt.Sprintf("Uninstall %s", skill),
+		fmt.Sprintf("Remove %d target%s?", len(entries), textutil.Plural(len(entries))),
+		flattenPreserved(atRisk, "deletes"),
+		lines,
+	); err != nil {
+		if errors.Is(err, errCancelled) {
+			app.UI.Info("cancelled")
+			return nil
+		}
+		return err
 	}
 
 	engine := app.installEngine()

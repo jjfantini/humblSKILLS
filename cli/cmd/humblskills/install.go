@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 
@@ -152,9 +153,10 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 	platforms := f.platforms
 	scope := f.scope
 	global := f.global
+	force := f.force
 	useTUIForModal := !explicitFlags && useTUI
 	if useTUIForModal {
-		plats, scp, glob, ok, err := promptInstallTargets(app, adapterList, skill)
+		res, ok, err := promptInstallTargets(app, adapterList, skill)
 		if err != nil {
 			return err
 		}
@@ -164,9 +166,13 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 			}
 			return fmt.Errorf("install cancelled")
 		}
-		platforms = plats
-		scope = scp
-		global = glob
+		platforms = res.Platforms
+		scope = res.Scope
+		global = res.Global
+		// The modal offers the same force toggle the flag does, so the TUI can
+		// reach every install the CLI can. --force on the command line still
+		// wins if it was passed.
+		force = force || res.Force
 	} else {
 		scope, global, err = resolveInstallScope(f, p)
 		if err != nil {
@@ -185,6 +191,22 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 	plan, err := install.Plan(target.Reg, skill)
 	if err != nil {
 		return err
+	}
+
+	// --force is what bypasses the preserve list, so it's the one install flag
+	// that can destroy user data. Name the files first and make the user agree.
+	if force {
+		names := make([]string, 0, len(plan))
+		for _, s := range plan {
+			names = append(names, s.Skill.Name)
+		}
+		if err := confirmForce(app, "install --force", names); err != nil {
+			if errors.Is(err, errCancelled) {
+				app.UI.Info("cancelled")
+				return nil
+			}
+			return err
+		}
 	}
 
 	engine := app.installEngineForToken(target.Token)
@@ -206,7 +228,7 @@ func runInstall(app *App, skill string, f installFlags, fromDashboard bool) erro
 			Adapters:     adapterList,
 			Platforms:    selected,
 			Scope:        scope,
-			Force:        f.force,
+			Force:        force,
 			Global:       global,
 			OnEvent:      sink,
 			RegistryName: target.Name,
@@ -315,7 +337,7 @@ func printInstall(app *App, r install.Result) {
 		app.UI.Warn("nothing to do - skill(s) declared no matching platforms")
 		return
 	}
-	var installed, replaced, skipped, forced []install.TargetResult
+	var installed, replaced, skipped, forced, linked []install.TargetResult
 	for _, t := range r.Results {
 		switch t.Outcome {
 		case install.OutcomeInstalled:
@@ -326,6 +348,8 @@ func printInstall(app *App, r install.Result) {
 			skipped = append(skipped, t)
 		case install.OutcomeForced:
 			forced = append(forced, t)
+		case install.OutcomeLinked:
+			linked = append(linked, t)
 		}
 	}
 	for _, t := range installed {
@@ -337,10 +361,15 @@ func printInstall(app *App, r install.Result) {
 	for _, t := range forced {
 		app.UI.Success("reinstalled %s → %s [%s/%s]", t.Skill, t.Path, t.Platform, t.Scope)
 	}
+	// "linked" is deliberately worded so nobody reads it as a content change:
+	// the skill was already current, this run only added a platform.
+	for _, t := range linked {
+		app.UI.Success("linked %s → %s [%s/%s] (no content change)", t.Skill, t.Path, t.Platform, t.Scope)
+	}
 	for _, t := range skipped {
 		app.UI.Detail("already up-to-date: %s [%s/%s]", t.Skill, t.Platform, t.Scope)
 	}
-	if len(installed)+len(replaced)+len(forced) == 0 {
+	if len(installed)+len(replaced)+len(forced)+len(linked) == 0 {
 		app.UI.Info("%d target%s already up-to-date (use --force to reinstall)", len(skipped), textutil.Plural(len(skipped)))
 	}
 	for _, t := range r.Results {
@@ -353,10 +382,10 @@ func printInstall(app *App, r install.Result) {
 
 // promptInstallTargets opens a huh modal asking the user which platforms to
 // install `skill` into (defaults come from profile), returning the confirmed
-// platforms + scope. If the user picks "edit profile" inside the modal, the
+// platforms, scope and force toggle. If the user picks "edit profile" inside the modal, the
 // profile editor opens and the modal re-prompts with the updated defaults.
 // Returns ok=false if the user cancelled.
-func promptInstallTargets(app *App, adapterList []adapters.Adapter, skill string) ([]string, string, bool, bool, error) {
+func promptInstallTargets(app *App, adapterList []adapters.Adapter, skill string) (tui.InstallModalResult, bool, error) {
 	detected := map[string]bool{}
 	for _, r := range adapters.Detect(adapterList) {
 		detected[r.Name] = r.Detected
@@ -364,22 +393,22 @@ func promptInstallTargets(app *App, adapterList []adapters.Adapter, skill string
 	for {
 		p, err := profile.Load(app.Config.ProfilePath)
 		if err != nil {
-			return nil, "", false, false, err
+			return tui.InstallModalResult{}, false, err
 		}
 		res, err := tui.RunInstallPlatformModal(app.UI.Theme(), skill, adapterList, detected, p)
 		if err != nil {
-			return nil, "", false, false, err
+			return tui.InstallModalResult{}, false, err
 		}
 		if res.EditProfile {
 			if err := runProfileEditor(app); err != nil {
-				return nil, "", false, false, err
+				return tui.InstallModalResult{}, false, err
 			}
 			continue
 		}
 		if !res.Confirmed {
-			return nil, "", false, false, nil
+			return tui.InstallModalResult{}, false, nil
 		}
-		return res.Platforms, res.Scope, res.Global, true, nil
+		return res, true, nil
 	}
 }
 

@@ -763,9 +763,13 @@ func (m profileModel) hints() []KeyHint {
 // InstallModalResult is what the install platform picker returns. The modal
 // implementation lives in install_modal.go (hand-rolled bubbletea model).
 type InstallModalResult struct {
-	Platforms   []string
-	Scope       string
-	Global      bool
+	Platforms []string
+	Scope     string
+	Global    bool
+	// Force mirrors `install --force`: reinstall from the registry even if the
+	// target is current, discarding user-owned preserved files. Off unless the
+	// user toggles it, and the caller still asks for confirmation.
+	Force       bool
 	Confirmed   bool
 	EditProfile bool
 }
