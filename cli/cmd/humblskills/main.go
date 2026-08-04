@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/tui"
 )
 
 func main() {

@@ -8,16 +8,16 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/spf13/cobra"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
-	"github.com/jjfantini/humblSKILLS/cli/internal/env"
-	"github.com/jjfantini/humblSKILLS/cli/internal/install"
-	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
-	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
-	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
-	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/adapters"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/env"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/install"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/profile"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/secrets"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/textutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/tui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
 
 // App is the shared context wired onto every subcommand via PersistentPreRunE.

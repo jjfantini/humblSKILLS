@@ -8,7 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
 
 // EvalConfigChoices bundles what the Config modal returns to the caller.

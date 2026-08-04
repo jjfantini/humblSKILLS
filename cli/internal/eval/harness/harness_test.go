@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner/mock"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/scenarios"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner/mock"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/scenarios"
 )
 
 // buildSkill creates a minimal smart-skill on disk so DeriveFlat and

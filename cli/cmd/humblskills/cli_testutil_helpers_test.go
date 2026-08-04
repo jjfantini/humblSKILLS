@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
 )
 
 // registryToJSON is in its own file so cli_testutil_test.go stays

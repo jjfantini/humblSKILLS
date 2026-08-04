@@ -5,9 +5,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/evalruntime"
-	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
-	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/evalruntime"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/secrets"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
 )
 
 // DefaultRegistry is a small wiring function. These tests protect the

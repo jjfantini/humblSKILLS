@@ -5,14 +5,14 @@
 package evalruntime
 
 import (
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner/anthropicapi"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner/claudecode"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner/codex"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner/cursor"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner/mock"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner/openaiapi"
-	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner/anthropicapi"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner/claudecode"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner/codex"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner/cursor"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner/mock"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner/openaiapi"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/secrets"
 )
 
 // DefaultRegistry returns the canonical six-runner registry ordered as

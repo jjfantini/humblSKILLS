@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/brain"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/brain"
 )
 
 func writeBrainTree(t *testing.T, root string, files map[string]string) {

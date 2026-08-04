@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
 
 // HeaderSpec is the bundle of text the header line renders. Version is the

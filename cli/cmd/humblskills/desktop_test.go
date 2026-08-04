@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/install"
-	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/install"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
 )
 
 func installFixtureSkill(t *testing.T, s *testutil.Sandbox, name string) {

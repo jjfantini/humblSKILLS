@@ -20,7 +20,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/fsutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/fsutil"
 )
 
 // Files under references/ that are truncated to "shape only" when deriving a

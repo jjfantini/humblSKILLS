@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
 )
 
 func TestRoot_QuietAndVerboseMutuallyExclusive(t *testing.T) {

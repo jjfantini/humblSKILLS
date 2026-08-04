@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/scenarios"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/scenarios"
 )
 
 type stubJudge struct {

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
-	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/profile"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
 )
 
 // sampleSkillMD is the minimum valid SKILL.md body the install tests use.

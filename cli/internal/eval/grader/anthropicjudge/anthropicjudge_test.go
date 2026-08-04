@@ -12,7 +12,7 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go/option"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/scenarios"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/scenarios"
 )
 
 func TestExtractJSONObject(t *testing.T) {

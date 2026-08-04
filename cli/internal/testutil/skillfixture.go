@@ -6,7 +6,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
 )
 
 // SkillFixture describes one skill to include in a BuildRegistry call.

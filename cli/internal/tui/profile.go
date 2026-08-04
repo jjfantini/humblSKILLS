@@ -8,10 +8,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
-	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
-	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/adapters"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/profile"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/textutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
 
 // ProfileHeaderSpec lets the caller override the profile editor's top header

@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner"
 )
 
 // FakeRunner is a scriptable runner.Runner for eval tests. Responses

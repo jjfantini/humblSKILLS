@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
 
 // StatusResult is the summary a StatusModel renders once fn completes

@@ -20,15 +20,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/brain"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/grader"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/metrics"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/report"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/scenarios"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/workspace"
-	"github.com/jjfantini/humblSKILLS/cli/internal/fsutil"
-	"github.com/jjfantini/humblSKILLS/cli/internal/jsonutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/brain"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/grader"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/metrics"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/report"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/scenarios"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/workspace"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/fsutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/jsonutil"
 )
 
 // Options controls one full eval invocation.

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/resolver"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/resolver"
 )
 
 // BenchmarkTopoSort_100 tests a graph sized like a realistic skill

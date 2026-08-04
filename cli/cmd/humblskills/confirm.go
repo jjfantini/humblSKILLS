@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/install"
-	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/install"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/tui"
 )
 
 // errCancelled means the user declined a destructive action. Callers report it

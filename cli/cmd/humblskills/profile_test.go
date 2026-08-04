@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
-	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/profile"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
 )
 
 func TestProfileShow_EmptyJSON(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/env"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/env"
 )
 
 func TestLoadDotEnv_ReturnsZeroWhenNoFileFound(t *testing.T) {

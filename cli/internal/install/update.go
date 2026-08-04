@@ -1,8 +1,8 @@
 package install
 
 import (
-	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
 )
 
 // UpdatePlan describes one skill whose manifest entry has drifted from the

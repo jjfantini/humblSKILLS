@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/frontmatter"
 )
 
 // writeSkill lays down a minimal mirrored skill on disk.

@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/install"
-	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/install"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/textutil"
 )
 
 // Claude Desktop and claude.ai can't read skills from the filesystem — they

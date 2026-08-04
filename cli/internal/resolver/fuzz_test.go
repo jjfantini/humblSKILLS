@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/resolver"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/resolver"
 )
 
 // FuzzTopoSort feeds arbitrary edge sequences into the graph and

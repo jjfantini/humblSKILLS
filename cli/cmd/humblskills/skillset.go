@@ -10,12 +10,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/install"
-	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/profile"
-	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
-	"github.com/jjfantini/humblSKILLS/cli/internal/skillset"
-	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/install"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/profile"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/secrets"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/skillset"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/textutil"
 )
 
 // --- init -------------------------------------------------------------------

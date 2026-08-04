@@ -6,8 +6,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/adapters"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
 
 func newTestModal(selected, detected map[string]bool) installModalModel {

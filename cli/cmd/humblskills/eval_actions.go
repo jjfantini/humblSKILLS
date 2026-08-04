@@ -10,17 +10,17 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/evalruntime"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/grader"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/grader/anthropicjudge"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/harness"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/metrics"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/report"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/workspace"
-	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
-	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
-	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/evalruntime"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/grader"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/grader/anthropicjudge"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/harness"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/metrics"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/report"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/workspace"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/secrets"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/textutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/tui"
 )
 
 // This file holds the run/behavior logic for the eval command family. Cobra

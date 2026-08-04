@@ -14,7 +14,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
 )
 
 // RegistryServer is an httptest.Server that serves a configurable

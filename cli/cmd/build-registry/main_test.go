@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
 )
 
 // validSkillMD is a minimal SKILL.md that satisfies frontmatter.Validate.

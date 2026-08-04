@@ -9,11 +9,11 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
-	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
-	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/frontmatter"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/tui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
 
 func newSearchCmd(app *App) *cobra.Command {

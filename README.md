@@ -56,7 +56,7 @@ Pin a specific version with `VERSION=0.1.0 sh`.
 ### Go
 
 ```sh
-go install github.com/jjfantini/humblSKILLS/cli/cmd/humblskills@latest
+go install github.com/jjfantini/humblSKILLS/cli/v2/cmd/humblskills@latest
 ```
 
 ### Direct download
@@ -439,11 +439,19 @@ a completion checklist. Detection is deterministic and automated;
 re-distillation is judgment and is never automated. Both read a source checkout,
 not installed copies.
 
-Releases are cut by pushing a semver tag (e.g. `git tag v0.1.0 && git push
-origin v0.1.0`); the workflow in [`.github/workflows/release.yml`](.github/workflows/release.yml)
-runs GoReleaser, uploads archives + checksums to GitHub Releases, and also
-pushes a sibling `cli/v0.1.0` tag so `go install` works against the nested
-module.
+Releases are cut by release-please from the conventional commits on `main`: it
+opens a release PR, and merging that PR tags `vX.Y.Z` and triggers
+[`.github/workflows/release.yml`](.github/workflows/release.yml), which runs
+GoReleaser, uploads archives + checksums to GitHub Releases, and updates the
+`jjfantini/homebrew-humbl` tap.
+
+The same job also pushes a sibling `cli/vX.Y.Z` tag, which is what `go install`
+resolves against the nested module. Go's semantic import versioning requires the
+module path to carry the major version, so `cli/go.mod` declares
+`github.com/jjfantini/humblSKILLS/cli/v2` and the install path includes `/v2`.
+**At the next major, the module path and every import must move to `/v3`** — a
+mismatch is silent: the proxy simply ignores the tags and `@latest` keeps
+serving the last version whose path matched.
 
 ## License
 

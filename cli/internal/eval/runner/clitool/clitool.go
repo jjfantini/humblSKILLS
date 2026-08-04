@@ -26,8 +26,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner"
-	"github.com/jjfantini/humblSKILLS/cli/internal/fsutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/fsutil"
 )
 
 // Driver abstracts over the specific CLI's command shape.

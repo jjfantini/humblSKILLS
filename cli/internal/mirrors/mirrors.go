@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/frontmatter"
 )
 
 // Status is the drift severity for one mirrored skill.

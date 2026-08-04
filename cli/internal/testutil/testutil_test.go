@@ -11,10 +11,10 @@ import (
 
 	"github.com/adrg/xdg"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/fetch"
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
-	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
-	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/fetch"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/secrets"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
 )
 
 func TestSandbox_IsolatesEnvAndXDG(t *testing.T) {

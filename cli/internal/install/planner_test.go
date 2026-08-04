@@ -3,7 +3,7 @@ package install
 import (
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
 )
 
 func reg(skills ...registry.Skill) *registry.Registry {

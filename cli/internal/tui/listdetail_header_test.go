@@ -3,7 +3,7 @@ package tui
 import (
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
 
 type testRow struct{ k string }

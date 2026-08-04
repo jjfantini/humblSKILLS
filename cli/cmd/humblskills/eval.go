@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/workspace"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/workspace"
 )
 
 // The eval command family is split across three files:

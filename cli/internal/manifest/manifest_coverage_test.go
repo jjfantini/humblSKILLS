@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
 )
 
 func sampleInstall(skill, platform, scope string) manifest.Installation {

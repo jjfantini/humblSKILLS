@@ -2,7 +2,7 @@
 // fetcher / cache for consuming it from GitHub raw.
 package registry
 
-import "github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
+import "github.com/jjfantini/humblSKILLS/cli/v2/internal/frontmatter"
 
 // SchemaVersion is the current registry schema. Bumped on breaking change.
 const SchemaVersion = 1

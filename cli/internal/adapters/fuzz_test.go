@@ -3,7 +3,7 @@ package adapters_test
 import (
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/adapters"
 )
 
 // FuzzExpandPath ensures path expansion never panics on arbitrary

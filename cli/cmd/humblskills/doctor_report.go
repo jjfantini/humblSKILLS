@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/evalruntime"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/workspace"
-	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
-	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/adapters"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/evalruntime"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/workspace"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/secrets"
 )
 
 // This file is the doctor "service" layer: the report data model plus the

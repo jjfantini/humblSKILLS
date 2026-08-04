@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/scenarios"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/scenarios"
 )
 
 func writeJSON(t *testing.T, path, body string) {

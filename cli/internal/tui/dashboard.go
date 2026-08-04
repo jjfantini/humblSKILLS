@@ -10,8 +10,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sahilm/fuzzy"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/textutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
 
 // DashboardResult is what RunDashboard returns to the launcher loop.

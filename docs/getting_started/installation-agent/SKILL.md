@@ -39,7 +39,7 @@ curl -fsSL https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/scripts/
 ### Go
 
 ```sh
-go install github.com/jjfantini/humblSKILLS/cli/cmd/humblskills@latest
+go install github.com/jjfantini/humblSKILLS/cli/v2/cmd/humblskills@latest
 ```
 
 ### Direct download (including Windows)

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner/mock"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner/mock"
 )
 
 func TestName(t *testing.T) {

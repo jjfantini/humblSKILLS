@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
 
 // Doctor tests exercise the JSON output path (deterministic) rather

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/fetch"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/fetch"
 )
 
 // tarballBytes returns a gzipped tar with one top-level directory and

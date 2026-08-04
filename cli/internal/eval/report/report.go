@@ -21,8 +21,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/metrics"
-	"github.com/jjfantini/humblSKILLS/cli/internal/jsonutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/metrics"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/jsonutil"
 )
 
 //go:embed assets/report.html.tmpl

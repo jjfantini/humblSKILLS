@@ -17,8 +17,8 @@ import (
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/grader"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/scenarios"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/grader"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/scenarios"
 )
 
 // DefaultModel is the grader model. Our "llm" assertions are short 1-10

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner/toolbox"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner/toolbox"
 )
 
 func newBox(t *testing.T) *toolbox.Sandbox {

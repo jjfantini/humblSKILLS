@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner/clitool"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner/clitool"
 )
 
 // installStubBinary writes a POSIX shell script to a fresh temp dir,

@@ -19,9 +19,9 @@ import (
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner"
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner/toolbox"
-	"github.com/jjfantini/humblSKILLS/cli/internal/secrets"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner/toolbox"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/secrets"
 )
 
 // DefaultModel is the recommended Opus family model for evals.

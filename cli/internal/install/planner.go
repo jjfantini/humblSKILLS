@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
-	"github.com/jjfantini/humblSKILLS/cli/internal/resolver"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/frontmatter"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/resolver"
 )
 
 // Step is one entry in an install plan: a skill that needs fetching and

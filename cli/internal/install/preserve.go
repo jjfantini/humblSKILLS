@@ -10,7 +10,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/frontmatter"
 )
 
 // loadLocalPreserve reads SKILL.md at installPath and returns the preserve

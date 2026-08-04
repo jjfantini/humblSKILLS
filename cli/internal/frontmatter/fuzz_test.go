@@ -3,7 +3,7 @@ package frontmatter_test
 import (
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/frontmatter"
 )
 
 // FuzzParse ensures the frontmatter parser never panics on arbitrary

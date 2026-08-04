@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
 
 // spinnerFrames is the classic braille dot pattern used by charmbracelet's

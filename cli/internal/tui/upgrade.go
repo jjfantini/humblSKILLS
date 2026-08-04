@@ -11,7 +11,7 @@ import (
 	"github.com/maaslalani/confetty/confetti"
 	"github.com/maaslalani/confetty/fireworks"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
 
 // UpgradeStep names one ordered step in the `upgrade` command's own

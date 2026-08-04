@@ -21,11 +21,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
-	"github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
-	"github.com/jjfantini/humblSKILLS/cli/internal/resolver"
-	"github.com/jjfantini/humblSKILLS/cli/internal/textutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/adapters"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/frontmatter"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/resolver"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/textutil"
 )
 
 const defaultRepo = "github.com/jjfantini/humblSKILLS"

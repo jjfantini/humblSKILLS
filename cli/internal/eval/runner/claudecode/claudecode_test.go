@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/runner"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/runner"
 )
 
 func TestNew_ReturnsClaudecodeRunner(t *testing.T) {

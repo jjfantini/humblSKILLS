@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/workspace"
-	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/workspace"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
 )
 
 // abs turns a forward-slashed test path into a platform-specific

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
 )
 
 // buildBenchTree materialises a representative skill tree for DirSHA

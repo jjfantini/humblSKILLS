@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
 )
 
 func TestInspect_AfterLoad_ReportsExistsAndAge(t *testing.T) {

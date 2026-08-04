@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
 )
 
 func TestSearch_NameMatch_JSON(t *testing.T) {

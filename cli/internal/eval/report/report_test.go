@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/metrics"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/metrics"
 )
 
 func TestSparkline(t *testing.T) {

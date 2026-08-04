@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
 )
 
 func TestSkillIndex_FindAndRegistryOf(t *testing.T) {

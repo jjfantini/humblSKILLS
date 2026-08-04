@@ -16,8 +16,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/selfupdate"
-	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/selfupdate"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
 )
 
 // fakeVersionScript writes a tiny shell script that mimics

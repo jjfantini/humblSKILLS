@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/adapters"
-	"github.com/jjfantini/humblSKILLS/cli/internal/fetch"
-	"github.com/jjfantini/humblSKILLS/cli/internal/fsutil"
-	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
-	"github.com/jjfantini/humblSKILLS/cli/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/adapters"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/fetch"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/fsutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
 )
 
 // Outcome classifies what happened for one (skill, platform, scope) triple.

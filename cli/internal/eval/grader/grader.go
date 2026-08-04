@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/eval/scenarios"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/eval/scenarios"
 )
 
 // Grading is the top-level grading.json shape. Matches Anthropic exactly.

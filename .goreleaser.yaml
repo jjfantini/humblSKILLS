@@ -72,7 +72,7 @@ release:
 
     Install:
     - Shell: `curl -fsSL https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/scripts/install.sh | sh`
-    - Go: `go install github.com/jjfantini/humblSKILLS/cli/cmd/humblskills@v{{ .Version }}`
+    - Go: `go install github.com/jjfantini/humblSKILLS/cli/v2/cmd/humblskills@v{{ .Version }}`
     - Or download an archive for your platform below.
 
 changelog:

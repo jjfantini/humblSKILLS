@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/testutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
 )
 
 func TestCrumbLabel(t *testing.T) {

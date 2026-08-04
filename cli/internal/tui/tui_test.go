@@ -9,7 +9,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/ui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
 
 func TestShouldUseTUI_FlagsOverrideTTY(t *testing.T) {

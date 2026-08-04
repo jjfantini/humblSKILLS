@@ -3,8 +3,8 @@ package registry
 import (
 	"fmt"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/frontmatter"
-	"github.com/jjfantini/humblSKILLS/cli/internal/resolver"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/frontmatter"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/resolver"
 )
 
 // IssueKind classifies a dependency problem surfaced by ValidateDeps.

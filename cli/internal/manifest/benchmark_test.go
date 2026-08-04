@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/manifest"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
 )
 
 // seedBench returns a manifest populated with 500 installations so

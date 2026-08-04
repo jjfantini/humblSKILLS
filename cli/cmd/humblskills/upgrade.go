@@ -11,8 +11,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jjfantini/humblSKILLS/cli/internal/selfupdate"
-	"github.com/jjfantini/humblSKILLS/cli/internal/tui"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/selfupdate"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/tui"
 )
 
 // errUpgradeSkipped signals the user declined the upgrade confirmation

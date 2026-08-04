@@ -1,4 +1,4 @@
-module github.com/jjfantini/humblSKILLS/cli
+module github.com/jjfantini/humblSKILLS/cli/v2
 
 go 1.23.0
 
