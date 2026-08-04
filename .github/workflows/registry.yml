@@ -2,9 +2,19 @@ name: Registry
 
 # Self-healing registry.json. Runs on branch pushes whose paths could affect
 # the generated registry. If drift is detected, regenerates and commits back to
-# the pushed branch with [skip ci] so the bot's own commit does not loop. This
-# replaces the former pre-merge "registry-check" gate — drift is now auto-fixed
-# rather than blocking merges.
+# the pushed branch. This replaces the former pre-merge "registry-check" gate —
+# drift is now auto-fixed rather than blocking merges.
+#
+# The auto-fix commit must re-trigger CI. It used to carry [skip ci] and be
+# pushed with GITHUB_TOKEN, which suppressed downstream workflows twice over.
+# On any PR touching skills/ that commit is the head, so the merged content was
+# never tested — and once main requires status checks, those PRs would block
+# forever waiting for a run that can never start.
+#
+# Pushing with the PAT and no [skip ci] means this workflow re-triggers on its
+# own commit. That does not loop: the second run regenerates, finds no diff,
+# and exits at the "already in sync" check. Idempotence is what makes it safe,
+# so keep that early exit intact.
 
 on:
   push:
@@ -29,10 +39,13 @@ concurrency:
 
 jobs:
   rebuild:
-    # Belt-and-suspenders: even without [skip ci], refuse to process the
-    # bot's own auto-fix commits to guarantee no loop.
+    # Still skip the legacy github-actions[bot] identity; the PAT push now
+    # runs as a human actor, so the real loop protection is the "already in
+    # sync" exit below, not this condition.
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    # RELEASE_PLEASE_TOKEN is an environment secret on `release`.
+    environment: release
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,6 +53,9 @@ jobs:
           # send the auto-fix commit (avoids detached-HEAD push failures
           # on PR branches).
           ref: ${{ github.ref_name }}
+          # A GITHUB_TOKEN push does not trigger workflows, so CI would never
+          # run on the auto-fix commit.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"
@@ -66,7 +82,7 @@ jobs:
             fi
 
             git add registry.json
-            git commit -m "chore(registry): regenerate registry.json [skip ci]"
+            git commit -m "chore(registry): regenerate registry.json"
 
             if git push origin "HEAD:${REF}"; then
               echo "pushed regenerated registry.json (attempt ${attempt})"
