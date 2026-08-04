@@ -3,6 +3,7 @@
   "release-type": "go",
   "skip-github-pull-request": false,
   "include-component-in-tag": false,
+  "last-release-sha": "0572b6c79243d4eb8ed3389078932feb12d39aa2",
   "packages": {
     ".": {
       "package-name": "humblskills"

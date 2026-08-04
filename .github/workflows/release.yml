@@ -32,6 +32,15 @@ permissions:
   contents: write
   pull-requests: write
 
+# Serialize releases. Merging a feature PR and merging the release PR it
+# produces land ~40s apart, so without this two release-please runs overlap:
+# the second starts while the first is still tagging, sees no latest release,
+# and rescans history. That is how v3.0.0 happened. Never cancel in progress -
+# a half-finished goreleaser run leaves a tag with no artifacts.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release_please:
     if: github.event_name == 'push'
@@ -46,6 +55,13 @@ jobs:
       release_created: ${{ steps.rp.outputs.release_created }}
       tag_name: ${{ steps.rp.outputs.tag_name }}
     steps:
+      # `last-release-sha` in release-please-config.json bounds the fallback
+      # path. When release-please cannot find the latest release it does not
+      # fail - it logs "No latest release found" and re-derives the version
+      # from every commit it collected. On 2026-07-30 that reached
+      # `feat(cli)!: local-owned preserve list (#34)` from months earlier and
+      # cut a phantom 3.0.0. last-release-sha caps how far back that can go.
+      # Bump it at any release where the history walk gets slow again.
       - uses: googleapis/release-please-action@v4
         id: rp
         with:
@@ -91,8 +107,13 @@ jobs:
 
       - name: Push sibling cli/* tag for go install
         # Go's nested-module resolution requires `cli/vX.Y.Z` to exist on the
-        # same commit as `vX.Y.Z` so `go install github.com/jjfantini/humblSKILLS/cli/...`
-        # works.
+        # same commit as `vX.Y.Z` so
+        # `go install github.com/jjfantini/humblSKILLS/cli/v2/cmd/humblskills@vX.Y.Z`
+        # works. The `/v2` is load-bearing: for v2+ the module path must carry
+        # the major version, and `cli/go.mod` declares it. Without the suffix
+        # the proxy ignored every cli/v2.* tag and `@latest` served v1.1.0 for
+        # four months. At v3, move the module path and imports to `/v3` or this
+        # silently breaks again.
         run: |
           set -eu
           ver="${{ steps.resolve.outputs.tag }}"
