@@ -120,8 +120,10 @@ humblskills upgrade --dry-run    # just report the version you'd move to
 The upgrade checks GitHub releases, verifies the checksum, and replaces the
 running binary in place.
 
-If you installed via Homebrew, `upgrade` tells you to use Homebrew instead, so
-Homebrew's own bookkeeping stays correct:
+If you installed via Homebrew, `upgrade` detects that and delegates: it confirms with
+you, then runs `brew update && brew upgrade humblskills` itself, so Homebrew's own
+bookkeeping stays correct. It falls back to telling you to run brew by hand only when
+`brew` isn't on `PATH`. Doing it directly works too:
 
 ```sh
 brew upgrade humblskills

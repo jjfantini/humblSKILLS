@@ -144,7 +144,7 @@ humblskills completion zsh --help    # also: bash, fish, powershell
 | `uninstall` | Remove a skill |
 | `migrate` | Adopt hand-installed skills into humblskills |
 | `registry` | Add / list / rename / remove registries, login, refresh |
-| `profile` | Defaults: platforms, scope, registry, TUI options |
+| `profile` | Defaults: platforms, scope, registry (single-registry setups only), TUI options |
 | `init` / `export` / `sync` | Share a skillset with a team |
 | `export desktop` | Write Claude Desktop / claude.ai upload zips |
 | `eval` | Benchmark a skill across arms |

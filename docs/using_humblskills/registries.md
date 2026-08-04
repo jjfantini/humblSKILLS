@@ -105,9 +105,16 @@ humblskills registry login --name work --token "$GITHUB_TOKEN"  # flag
 ```
 
 !!! note "Where the token is looked up"
-    Highest precedence first: `--token` → `HUMBLSKILLS_TOKEN` → OS keychain →
-    a `0600` fallback file (used only when no keychain is available). Tokens are
-    ignored for `file://` registries and for the public default.
+    For a **named** registry, highest precedence first: that registry's **own** stored
+    token (`registry login --name <n>`) → `HUMBLSKILLS_TOKEN` → the default stored token.
+    A single default token can therefore cover several registries that have none of their
+    own — which is what `registry list` means by `token: inherited default`.
+
+    The global **`--token` flag is not consulted for named registries** — it only applies
+    in single-registry mode, where the chain is `--token` → `HUMBLSKILLS_TOKEN` → stored
+    token. "Stored" means the OS keychain, or a `0600` file when no keychain is available.
+
+    Tokens are ignored for `file://` registries and for the public default.
 
 ## Installing when a name exists in two registries
 
@@ -181,8 +188,8 @@ humblskills search
     registries configured, use `--from <name>` to pick among them, or
     `humblskills registry remove` / a separate `--profile <path>` for a throwaway config.
 
-Token lookup is independent of that, highest precedence first: `--token` →
-`HUMBLSKILLS_TOKEN` → OS keychain → `0600` fallback file.
+Token lookup is a separate chain, and it also differs by mode — see
+[Where the token is looked up](#private-registries-add-a-token) above.
 
 ## Tab completion
 

@@ -41,8 +41,11 @@ On `sync`, for each listed registry the CLI:
    through creating and storing one — the same path as
    [`registry login`](registries.md#private-registries-add-a-token).
 
-None of this is fatal: if a registry stays unreachable, `sync` continues and
-reports the skills it couldn't find as warnings.
+A **single** unreachable registry is not fatal: `sync` warns, continues, and reports
+that registry's skills as not-found. But if **every** configured registry fails to
+load, `sync` aborts and installs nothing — which is exactly what a skillset naming
+only a private registry does on a machine that has no token for it yet. Listing
+`public` alongside it (below) also keeps `sync` alive in that case.
 
 When a skill name exists in more than one registry, `sync` prefers the order the
 skillset lists them in, on the grounds that the file's author knows where their
@@ -101,11 +104,11 @@ By default `sync` only **adds** skills. Pass `--prune` to also **remove** any lo
 humblskills sync --prune
 ```
 
-Pruning is destructive, so it asks for confirmation (skip with `--yes`, or run with `--json` for a machine-readable summary instead of a prompt).
+Pruning is destructive, so it asks for confirmation. Pass `--yes` to consent up front. In a pipe, in CI, or with `--json` there is nobody to ask, so it **stops with an error** naming what it would delete rather than proceeding — the same gate as `update --force`.
 
 ### Platforms and scope
 
-`export`, `init`, and `sync` follow the same platform/scope rules as `install`: explicit `--platform`/`--scope`/`--global` flags win, otherwise your [profile](../getting_started/quickstart.md) defaults apply.
+`sync` follows the same platform/scope rules as `install`: explicit `--platform`/`--scope`/`--global` flags win, otherwise your [profile](../getting_started/quickstart.md) defaults apply. `init` and `export` only write the skillset file, so they take no platform or scope flags.
 
 ## Related topics
 
