@@ -93,13 +93,13 @@ Claude Desktop and claude.ai can't read skills from disk. Restrict with
 
 Naming **any** registry makes the CLI use **only** its named set — the hosted public
 default stops being consulted, and `--registry` / `HUMBLSKILLS_REGISTRY` /
-`profile set registry` are ignored. So adding just a private registry silently hides
-every public skill (`search` omits them, `install` reports them as not found). Add
-`public` too unless private-only is what you want:
+`profile set registry` are ignored. Because that replaces rather than adds, the **first**
+`registry add` seeds whatever was already in effect (`public`, or `default` for a
+`profile set registry` URL) and reports it. So you do not need to add `public` yourself;
+for private-only, run `humblskills registry remove public` afterwards.
 
 ```sh
-humblskills registry add public https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/registry.json
-humblskills registry add work my-company/our-skills   # owner/repo shorthand works
+humblskills registry add work my-company/our-skills   # owner/repo shorthand; seeds public
 humblskills registry login --name work                # token → OS keychain (or pipe it on stdin)
 humblskills registry list                             # confirm what you ended up with
 humblskills install <skill> --from work               # if a name exists in several registries
