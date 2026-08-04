@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.44.1](https://github.com/jjfantini/humblSKILLS/compare/v2.44.0...v2.44.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **smart-handoff:** correct Codex skill path to ~/.agents/skills ([3b74050](https://github.com/jjfantini/humblSKILLS/commit/3b740503c8acfa1de6451fa7ab4dd6c1842eba1b))
+* **smart-handoff:** correct Codex skill path to ~/.agents/skills ([196dbc8](https://github.com/jjfantini/humblSKILLS/commit/196dbc8bc824d5b6f7ec39d0027bab570256cf56))
+
 ## [2.44.0](https://github.com/jjfantini/humblSKILLS/compare/v2.43.0...v2.44.0) (2026-08-04)
 
 
