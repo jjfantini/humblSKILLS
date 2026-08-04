@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-04T02:31:15Z",
+  "generated_at": "2026-08-04T15:42:41Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "fix/handoff-codex-agents-path",
-    "sha": "196dbc8bc824d5b6f7ec39d0027bab570256cf56"
+    "ref": "main",
+    "sha": "3b740503c8acfa1de6451fa7ab4dd6c1842eba1b"
   },
   "skills": [
     {
