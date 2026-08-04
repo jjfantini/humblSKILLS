@@ -23,22 +23,48 @@ type Step struct {
 // with dependencies first and the root itself last. Missing or unsatisfiable
 // deps surface as errors.
 func Plan(reg *registry.Registry, root string) ([]Step, error) {
+	return PlanAll(reg, []string{root})
+}
+
+// PlanAll is Plan for several roots at once: one topo-sorted plan covering
+// every root and its transitive deps, deps before dependents.
+//
+// Walking all roots into a single graph is what makes a batch install correct
+// rather than just convenient. Planning each root separately and concatenating
+// would fetch a shared dep once per root that needs it, and could order a dep
+// after a dependent that a later root pulled in — one graph plus one topo sort
+// gives each skill exactly one Step in a globally valid order.
+//
+// IsDep marks a skill that no caller asked for by name: a root stays a root
+// even when another root also depends on it.
+func PlanAll(reg *registry.Registry, roots []string) ([]Step, error) {
 	if reg == nil {
 		return nil, fmt.Errorf("plan: nil registry")
+	}
+	if len(roots) == 0 {
+		return nil, nil
 	}
 
 	index := make(map[string]registry.Skill, len(reg.Skills))
 	for _, s := range reg.Skills {
 		index[s.Name] = s
 	}
-	if _, ok := index[root]; !ok {
-		return nil, fmt.Errorf("skill %q not in registry", root)
-	}
 
+	isRoot := make(map[string]bool, len(roots))
 	g := resolver.New()
 	visited := make(map[string]bool)
-	if err := walk(root, index, g, visited); err != nil {
-		return nil, err
+	for _, root := range roots {
+		if _, ok := index[root]; !ok {
+			return nil, fmt.Errorf("skill %q not in registry", root)
+		}
+		// A name repeated by the caller is not an error, just already handled.
+		if isRoot[root] {
+			continue
+		}
+		isRoot[root] = true
+		if err := walk(root, index, g, visited); err != nil {
+			return nil, err
+		}
 	}
 
 	order, err := g.TopoSort()
@@ -49,7 +75,7 @@ func Plan(reg *registry.Registry, root string) ([]Step, error) {
 	out := make([]Step, 0, len(order))
 	for _, name := range order {
 		s := index[name]
-		out = append(out, Step{Skill: s, IsDep: name != root})
+		out = append(out, Step{Skill: s, IsDep: !isRoot[name]})
 	}
 	return out, nil
 }

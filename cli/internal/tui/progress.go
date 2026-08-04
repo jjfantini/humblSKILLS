@@ -325,7 +325,12 @@ func (m ProgressModel) renderItemsList() string {
 func (m *ProgressModel) applyEvent(ev install.Event) {
 	switch ev.Phase {
 	case install.PhaseRunStart:
-		m.total = ev.Total
+		// Accumulate rather than assign: one screen can span several engine
+		// runs (a batch install whose skills come from different registries
+		// executes once per registry, since each has its own token and
+		// document). Assigning would reset the denominator on the second
+		// run_start and show "3/8" of a batch as "3/2".
+		m.total += ev.Total
 	case install.PhaseTargetStart:
 		it := m.upsert(ev)
 		m.current = it

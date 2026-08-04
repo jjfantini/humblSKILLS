@@ -155,7 +155,7 @@ func crumbLabel(cmd string) string {
 func dispatchDashboardCommand(app *App, cmd string) error {
 	switch cmd {
 	case "install":
-		return runInstall(app, "", installFlags{}, true)
+		return runInstall(app, nil, installFlags{}, true)
 	case "list":
 		return runList(app, true)
 	case "update":
