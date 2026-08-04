@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-04T02:11:56Z",
+  "generated_at": "2026-08-04T02:12:12Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "main",
-    "sha": "7ecf16a1f78e225f41dea1071466addccfe6321c"
+    "ref": "fix/handoff-codex-agents-path",
+    "sha": "9929bb3f481874dedc41622a756b59d29a142f3f"
   },
   "skills": [
     {
@@ -621,7 +621,7 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-handoff",
-      "dir_sha": "67302ae36ddbf838d789e76b08b74d2f893b893e5b52c1600a0c385c44b49d84"
+      "dir_sha": "7768b2b02cbeb8b3f65135116277319e199fbb633d0c746a95201b672701910e"
     },
     {
       "name": "smart-humanize-text",

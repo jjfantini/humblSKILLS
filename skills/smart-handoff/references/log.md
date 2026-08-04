@@ -30,3 +30,5 @@ Entry shape:
     EXAMPLE stays safe-listed)
 
 [LINT 2026-08-03] 6 wiki, 0 raw. Hard: 0, Soft: 6. Regenerated _index.md.
+
+[LINT 2026-08-03] 6 wiki, 0 raw. Hard: 0, Soft: 6. Regenerated _index.md.
