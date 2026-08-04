@@ -383,9 +383,11 @@ func (m dashboardModel) View() string {
 		gridView += "\n  " + th.Crumb.Render("no command matches "+fmt.Sprintf("%q", m.query))
 	}
 
-	// Pad the grid view to exactly gridHeight() lines so the footer sits at
-	// a predictable row regardless of content size.
-	gridView = padToHeight(gridView, m.gridHeight())
+	// Fit the grid view to exactly gridHeight() lines so the footer sits at
+	// a predictable row regardless of content size. The no-match line above is
+	// appended after the viewport already filled its budget, so this has to
+	// clamp as well as pad or that one extra row scrolls the header away.
+	gridView = fitToHeight(gridView, m.gridHeight())
 
 	return header + "\n\n" + search + "\n\n" + gridView + "\n" + footer
 }
