@@ -158,7 +158,20 @@ type Model struct {
 	actions   map[string]ActionSpec // keyed by ActionSpec.Key
 	done      bool
 	collapsed map[string]bool // CollapseKey → collapsed; missing = expanded
+	// listOff is the index of the first item row the left pane draws and
+	// listRows how many rows fit below its title. The left pane builds a plain
+	// string rather than owning a viewport, so without this window renderLeft
+	// emitted every item: a list taller than the terminal overflowed the frame,
+	// the alt-screen scrolled the header off the top, and no key brought it
+	// back. listOff is never assigned from the outside — scrollCursorIntoView
+	// derives it from the cursor, so "where the list is scrolled to" has a
+	// single owner and can't drift from the highlighted row.
+	listOff  int
+	listRows int
 }
+
+// wheelStep is how many list rows one mouse-wheel notch travels.
+const wheelStep = 3
 
 // NewListDetail builds a Model ready for Run.
 func NewListDetail(cfg Config) Model {
@@ -227,6 +240,78 @@ func (m Model) prevSelectable(from int) int {
 	return -1
 }
 
+// moveCursor steps the cursor n navigable rows (negative = up), stopping dead at
+// either end, then re-syncs the detail pane and the scroll window. Every cursor
+// movement goes through here — ↑/↓ and the mouse wheel — so there is exactly one
+// place that has to remember to scroll the new row into view.
+func (m *Model) moveCursor(n int) {
+	if n == 0 {
+		return
+	}
+	up := n < 0
+	if up {
+		n = -n
+	}
+	for i := 0; i < n; i++ {
+		next := m.nextSelectable(m.cursor)
+		if up {
+			next = m.prevSelectable(m.cursor)
+		}
+		if next < 0 {
+			break
+		}
+		m.cursor = next
+	}
+	m.scrollCursorIntoView()
+	m.refreshPreview()
+}
+
+// scrollCursorIntoView slides listOff the minimum distance needed to keep the
+// cursor row inside the visible window, so the list scrolls one row at a time at
+// the edges instead of jumping the selection to the middle. Call after anything
+// that moves the cursor, changes which items are visible, or resizes the pane.
+func (m *Model) scrollCursorIntoView() {
+	// listRows is 0 until the first WindowSizeMsg, and a list that already fits
+	// never scrolls; both mean "draw from the top".
+	if m.listRows < 1 || len(m.items) <= m.listRows {
+		m.listOff = 0
+		return
+	}
+	if maxOff := len(m.items) - m.listRows; m.listOff > maxOff {
+		m.listOff = maxOff
+	}
+	if m.listOff < 0 {
+		m.listOff = 0
+	}
+	if m.cursor < m.listOff {
+		m.listOff = m.cursor
+	}
+	if m.cursor >= m.listOff+m.listRows {
+		m.listOff = m.cursor - m.listRows + 1
+	}
+}
+
+// listWindow is the [start, end) span of m.items the left pane renders. It
+// re-clamps rather than trusting listOff because View runs on a value copy that
+// may not have seen a resize yet.
+func (m Model) listWindow() (start, end int) {
+	if m.listRows < 1 || len(m.items) <= m.listRows {
+		return 0, len(m.items)
+	}
+	start = m.listOff
+	if maxOff := len(m.items) - m.listRows; start > maxOff {
+		start = maxOff
+	}
+	if start < 0 {
+		start = 0
+	}
+	end = start + m.listRows
+	if end > len(m.items) {
+		end = len(m.items)
+	}
+	return start, end
+}
+
 // Selected returns the terminal state after the model exits.
 func (m Model) Selected() Result { return m.result }
 
@@ -241,12 +326,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.MouseMsg:
-		// Forward wheel events to the detail viewport only when the cursor
-		// is over the right pane. The left pane's list has its own ↑/↓
-		// handling so a trackpad scroll over the list shouldn't also scroll
-		// the detail body.
+		// The pane under the pointer owns the wheel, so a trackpad flick over
+		// the list doesn't also scroll the detail body. Over the left pane a
+		// notch moves the cursor by wheelStep rows — same path as holding ↑/↓,
+		// which keeps the highlight, the detail pane and the scroll window in
+		// lockstep instead of letting the list scroll away from its selection.
 		leftW, _ := m.paneWidths()
 		if msg.X < leftW {
+			switch msg.Button {
+			case tea.MouseButtonWheelUp:
+				m.moveCursor(-wheelStep)
+			case tea.MouseButtonWheelDown:
+				m.moveCursor(wheelStep)
+			}
 			return m, nil
 		}
 		var cmd tea.Cmd
@@ -306,16 +398,10 @@ func (m Model) updateNav(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.done = true
 		return m, tea.Quit
 	case key.Matches(msg, m.keys.Up):
-		if n := m.prevSelectable(m.cursor); n >= 0 {
-			m.cursor = n
-			m.refreshPreview()
-		}
+		m.moveCursor(-1)
 		return m, nil
 	case key.Matches(msg, m.keys.Down):
-		if n := m.nextSelectable(m.cursor); n >= 0 {
-			m.cursor = n
-			m.refreshPreview()
-		}
+		m.moveCursor(1)
 		return m, nil
 	case key.Matches(msg, m.keys.Filter):
 		if m.cfg.Items != nil {
@@ -368,6 +454,10 @@ func (m Model) updateNav(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			focusKey := key
 			m.rebuildVisible()
 			m.cursor = m.indexOfCollapseKey(focusKey)
+			// Collapsing removes rows above the cursor and expanding adds rows
+			// below it; either way the window has to re-centre on the header the
+			// user just toggled.
+			m.scrollCursorIntoView()
 			m.refreshPreview()
 			return m, nil
 		}
@@ -428,6 +518,13 @@ func (m *Model) resize() {
 	// a 1-cell gutter before the actual detail content.
 	m.preview.Width = rightW - 2
 	m.preview.Height = bodyH - 2 // title row + blank row under the title
+	// The left pane spends its budget the same way: title row, blank row, then
+	// item rows. Same subtraction keeps the two panes row-synced.
+	m.listRows = bodyH - 2
+	if m.listRows < 1 {
+		m.listRows = 1
+	}
+	m.scrollCursorIntoView()
 }
 
 func (m Model) paneWidths() (left, right int) {
@@ -502,6 +599,9 @@ func (m *Model) applyFilter() {
 	} else if m.cursor >= len(m.items) || isNavSkip(m.items[m.cursor]) {
 		m.cursor = m.firstSelectable()
 	}
+	// Typing into the filter shrinks the list under the window, so the offset
+	// has to come back down with it or the pane renders past the last match.
+	m.scrollCursorIntoView()
 }
 
 // rebuildVisible rebuilds m.items from cfg.Items applying the active filter
@@ -626,12 +726,21 @@ func (m Model) renderLeft(width int) string {
 		return s + strings.Repeat(" ", width-w)
 	}
 
+	start, end := m.listWindow()
+
 	var title string
 	if m.filtOn {
 		m.filter.Width = width - 2
 		title = "  " + m.filter.View()
 	} else {
 		title = "  " + th.SectionTitle.Render(spacedUpper(m.cfg.LeftTitle))
+		// Right-anchor the overflow affordance on the title row, mirroring the
+		// detail pane's indicator. Skipped while filtering — the title row is
+		// the text input then, and the match count in the footer already says
+		// how much the list holds.
+		if ind := m.listScrollIndicator(th, start, end); ind != "" {
+			title = padBetween(title, ind, width-1)
+		}
 	}
 
 	if len(m.items) == 0 {
@@ -642,7 +751,8 @@ func (m Model) renderLeft(width int) string {
 	var sb strings.Builder
 	sb.WriteString(pad(title))
 	sb.WriteString("\n\n")
-	for i, it := range m.items {
+	for i := start; i < end; i++ {
+		it := m.items[i]
 		selected := i == m.cursor
 		var row string
 		if c, ok := it.(CollapsibleItem); ok && c.IsCollapsible() {
@@ -650,11 +760,15 @@ func (m Model) renderLeft(width int) string {
 		} else {
 			row = it.Row(th, width-2, selected)
 		}
-		// Pad the row body (minus the leading bar/gutter) to width-2.
-		rowW := lipgloss.Width(row)
-		if rowW < width-2 {
-			row += strings.Repeat(" ", width-2-rowW)
-		}
+		// Fit the row body (minus the leading bar/gutter) to exactly width-2.
+		// Truncating matters as much as padding: Item.Row is free to return a
+		// row wider than the pane (skillItem does, for a long name plus its
+		// version), and lipgloss.JoinHorizontal sizes the left block to its
+		// widest line. Pad-only meant one long row shoved the divider — and the
+		// whole detail pane — right by however far it overhung, so with the
+		// scroll window in play the divider jittered as rows entered and left
+		// the view. Clamping here fixes it for every Item type at once.
+		row = fitToWidth(row, width-2)
 		var line string
 		if selected {
 			// Transparent highlight: just a magenta ▌ bar + magenta-bold
@@ -666,11 +780,35 @@ func (m Model) renderLeft(width int) string {
 			line = "  " + row
 		}
 		sb.WriteString(line)
-		if i < len(m.items)-1 {
+		if i < end-1 {
 			sb.WriteString("\n")
 		}
 	}
 	return sb.String()
+}
+
+// listScrollIndicator is the left pane's counterpart to scrollIndicator: hollow
+// arrows at the ends, filled when rows are hidden that way, plus how far through
+// the list the window sits. Empty string when everything already fits.
+func (m Model) listScrollIndicator(th *ui.Theme, start, end int) string {
+	if start <= 0 && end >= len(m.items) {
+		return ""
+	}
+	up, down := "△", "▽"
+	if start > 0 {
+		up = "▲"
+	}
+	if end < len(m.items) {
+		down = "▼"
+	}
+	// Percent of the way scrolled, not percent of rows seen: hidden is the
+	// number of scroll positions available, so the first row reads 0% and the
+	// last reads 100% — matching viewport.ScrollPercent on the detail side.
+	pct := 100
+	if hidden := len(m.items) - m.listRows; hidden > 0 {
+		pct = int(float64(start)/float64(hidden)*100 + 0.5)
+	}
+	return th.Meta.Render(fmt.Sprintf("%s%s %d%%", up, down, pct))
 }
 
 func (m Model) renderRight(width int) string {
@@ -807,6 +945,7 @@ func (m Model) renderHelp() string {
 	nav := helpGroup{title: "NAVIGATE", rows: []helpRow{
 		{"↑ / k", "move up"},
 		{"↓ / j", "move down"},
+		{"wheel", "scroll the list (pointer over the left pane)"},
 		{"enter", "toggle section (on category/role headers)"},
 	}}
 	if m.cfg.Items != nil {
@@ -820,7 +959,13 @@ func (m Model) renderHelp() string {
 		{"home / end", "jump to top / bottom"},
 	}}
 
-	groups := []helpGroup{nav, scroll}
+	// Column split: movement concerns on the left, what-you-can-do on the right.
+	// Stacked in one column the sheet runs past 20 rows once a caller supplies a
+	// few Actions, which overflows a stock 24-row terminal — and an overflowing
+	// body now loses its tail to Frame's clamp instead of shoving the header off
+	// screen. Two columns roughly halve the height and keep it all readable.
+	leftCol := []helpGroup{nav, scroll}
+	rightCol := make([]helpGroup, 0, 2)
 
 	if len(m.cfg.Actions) > 0 {
 		rows := make([]helpRow, 0, len(m.cfg.Actions))
@@ -832,21 +977,27 @@ func (m Model) renderHelp() string {
 			}
 			rows = append(rows, helpRow{keys, a.Label})
 		}
-		groups = append(groups, helpGroup{title: "ACTIONS", rows: rows})
+		rightCol = append(rightCol, helpGroup{title: "ACTIONS", rows: rows})
 	}
 
 	backKey := textutil.FirstNonEmpty(m.cfg.BackKey, "q")
 	backLabel := textutil.FirstNonEmpty(m.cfg.BackLabel, "quit")
-	groups = append(groups, helpGroup{title: "GENERAL", rows: []helpRow{
+	// esc always goes back, so a caller that already bound BackKey to esc would
+	// otherwise render "esc / esc".
+	backKeys := backKey + " / esc"
+	if backKey == "esc" {
+		backKeys = "esc"
+	}
+	rightCol = append(rightCol, helpGroup{title: "GENERAL", rows: []helpRow{
 		{"?", "toggle this help"},
-		{backKey + " / esc", backLabel},
+		{backKeys, backLabel},
 		{"ctrl+c", "quit"},
 	}})
 
 	// Align the key column to the widest key across every group so the labels
 	// form a clean second column.
 	keyW := 0
-	for _, g := range groups {
+	for _, g := range append(append([]helpGroup{}, leftCol...), rightCol...) {
 		for _, r := range g.rows {
 			if w := lipgloss.Width(r.keys); w > keyW {
 				keyW = w
@@ -854,16 +1005,29 @@ func (m Model) renderHelp() string {
 		}
 	}
 
-	var sb strings.Builder
-	sb.WriteString("  " + th.SectionTitle.Render(spacedUpper("Keybindings")) + "\n")
-	for _, g := range groups {
-		sb.WriteString("\n  " + th.Meta.Render(g.title) + "\n")
-		for _, r := range g.rows {
-			keyCol := r.keys + strings.Repeat(" ", keyW-lipgloss.Width(r.keys))
-			sb.WriteString("    " + th.Brand.Render(keyCol) + "  " + th.Detail.Render(r.label) + "\n")
+	renderCol := func(groups []helpGroup) string {
+		var sb strings.Builder
+		for i, g := range groups {
+			if i > 0 {
+				sb.WriteString("\n")
+			}
+			sb.WriteString(th.Meta.Render(g.title) + "\n")
+			for _, r := range g.rows {
+				keyCol := r.keys + strings.Repeat(" ", keyW-lipgloss.Width(r.keys))
+				sb.WriteString("  " + th.Brand.Render(keyCol) + "  " + th.Detail.Render(r.label) + "\n")
+			}
 		}
+		return strings.TrimRight(sb.String(), "\n")
 	}
-	return strings.TrimRight(sb.String(), "\n")
+
+	// JoinHorizontal pads each block to its own widest line, so the gutter style
+	// is all that separates the columns.
+	gutter := lipgloss.NewStyle().PaddingRight(4)
+	cols := lipgloss.JoinHorizontal(lipgloss.Top,
+		gutter.Render(renderCol(leftCol)),
+		renderCol(rightCol),
+	)
+	return "  " + th.SectionTitle.Render(spacedUpper("Keybindings")) + "\n\n" + indentBlock(cols, 2)
 }
 
 // RunListDetail runs the model on an alt-screen and returns the user's choice.

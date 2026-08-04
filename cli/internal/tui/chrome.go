@@ -101,10 +101,10 @@ func DashedRule(theme *ui.Theme, width int) string {
 	return theme.RuleLine.Render(strings.Repeat("╌", width))
 }
 
-// Frame composes header + body + footer into one renderable string, padding
-// the body to bodyHeight rows so the footer sits at a predictable y.
+// Frame composes header + body + footer into one renderable string, fitting
+// the body to exactly bodyHeight rows so the footer sits at a predictable y.
 func Frame(header, body, footer string, bodyHeight int) string {
-	body = padToHeight(body, bodyHeight)
+	body = fitToHeight(body, bodyHeight)
 	return header + "\n\n" + body + "\n" + footer
 }
 
@@ -121,15 +121,48 @@ func padBetween(left, right string, width int) string {
 	return left + strings.Repeat(" ", gap) + right
 }
 
-func padToHeight(s string, h int) string {
+// fitToHeight forces s to exactly h rows: short bodies get blank rows appended
+// so the footer lands at a fixed y, and over-tall bodies get their overflow
+// dropped.
+//
+// The truncation half is load-bearing, not defensive. Every screen here renders
+// into an alt-screen whose height is fixed, so a body even one row too tall
+// makes the terminal scroll the whole frame up — the header disappears off the
+// top and nothing can bring it back, because the frame is re-rendered from
+// scratch each tick with the same overflow. Screens that own more content than
+// fits must window it themselves (a viewport, or Model's left-pane window);
+// this clamp only guarantees the chrome survives when one doesn't.
+func fitToHeight(s string, h int) string {
 	if h <= 0 {
 		return s
 	}
 	lines := lipgloss.Height(s)
-	if lines >= h {
+	if lines == h {
 		return s
 	}
-	return s + strings.Repeat("\n", h-lines)
+	if lines < h {
+		return s + strings.Repeat("\n", h-lines)
+	}
+	return strings.Join(strings.Split(s, "\n")[:h], "\n")
+}
+
+// fitToWidth forces s to exactly w display cells, padding short strings with
+// spaces and truncating long ones with an ellipsis. ANSI-aware on both sides:
+// lipgloss.Width ignores escape sequences when measuring, and ansi.Truncate
+// keeps them intact so a clipped row can't leak its styling into the rest of
+// the line.
+func fitToWidth(s string, w int) string {
+	if w < 1 {
+		return ""
+	}
+	switch sw := lipgloss.Width(s); {
+	case sw == w:
+		return s
+	case sw < w:
+		return s + strings.Repeat(" ", w-sw)
+	default:
+		return ansi.Truncate(s, w, "…")
+	}
 }
 
 func max(a, b int) int {

@@ -1,10 +1,12 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
@@ -295,5 +297,164 @@ func TestModel_EmptyItemsShowsEmptyMsg(t *testing.T) {
 	v := m.View()
 	if !strings.Contains(v, "empty") {
 		t.Errorf("empty msg missing:\n%s", v)
+	}
+}
+
+// --- left-pane scroll window --------------------------------------------------
+
+func manyItems(n int) []Item {
+	out := make([]Item, 0, n)
+	for i := 0; i < n; i++ {
+		name := fmt.Sprintf("item-%02d", i)
+		out = append(out, testItem{name: name, filter: name})
+	}
+	return out
+}
+
+// The regression this whole window exists for: a list taller than the terminal
+// used to render every row, so the frame overflowed the alt-screen and the
+// header scrolled off the top with no way back.
+func TestModel_LongListNeverOutgrowsTheScreen(t *testing.T) {
+	m := newTestListDetail(manyItems(200), nil)
+	m.width, m.height = 80, 24
+	m.resize()
+
+	for _, step := range []int{0, 50, 199} {
+		m.moveCursor(step)
+		v := m.View()
+		if got := lipgloss.Height(v); got > m.height {
+			t.Fatalf("frame is %d rows tall, terminal is %d (cursor %d)", got, m.height, m.cursor)
+		}
+		if !strings.Contains(v, "humblskills") {
+			t.Fatalf("header scrolled out of the frame at cursor %d:\n%s", m.cursor, v)
+		}
+	}
+}
+
+// Scrolling has to actually reveal rows that were off-screen, and drop the ones
+// it scrolled past — otherwise the window is decorative.
+func TestModel_ScrollingRevealsOffscreenRows(t *testing.T) {
+	m := newTestListDetail(manyItems(200), nil)
+	m.width, m.height = 80, 24
+	m.resize()
+
+	if v := m.View(); !strings.Contains(v, "item-00") {
+		t.Fatalf("first row should be visible at rest:\n%s", v)
+	}
+	m.moveCursor(199) // walk to the end
+	v := m.View()
+	if !strings.Contains(v, "item-199") {
+		t.Errorf("last row should be visible once scrolled to the bottom:\n%s", v)
+	}
+	if strings.Contains(v, "item-00") {
+		t.Errorf("first row should have scrolled out of the window:\n%s", v)
+	}
+	if !strings.Contains(v, "▲") {
+		t.Errorf("expected an up-arrow indicator once rows are hidden above:\n%s", v)
+	}
+}
+
+// The cursor must stay inside the window at all times: a highlight the user
+// can't see is worse than no highlight.
+func TestModel_CursorStaysInsideWindow(t *testing.T) {
+	m := newTestListDetail(manyItems(60), nil)
+	m.width, m.height = 80, 24
+	m.resize()
+
+	for i := 0; i < 59; i++ {
+		m.moveCursor(1)
+		start, end := m.listWindow()
+		if m.cursor < start || m.cursor >= end {
+			t.Fatalf("cursor %d outside window [%d,%d)", m.cursor, start, end)
+		}
+	}
+	for i := 0; i < 59; i++ {
+		m.moveCursor(-1)
+		start, end := m.listWindow()
+		if m.cursor < start || m.cursor >= end {
+			t.Fatalf("cursor %d outside window [%d,%d) scrolling back up", m.cursor, start, end)
+		}
+	}
+	if m.cursor != 0 || m.listOff != 0 {
+		t.Errorf("expected to land back at the top, cursor=%d off=%d", m.cursor, m.listOff)
+	}
+}
+
+func TestModel_WheelOverLeftPaneScrollsList(t *testing.T) {
+	m := newTestListDetail(manyItems(60), nil)
+	m.width, m.height = 80, 24
+	m.resize()
+
+	out, _ := m.Update(tea.MouseMsg{X: 1, Y: 5, Button: tea.MouseButtonWheelDown, Action: tea.MouseActionPress})
+	mm := out.(Model)
+	if mm.cursor != wheelStep {
+		t.Errorf("wheel down should advance %d rows, cursor = %d", wheelStep, mm.cursor)
+	}
+	out, _ = mm.Update(tea.MouseMsg{X: 1, Y: 5, Button: tea.MouseButtonWheelUp, Action: tea.MouseActionPress})
+	if mm = out.(Model); mm.cursor != 0 {
+		t.Errorf("wheel up should return to the top, cursor = %d", mm.cursor)
+	}
+}
+
+// Shrinking the terminal must not leave the window pointing past the last row.
+func TestModel_ResizeKeepsCursorVisible(t *testing.T) {
+	m := newTestListDetail(manyItems(60), nil)
+	m.width, m.height = 80, 40
+	m.resize()
+	m.moveCursor(45)
+
+	m.height = 12 // sudden shrink
+	m.resize()
+	start, end := m.listWindow()
+	if m.cursor < start || m.cursor >= end {
+		t.Errorf("cursor %d outside window [%d,%d) after shrink", m.cursor, start, end)
+	}
+	if got := lipgloss.Height(m.View()); got > m.height {
+		t.Errorf("frame is %d rows, terminal is %d after shrink", got, m.height)
+	}
+}
+
+// Filtering down to a short list has to release the offset, or the pane renders
+// past the end of the matches.
+func TestModel_FilterResetsScrollOffset(t *testing.T) {
+	m := newTestListDetail(manyItems(60), nil)
+	m.width, m.height = 80, 24
+	m.resize()
+	m.moveCursor(50)
+	if m.listOff == 0 {
+		t.Fatal("precondition: expected a non-zero offset before filtering")
+	}
+
+	m.filtOn = true
+	m.filter.SetValue("item-07")
+	m.applyFilter()
+	if m.listOff != 0 {
+		t.Errorf("offset should reset when the filtered list fits, got %d", m.listOff)
+	}
+	if v := m.View(); !strings.Contains(v, "item-07") {
+		t.Errorf("the single match should be visible:\n%s", v)
+	}
+}
+
+// The help sheet is a static body with no viewport of its own, so it has to fit
+// the frame outright — Frame's clamp would otherwise silently eat its last rows.
+func TestModel_HelpOverlayFitsAStockTerminal(t *testing.T) {
+	m := newTestListDetail(manyItems(200), []ActionSpec{
+		{Key: "i", Label: "install", Action: "install"},
+		{Key: "u", Label: "update", Action: "update"},
+		{Key: "x", Label: "remove", Action: "remove"},
+	})
+	m.width, m.height = 80, 24
+	m.resize()
+	m.helpOn = true
+
+	v := m.View()
+	if got := lipgloss.Height(v); got > m.height {
+		t.Errorf("help frame is %d rows, terminal is %d", got, m.height)
+	}
+	for _, want := range []string{"KEYBINDINGS", "NAVIGATE", "SCROLL DETAIL", "ACTIONS", "GENERAL", "toggle this help"} {
+		if !strings.Contains(v, want) {
+			t.Errorf("help sheet lost %q:\n%s", want, v)
+		}
 	}
 }
