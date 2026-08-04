@@ -42,27 +42,29 @@ On `sync`, for each listed registry the CLI:
    [`registry login`](registries.md#private-registries-add-a-token).
 
 A **single** unreachable registry is not fatal: `sync` warns, continues, and reports
-that registry's skills as not-found. But if **every** configured registry fails to
-load, `sync` aborts and installs nothing — which is exactly what a skillset naming
-only a private registry does on a machine that has no token for it yet. Listing
-`public` alongside it (below) also keeps `sync` alive in that case.
+that registry's skills as not-found. But if **every** configured registry fails to load,
+`sync` aborts and installs nothing. Seeding makes that much harder to hit — a machine
+syncing a skillset that names only a private registry still ends up with the public one
+alongside it — but it is still reachable if every registry in play is unreadable.
 
 When a skill name exists in more than one registry, `sync` prefers the order the
 skillset lists them in, on the grounds that the file's author knows where their
 skills live.
 
-!!! warning "List `public` in your skillset if the team also uses public skills"
-    `export` only records **named** registries, on the assumption that every CLI already
-    has the public default. That assumption breaks on the receiving machine: adding a named
-    registry means the CLI uses **only** its named set, so the hosted public default stops
-    being consulted (see
+!!! note "Your teammate keeps their public catalog automatically"
+    `export` only records **named** registries, on the assumption that every CLI already has
+    the public default. That assumption stops holding the moment anything is named, because
+    naming a registry replaces the default rather than adding to it (see
     [Registries](registries.md#the-mental-model)).
 
-    Concretely — a teammate with **no** named registries who syncs a skillset carrying only
-    a private `work` registry ends up with exactly one named registry, and every public
-    skill silently disappears from their `search` and `install`.
+    `sync` bootstraps skillset registries through the same path as `registry add`, so the
+    first one it adds seeds whatever the receiving machine was already using. A teammate with
+    no named registries who syncs a skillset carrying only a private `work` registry ends up
+    with **both** `work` and `public`, and sees `also kept "public", the registry you were
+    already using` in the output.
 
-    Fix it in the skillset by listing both:
+    You can still list `public` explicitly if you want the skillset to be self-describing
+    rather than relying on that:
 
     ```json
     "registries": [

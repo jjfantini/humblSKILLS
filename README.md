@@ -148,18 +148,17 @@ humblskills search
 Register several registries and `search`/`browse` show them **together, grouped by
 registry** (each skill tagged with its source). Each registry keeps its own token.
 
-> **Naming any registry replaces the default — it is not a fallback.** As soon as one named
-> registry exists in your profile, the CLI uses **exactly** that set for every command: the
-> hosted public default is no longer consulted, and `--registry`/`HUMBLSKILLS_REGISTRY` are
-> ignored. So adding only a private registry **silently hides every public skill** — `search`
-> stops listing them and `install` reports them as not found. Add `public` explicitly (first
-> line below) if you want both, and confirm with `humblskills registry list`.
+> **Naming a registry replaces the default — but the CLI keeps the old one for you.** As soon
+> as one named registry exists in your profile, the CLI uses **exactly** that set for every
+> command: the hosted public default is no longer consulted, and `--registry`/`HUMBLSKILLS_REGISTRY`
+> are ignored. Because that replaces rather than adds, the **first** `registry add` seeds whatever
+> you were already using — `public`, or `default` pointing at your `profile set registry` URL —
+> and tells you it did. Private-only is still available: `humblskills registry remove public`.
 
 ```sh
 # Shorthand: pass owner/repo (or a github.com URL) — it expands to the raw
 # registry.json URL. owner/repo@branch selects a branch.
-humblskills registry add public    jjfantini/humblSKILLS   # keep the public one available
-humblskills registry add happyrobot happyrobot-ai/happySKILLS
+humblskills registry add happyrobot jenningsfantini-happyrobot/happySKILLS   # public is seeded automatically
 humblskills registry add                       # no args → prompts for name, URL, and (optional) token
 humblskills registry login --name happyrobot   # token for the private one; verifies it can read the registry
 humblskills registry list                      # show configured registries + token state

@@ -27,7 +27,7 @@ Tokens are stored in your **OS keychain** (macOS Keychain, Windows Credential
 Manager, Linux Secret Service), not in a config file. They never appear in
 `humblskills profile show`.
 
-!!! warning "Naming any registry replaces the default — it is not a fallback"
+!!! note "Naming a registry replaces the default — but the CLI keeps the old one for you"
     The CLI runs in one of two modes, and there is **no fallback between them**:
 
     - **No named registries** → single-registry mode, using
@@ -36,16 +36,21 @@ Manager, Linux Secret Service), not in a config file. They never appear in
       The hosted public default is no longer consulted, and `--registry` /
       `HUMBLSKILLS_REGISTRY` are **ignored**.
 
-    So `humblskills registry add work my-company/our-skills` on its own **silently hides every
-    public skill** — `search` stops listing them and `install` reports them as not found. If you
-    want both, add both:
+    Because naming a registry *replaces* rather than adds, the first
+    `humblskills registry add` would otherwise drop whatever you were already using. It doesn't:
+    the CLI seeds that registry alongside the one you named, and says so.
 
-    ```sh
-    humblskills registry add public jjfantini/humblSKILLS
-    humblskills registry add work   my-company/our-skills
+    ```console
+    $ humblskills registry add work my-company/our-skills
+    ✓ added registry work → https://raw.githubusercontent.com/my-company/our-skills/main/registry.json
+    also kept "public", the registry you were already using — naming a registry replaces the
+    default rather than adding to it
     ```
 
-    Check what you actually have with `humblskills registry list`.
+    Seeding happens only on the **first** named registry, since after that nothing is implicit
+    any more. It seeds `public` (the hosted default), or `default` pointing at your
+    `profile set registry` URL if you had set one. Want private-only? Remove the seeded entry
+    with `humblskills registry remove public`. Check what you have with `humblskills registry list`.
 
 ## Add a second registry
 
@@ -54,15 +59,14 @@ the `owner/repo` shorthand — the CLI expands that into the raw `registry.json`
 URL for you.
 
 ```sh
-humblskills registry add public     jjfantini/humblSKILLS               # add this too — see the warning above
 humblskills registry add work       my-company/our-skills
 humblskills registry add work       my-company/our-skills@develop   # pick a branch
 humblskills registry add                                            # no args → prompts you
 ```
 
-**Add `public` explicitly** the first time you name a registry. As soon as one named
-registry exists, the built-in public default stops being consulted — naming only your
-private registry is what makes public skills vanish.
+You don't need to add `public` yourself — the first `registry add` seeds whatever you were
+already using, so the public catalog stays reachable (see the note above). Adding it
+explicitly is harmless if you prefer to be exact about it.
 
 Run `humblskills registry add` with no arguments and it asks for the name, the
 URL, and (optionally) a token — handy if you'd rather not remember the flags.
