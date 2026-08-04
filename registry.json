@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-03T21:51:16Z",
+  "generated_at": "2026-08-03T21:51:54Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "main",
-    "sha": "83dbb0376a03449126e28f3b843c90519399a7cf"
+    "ref": "feat/smart-handoff-skill",
+    "sha": "5749ed7ec9572caefe37fec5cd2ab31da13aa9ea"
   },
   "skills": [
     {
@@ -593,6 +593,35 @@
       },
       "path": "skills/smart-frontend-design",
       "dir_sha": "7d63d1021afa19ebd1844f9801d4900b546e6d92352ef2484eab3ef91560074d"
+    },
+    {
+      "name": "smart-handoff",
+      "version": "1.0.0",
+      "description": "Capture a running agentic session - objective, verified vs assumed progress, next steps, artifacts, gotchas, secrets access - into one portable handoff markdown file another agent, harness, or agent team can pick up cold. Redacts credentials, suggests the skills the receiving agent should install, and references specs, plans, ADRs, issues and diffs by path instead of copying them. Use when the user says \"hand this off\", \"handoff\", \"handover\", \"write a handoff doc\", \"pass this to codex\", \"moving to cursor\", \"continue this in Claude\", \"another agent is taking over\", \"context dump for the next session\", or is about to switch harness, model, or teammate mid-task. Do NOT use for transferring ownership of a managed worktree, for coordinating agents you keep supervising yourself, or for authoring commits or PR descriptions.\n",
+      "category": "meta",
+      "tags": [
+        "handoff",
+        "context-transfer",
+        "session",
+        "agent-interop",
+        "codex",
+        "cursor",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "preserve": [
+        "references/raw/",
+        "references/wiki/",
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/smart-handoff",
+      "dir_sha": "67302ae36ddbf838d789e76b08b74d2f893b893e5b52c1600a0c385c44b49d84"
     },
     {
       "name": "smart-humanize-text",
