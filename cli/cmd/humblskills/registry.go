@@ -11,6 +11,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/profile"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/secrets"
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/textutil"
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/tui"
@@ -112,38 +113,78 @@ func newRegistryRemoveCmd(app *App) *cobra.Command {
 	}
 }
 
-// addRegistry validates and persists a named registry. Shared by the direct
-// and interactive add paths.
-func addRegistry(app *App, name, url string) (string, string, error) {
+// addRegistry validates and persists a named registry. Shared by the direct,
+// interactive, and skillset-bootstrap add paths. The third return value is the
+// name of a companion registry seeded alongside it, or "" when none was needed
+// — see seedEffectiveRegistry.
+func addRegistry(app *App, name, url string) (string, string, string, error) {
 	name = strings.TrimSpace(name)
 	// Expand shorthands (owner/repo, github.com URLs) into a raw registry.json URL.
 	url = normalizeRegistryURL(strings.TrimSpace(url))
 	if name == "" {
-		return "", "", fmt.Errorf("registry name must not be empty")
+		return "", "", "", fmt.Errorf("registry name must not be empty")
 	}
 	if !isPlausibleRegistry(url) {
-		return "", "", fmt.Errorf("invalid registry URL %q — expected an http(s):// URL, a file:// URL, or a filesystem path", url)
+		return "", "", "", fmt.Errorf("invalid registry URL %q — expected an http(s):// URL, a file:// URL, or a filesystem path", url)
 	}
 	p, err := profile.Load(app.Config.ProfilePath)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
+	seeded := seedEffectiveRegistry(p, name)
 	p.SetRegistry(name, url)
 	if err := profile.Save(app.Config.ProfilePath, p); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	return name, url, nil
+	return name, url, seeded, nil
+}
+
+// seedEffectiveRegistry keeps the registry that was already in effect reachable
+// once the profile names its first one.
+//
+// resolvedRegistries() returns ONLY the named set as soon as it is non-empty, so
+// without this a first `registry add work …` silently drops the registry the user
+// was actually using — the hosted default, or a `profile set registry` URL — and
+// every skill it carried: search stops listing them and install reports them as
+// "not found in any configured registry". Seeding it as a named entry makes the
+// two modes continuous instead of a silent cutover.
+//
+// Returns the name it seeded, or "" when nothing needed seeding.
+func seedEffectiveRegistry(p *profile.Profile, adding string) string {
+	if len(p.Registries) > 0 {
+		return "" // already multi-registry: nothing is implicit any more
+	}
+	// Persisted state only. A transient --registry/HUMBLSKILLS_REGISTRY on this
+	// very invocation is not something to write into the profile.
+	name, url := "public", registry.DefaultURL
+	if p.Registry != "" {
+		name, url = "default", p.Registry
+	}
+	if name == adding {
+		return "" // the caller is naming that same registry itself
+	}
+	p.SetRegistry(name, url)
+	return name
 }
 
 func runRegistryAdd(app *App, name, url string) error {
-	name, url, err := addRegistry(app, name, url)
+	name, url, seeded, err := addRegistry(app, name, url)
 	if err != nil {
 		return err
 	}
 	if app.Config.JSON {
-		return app.UI.JSON(map[string]string{"name": name, "url": url})
+		out := map[string]string{"name": name, "url": url}
+		if seeded != "" {
+			out["seeded"] = seeded
+		}
+		return app.UI.JSON(out)
 	}
 	app.UI.Success("added registry %q → %s", name, url)
+	if seeded != "" {
+		// Info, not Detail: this writes a profile entry the user didn't ask for,
+		// and Detail is invisible without -v.
+		app.UI.Info("also kept %q, the registry you were already using — naming a registry replaces the default rather than adding to it", seeded)
+	}
 	app.UI.Detail("store its token (if private) with: humblskills registry login --name %s", name)
 	return nil
 }
@@ -157,11 +198,16 @@ func runRegistryAddInteractive(app *App) error {
 	if err != nil {
 		return err
 	}
-	name, url, err = addRegistry(app, name, url)
+	name, url, seeded, err := addRegistry(app, name, url)
 	if err != nil {
 		return err
 	}
 	app.UI.Success("added registry %q → %s", name, url)
+	if seeded != "" {
+		// Info, not Detail: this writes a profile entry the user didn't ask for,
+		// and Detail is invisible without -v.
+		app.UI.Info("also kept %q, the registry you were already using — naming a registry replaces the default rather than adding to it", seeded)
+	}
 
 	store, err := app.Prompt.Confirm("Store an auth token for this registry now? (private registries only)", false)
 	if err != nil {

@@ -354,12 +354,15 @@ func bootstrapSkillsetRegistries(app *App, set *skillset.Set) {
 			ensureRegistryReadable(app, r.Name)
 			continue
 		}
-		name, url, err := addRegistry(app, r.Name, r.URL)
+		name, url, seeded, err := addRegistry(app, r.Name, r.URL)
 		if err != nil {
 			app.UI.Warn("skillset registry %q: %v", r.Name, err)
 			continue
 		}
 		app.UI.Success("added registry %s → %s", name, url)
+		if seeded != "" {
+			app.UI.Info("also kept %q, the registry you were already using", seeded)
+		}
 		ensureRegistryReadable(app, name)
 	}
 }
