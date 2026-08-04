@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-04T02:10:11Z",
+  "generated_at": "2026-08-04T02:11:56Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
-    "ref": "feat/smart-handoff-skill",
-    "sha": "6dc124cdc1e9d11efc2506c8ae1846924682e9ca"
+    "ref": "main",
+    "sha": "7ecf16a1f78e225f41dea1071466addccfe6321c"
   },
   "skills": [
     {
