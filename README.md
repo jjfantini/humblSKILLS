@@ -131,9 +131,11 @@ humblskills registry logout         # remove the stored token
 (`echo "$TOK" | humblskills registry login`), and falls back to a `0600` file if no
 keychain is available.
 
-**Or ad-hoc / CI**, via flags or env vars (highest precedence, in this order:
-`--token` → `HUMBLSKILLS_TOKEN` → keychain → file; and `--registry` → `HUMBLSKILLS_REGISTRY`
-→ profile → hosted default):
+**Or ad-hoc / CI**, via flags or env vars. Token precedence: `--token` → `HUMBLSKILLS_TOKEN`
+→ keychain → file. Registry precedence **in single-registry mode only** (no named registries
+configured): `--registry` → `HUMBLSKILLS_REGISTRY` → `profile set registry` → hosted default.
+Once you configure named registries, `--registry` and `HUMBLSKILLS_REGISTRY` are ignored — see
+[Multiple registries](#multiple-registries-at-once) below.
 
 ```sh
 export HUMBLSKILLS_REGISTRY=https://raw.githubusercontent.com/<owner>/<repo>/main/registry.json
@@ -146,10 +148,17 @@ humblskills search
 Register several registries and `search`/`browse` show them **together, grouped by
 registry** (each skill tagged with its source). Each registry keeps its own token.
 
+> **Naming any registry replaces the default — it is not a fallback.** As soon as one named
+> registry exists in your profile, the CLI uses **exactly** that set for every command: the
+> hosted public default is no longer consulted, and `--registry`/`HUMBLSKILLS_REGISTRY` are
+> ignored. So adding only a private registry **silently hides every public skill** — `search`
+> stops listing them and `install` reports them as not found. Add `public` explicitly (first
+> line below) if you want both, and confirm with `humblskills registry list`.
+
 ```sh
 # Shorthand: pass owner/repo (or a github.com URL) — it expands to the raw
 # registry.json URL. owner/repo@branch selects a branch.
-humblskills registry add public    jjfantini/humblSKILLS
+humblskills registry add public    jjfantini/humblSKILLS   # keep the public one available
 humblskills registry add happyrobot happyrobot-ai/happySKILLS
 humblskills registry add                       # no args → prompts for name, URL, and (optional) token
 humblskills registry login --name happyrobot   # token for the private one; verifies it can read the registry
