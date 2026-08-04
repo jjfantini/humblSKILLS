@@ -458,3 +458,199 @@ func TestModel_HelpOverlayFitsAStockTerminal(t *testing.T) {
 		}
 	}
 }
+
+// --- multi-select -------------------------------------------------------------
+
+func newMultiListDetail(items []Item) Model {
+	m := NewListDetail(Config{
+		Theme:       ui.DefaultTheme(),
+		Section:     "Test",
+		Version:     "v1",
+		Items:       items,
+		LeftTitle:   "LEFT",
+		RightTitle:  "DETAIL",
+		Actions:     []ActionSpec{{Key: "i", Label: "install", Action: "install"}},
+		EmptyMsg:    "empty",
+		MultiSelect: true,
+	})
+	m.width, m.height = 80, 24
+	m.resize()
+	return m
+}
+
+func space() tea.KeyMsg { return tea.KeyMsg{Type: tea.KeySpace, Runes: []rune{' '}} }
+
+func TestModel_SpaceTogglesSelection(t *testing.T) {
+	m := newMultiListDetail(manyItems(5))
+
+	out, _ := m.Update(space())
+	mm := out.(Model)
+	if len(mm.checked) != 1 || !mm.checked["item-00"] {
+		t.Fatalf("space should tick the cursor row, checked = %v", mm.checked)
+	}
+	if v := mm.View(); !strings.Contains(v, "✓") {
+		t.Errorf("a ticked row should render a check mark:\n%s", v)
+	}
+
+	// Space again unticks, and leaves no ghost entry behind.
+	out, _ = mm.Update(space())
+	if mm = out.(Model); len(mm.checked) != 0 {
+		t.Errorf("space should untick, checked = %v", mm.checked)
+	}
+	if v := mm.View(); strings.Contains(v, "✓") {
+		t.Errorf("no check mark should remain:\n%s", v)
+	}
+}
+
+// The action must apply to every ticked row, in list order — not to the cursor
+// row, which is where the user happened to stop.
+func TestModel_ActionAppliesToAllTicked(t *testing.T) {
+	m := newMultiListDetail(manyItems(6))
+
+	// Tick rows 0, 2 and 3, leaving the cursor on 3.
+	out, _ := m.Update(space())
+	mm := out.(Model)
+	mm.moveCursor(2)
+	out, _ = mm.Update(space())
+	mm = out.(Model)
+	mm.moveCursor(1)
+	out, _ = mm.Update(space())
+	mm = out.(Model)
+
+	out, _ = mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("i")})
+	res := out.(Model).Selected()
+	if res.Action != "install" {
+		t.Fatalf("action = %q", res.Action)
+	}
+	got := make([]string, 0, len(res.Items))
+	for _, it := range res.Items {
+		got = append(got, it.Key())
+	}
+	want := []string{"item-00", "item-02", "item-03"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Errorf("Items = %v, want %v (list order)", got, want)
+	}
+}
+
+// Nothing ticked has to behave exactly like the old single-select model, since
+// that's every existing caller's path.
+func TestModel_NothingTickedFallsBackToCursorRow(t *testing.T) {
+	m := newMultiListDetail(manyItems(4))
+	m.moveCursor(2)
+
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	res := out.(Model).Selected()
+	if len(res.Items) != 1 || res.Items[0].Key() != "item-02" {
+		t.Fatalf("expected just the cursor row, got %v", res.Items)
+	}
+	if res.Item == nil || res.Item.Key() != "item-02" {
+		t.Errorf("Item should stay the cursor row, got %v", res.Item)
+	}
+}
+
+// Single-select lists must not grow a space binding or a checkbox column.
+func TestModel_SingleSelectIgnoresSpace(t *testing.T) {
+	m := newTestListDetail(manyItems(4), []ActionSpec{{Key: "i", Label: "install", Action: "install"}})
+	m.width, m.height = 80, 24
+	m.resize()
+
+	out, _ := m.Update(space())
+	mm := out.(Model)
+	if len(mm.checked) != 0 {
+		t.Errorf("space should do nothing without MultiSelect, checked = %v", mm.checked)
+	}
+	if v := mm.View(); strings.Contains(v, "✓") || strings.Contains(v, "pick") {
+		t.Errorf("single-select view should show no checkbox or pick hint:\n%s", v)
+	}
+}
+
+// A tick must survive the list being rebuilt underneath it — the row indices
+// move when a filter narrows the list, the keys don't.
+func TestModel_SelectionSurvivesFilter(t *testing.T) {
+	m := newMultiListDetail(manyItems(30))
+	m.moveCursor(7) // item-07
+	out, _ := m.Update(space())
+	mm := out.(Model)
+
+	mm.filtOn = true
+	mm.filter.SetValue("item-2")
+	mm.applyFilter()
+	if !mm.checked["item-07"] {
+		t.Error("filtering should not untick a hidden row")
+	}
+
+	// Enter closes the filter — while it's focused, letters type into it rather
+	// than firing actions, so the action key has to come after.
+	out, _ = mm.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	mm = out.(Model)
+
+	// And the hidden tick still comes back in the result.
+	out, _ = mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("i")})
+	res := out.(Model).Selected()
+	found := false
+	for _, it := range res.Items {
+		if it.Key() == "item-07" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("ticked-but-filtered-out row missing from Items: %v", res.Items)
+	}
+}
+
+// Section headers aren't installable, so they must not be tickable.
+func TestModel_HeadersAreNotTickable(t *testing.T) {
+	m := newMultiListDetail([]Item{
+		testHeader{k: "group"},
+		testItem{name: "a", filter: "a"},
+	})
+	m.cursor = 0 // sit on the header explicitly
+
+	out, _ := m.Update(space())
+	if mm := out.(Model); len(mm.checked) != 0 {
+		t.Errorf("a header should not be tickable, checked = %v", mm.checked)
+	}
+}
+
+// Ticking must not shift the text beside it, or the list twitches as you pick.
+func TestModel_CheckboxColumnDoesNotShiftRows(t *testing.T) {
+	m := newMultiListDetail(manyItems(5))
+	before := lipgloss.Width(strings.Split(m.View(), "\n")[4])
+
+	out, _ := m.Update(space())
+	mm := out.(Model)
+	if after := lipgloss.Width(strings.Split(mm.View(), "\n")[4]); after != before {
+		t.Errorf("row width changed on tick: %d -> %d", before, after)
+	}
+}
+
+// The count is the footer's only piece of unrecoverable state (every hint is
+// also in ?), so it has to show wherever there's room for it.
+func TestModel_FooterReportsSelectionCount(t *testing.T) {
+	m := newMultiListDetail(manyItems(5))
+	m.width = 100
+	m.resize()
+
+	out, _ := m.Update(space())
+	if v := out.(Model).View(); !strings.Contains(v, "selected: ") || !strings.Contains(v, "1 item") {
+		t.Errorf("footer should report the selection count:\n%s", v)
+	}
+}
+
+// An 80-column terminal is the common case, and the hint row filled it exactly
+// before "space pick" existed — so the multi-select footer has to stay inside it
+// rather than degrading to an ellipsis.
+func TestModel_MultiSelectFooterFitsEightyColumns(t *testing.T) {
+	m := newMultiListDetail(manyItems(5))
+	out, _ := m.Update(space())
+	mm := out.(Model)
+
+	for _, line := range strings.Split(mm.View(), "\n") {
+		if lipgloss.Width(line) > mm.width {
+			t.Fatalf("line exceeds %d columns (%d): %q", mm.width, lipgloss.Width(line), line)
+		}
+	}
+	if v := mm.View(); strings.Contains(v, "…") {
+		t.Errorf("footer should fit rather than truncate at 80 columns:\n%s", v)
+	}
+}

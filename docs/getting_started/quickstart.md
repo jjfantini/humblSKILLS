@@ -42,11 +42,19 @@ Or read the full [skill catalog](../skills.md).
 
 ```sh
 humblskills install smart-commit
+humblskills install smart-commit smart-skill     # several at once
 humblskills install                              # no name → pick from a list
 humblskills install smart-commit --yes           # skip the confirmation
 humblskills install smart-commit --platform claude-code
 humblskills install smart-commit --scope project # this repo only
 ```
+
+Installing several at once is not a loop over single installs: the whole batch
+shares one dependency resolution (so a dep two skills both need is fetched once),
+one platform/scope prompt, and one progress screen. In the picker, **space** ticks
+a row — the footer counts what you've picked — and **enter** (or `i`) installs
+everything ticked. Naming a skill that isn't in any registry fails the batch
+before anything is written, so you never end up half-installed.
 
 By default a skill installs once into `~/.humblskills/skills/<skill>` and is
 linked into every agent platform found on your machine. See

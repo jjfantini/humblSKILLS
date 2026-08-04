@@ -62,14 +62,16 @@ func runUninstallPicker(app *App, fromDashboard bool) error {
 	}
 	items := buildSkillItems(skills, m, app.resolvedGroupByCategory())
 
-	skill, action, err := runSkillBrowser(app, "Uninstall", items, modeInstalledOnly, "no skills installed", fromDashboard)
+	// modeInstalledOnly is single-select on purpose — see runSkillBrowser — so
+	// this yields at most one name.
+	picked, action, err := runSkillBrowser(app, "Uninstall", items, modeInstalledOnly, "no skills installed", fromDashboard)
 	if err != nil {
 		return err
 	}
-	if action != "uninstall" || skill == "" {
+	if action != "uninstall" || len(picked) == 0 {
 		return nil
 	}
-	return runUninstall(app, skill)
+	return runUninstall(app, picked[0])
 }
 
 // runUninstall performs the confirm → engine → print flow for a named skill.

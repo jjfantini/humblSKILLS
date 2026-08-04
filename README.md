@@ -84,6 +84,8 @@ Use explicit subcommands below for scripts, CI, or non-TTY environments.
 humblskills doctor                    # verify the environment
 humblskills search                    # browse the registry (--category=, --role=)
 humblskills install smart-skill
+humblskills install smart-skill smart-commit   # several at once, one shared dep resolution
+humblskills install                   # picker: space picks several, enter installs them all
 humblskills list
 humblskills update                    # pick which drifted skills to upgrade
 humblskills update --all --yes        # non-interactive bulk upgrade

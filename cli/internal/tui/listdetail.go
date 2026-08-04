@@ -133,6 +133,13 @@ type Config struct {
 	BackLabel string
 	// BackKey overrides the quit-hint key. Default is "q".
 	BackKey string
+	// MultiSelect lets space tick several rows so one action applies to all of
+	// them, surfaced as Result.Items. Off by default, and off is exactly the
+	// old behaviour: no checkbox column, no space binding, Result.Items holding
+	// just the cursor row. Leave it off for destructive actions — ticking five
+	// rows and hitting a key is a much cheaper mistake to make than five
+	// separate confirmations.
+	MultiSelect bool
 }
 
 // Result is what the caller inspects after the model returns.
@@ -140,6 +147,11 @@ type Result struct {
 	Action string // "" if user quit
 	Item   Item   // nil if Items was empty or user quit
 	Quit   bool
+	// Items is what the action applies to, in list order: every ticked row
+	// under MultiSelect, or just Item when nothing is ticked. Always the
+	// authoritative selection — callers should read this rather than Item, which
+	// stays the cursor row for callers that only ever handle one.
+	Items []Item
 }
 
 // Model is the shared two-pane bubbletea model.
@@ -168,7 +180,16 @@ type Model struct {
 	// single owner and can't drift from the highlighted row.
 	listOff  int
 	listRows int
+	// checked holds the ticked rows by Item.Key(), so a tick survives the list
+	// being rebuilt by a filter keystroke or a section collapse — the indices
+	// move, the keys don't. Only populated when cfg.MultiSelect is on.
+	checked map[string]bool
 }
+
+// checkboxWidth is the cell cost of the multi-select checkbox column ("✓ ").
+// Reserved on every row, ticked or not, so ticking one can't shift the text
+// beside it.
+const checkboxWidth = 2
 
 // wheelStep is how many list rows one mouse-wheel notch travels.
 const wheelStep = 3
@@ -199,6 +220,7 @@ func NewListDetail(cfg Config) Model {
 
 	m := Model{
 		cfg:       cfg,
+		checked:   map[string]bool{},
 		preview:   vp,
 		filter:    filt,
 		keys:      DefaultKeys(),
@@ -264,6 +286,53 @@ func (m *Model) moveCursor(n int) {
 	}
 	m.scrollCursorIntoView()
 	m.refreshPreview()
+}
+
+// toggleChecked ticks or unticks the row under the cursor. Section headers and
+// dividers are never tickable: they aren't installable things, and Result.Items
+// promises only real items.
+func (m *Model) toggleChecked() {
+	if len(m.items) == 0 || m.cursor >= len(m.items) {
+		return
+	}
+	it := m.items[m.cursor]
+	if isHeader(it) || isCollapsible(it) {
+		return
+	}
+	if m.checked == nil {
+		m.checked = map[string]bool{}
+	}
+	k := it.Key()
+	if m.checked[k] {
+		// Delete rather than store false so len(m.checked) is the tick count and
+		// callers can't see a "checked: false" ghost.
+		delete(m.checked, k)
+		return
+	}
+	m.checked[k] = true
+}
+
+// checkedItems returns the ticked rows in list order. Order comes from
+// cfg.Items, not from the order they were ticked, so the resulting install plan
+// is deterministic and matches what the user sees top to bottom.
+//
+// It reads cfg.Items rather than the visible items so a tick made before
+// filtering or collapsing still counts — hiding a row is not unticking it.
+func (m Model) checkedItems() []Item {
+	if len(m.checked) == 0 {
+		return nil
+	}
+	out := make([]Item, 0, len(m.checked))
+	seen := make(map[string]bool, len(m.checked))
+	for _, it := range m.cfg.Items {
+		k := it.Key()
+		if !m.checked[k] || seen[k] {
+			continue
+		}
+		seen[k] = true
+		out = append(out, it)
+	}
+	return out
 }
 
 // scrollCursorIntoView slides listOff the minimum distance needed to keep the
@@ -412,6 +481,9 @@ func (m Model) updateNav(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Help):
 		m.helpOn = true
 		return m, nil
+	case m.cfg.MultiSelect && msg.String() == " ":
+		m.toggleChecked()
+		return m, nil
 	}
 
 	// Detail-pane scroll. List navigation owns up/down, so scrolling uses a
@@ -488,7 +560,15 @@ func (m Model) exitWith(action string) (tea.Model, tea.Cmd) {
 	if isHeader(it) || isCollapsible(it) {
 		it = nil
 	}
-	m.result = Result{Action: action, Item: it}
+	// Ticked rows win over the cursor row, so "tick three, press i" installs the
+	// three and not whatever the cursor drifted onto. With nothing ticked Items
+	// is just the cursor row, which is what makes MultiSelect: false and "on but
+	// unused" behave identically.
+	items := m.checkedItems()
+	if len(items) == 0 && it != nil {
+		items = []Item{it}
+	}
+	m.result = Result{Action: action, Item: it, Items: items}
 	m.done = true
 	return m, tea.Quit
 }
@@ -570,6 +650,13 @@ func (m Model) measureLeftWidth() int {
 		// before `│` and the divider column gets a sliver of breathing room.
 		gutter = 3
 	)
+	// The checkbox column eats into the same budget as the rows, so it has to be
+	// added here too — otherwise turning MultiSelect on silently truncates every
+	// row by two cells instead of widening the pane to fit the boxes.
+	box := 0
+	if m.cfg.MultiSelect {
+		box = checkboxWidth
+	}
 	widest := minW
 	if w := lipgloss.Width(th.SectionTitle.Render(spacedUpper(m.cfg.LeftTitle))) + gutter; w > widest {
 		widest = w
@@ -581,12 +668,12 @@ func (m Model) measureLeftWidth() int {
 		} else {
 			natural = fallback
 		}
-		if w := natural + gutter; w > widest {
+		if w := natural + gutter + box; w > widest {
 			widest = w
 		}
 	}
-	if widest > maxW {
-		widest = maxW
+	if widest > maxW+box {
+		widest = maxW + box
 	}
 	return widest
 }
@@ -686,9 +773,17 @@ func (m Model) View() string {
 	default:
 		body = m.renderBody(leftW, rightW)
 		focused := ""
-		if m.cfg.FocusedLabel != nil {
+		switch {
+		// A tick count outranks the focused-item label: once rows are ticked,
+		// what the action will apply to is the selection, not the cursor, and the
+		// footer should say so.
+		case len(m.checked) > 0:
+			n := len(m.checked)
+			focused = th.Meta.Render("selected: ") +
+				th.Brand.Render(fmt.Sprintf("%d item%s", n, textutil.Plural(n)))
+		case m.cfg.FocusedLabel != nil:
 			focused = m.cfg.FocusedLabel(m.items, m.cursor)
-		} else if len(m.items) > 0 {
+		case len(m.items) > 0:
 			// "focused:" stays muted; the value (item key) renders in the
 			// magenta brand colour to match the design.
 			focused = th.Meta.Render("focused: ") + th.Brand.Render(m.items[m.cursor].Key())
@@ -748,6 +843,16 @@ func (m Model) renderLeft(width int) string {
 		return pad(title) + "\n\n" + pad(empty)
 	}
 
+	// The checkbox lives in the model, not in Item.Row: one implementation gives
+	// every Item type the affordance with a single consistently-aligned column,
+	// where a Row-level checkbox would need each of the ~10 Item types to agree
+	// on the same glyph and spacing.
+	box := 0
+	if m.cfg.MultiSelect {
+		box = checkboxWidth
+	}
+	bodyW := width - 2 - box
+
 	var sb strings.Builder
 	sb.WriteString(pad(title))
 	sb.WriteString("\n\n")
@@ -756,11 +861,11 @@ func (m Model) renderLeft(width int) string {
 		selected := i == m.cursor
 		var row string
 		if c, ok := it.(CollapsibleItem); ok && c.IsCollapsible() {
-			row = c.RowCollapsed(th, width-2, selected, m.collapsed[c.CollapseKey()])
+			row = c.RowCollapsed(th, bodyW, selected, m.collapsed[c.CollapseKey()])
 		} else {
-			row = it.Row(th, width-2, selected)
+			row = it.Row(th, bodyW, selected)
 		}
-		// Fit the row body (minus the leading bar/gutter) to exactly width-2.
+		// Fit the row body (minus the leading bar/gutter) to exactly bodyW.
 		// Truncating matters as much as padding: Item.Row is free to return a
 		// row wider than the pane (skillItem does, for a long name plus its
 		// version), and lipgloss.JoinHorizontal sizes the left block to its
@@ -768,16 +873,16 @@ func (m Model) renderLeft(width int) string {
 		// whole detail pane — right by however far it overhung, so with the
 		// scroll window in play the divider jittered as rows entered and left
 		// the view. Clamping here fixes it for every Item type at once.
-		row = fitToWidth(row, width-2)
+		row = fitToWidth(row, bodyW)
 		var line string
 		if selected {
 			// Transparent highlight: just a magenta ▌ bar + magenta-bold
 			// name (styled by the Item itself). No background fill so the
 			// row stays legible on both dark and light terminal themes.
 			bar := th.Bullet.Render("▌")
-			line = bar + " " + row
+			line = bar + " " + m.checkbox(th, it) + row
 		} else {
-			line = "  " + row
+			line = "  " + m.checkbox(th, it) + row
 		}
 		sb.WriteString(line)
 		if i < end-1 {
@@ -785,6 +890,22 @@ func (m Model) renderLeft(width int) string {
 		}
 	}
 	return sb.String()
+}
+
+// checkbox renders the multi-select column for one row: a magenta ✓ when
+// ticked, blanks otherwise. Returns "" when multi-select is off so single-select
+// lists keep their exact previous layout.
+//
+// Untickable rows (section headers) still get the blank column rather than
+// skipping it, so a header's text stays aligned with the item text beneath it.
+func (m Model) checkbox(th *ui.Theme, it Item) string {
+	if !m.cfg.MultiSelect {
+		return ""
+	}
+	if m.checked[it.Key()] && !isHeader(it) && !isCollapsible(it) {
+		return th.Bullet.Render("✓") + " "
+	}
+	return strings.Repeat(" ", checkboxWidth)
 }
 
 // listScrollIndicator is the left pane's counterpart to scrollIndicator: hollow
@@ -891,11 +1012,22 @@ func (m Model) hints() []KeyHint {
 	if m.cfg.Items != nil {
 		hints = append(hints, KeyHint{Keys: "/", Label: "filter"})
 	}
-	hints = append(hints, KeyHint{Keys: "⇞⇟", Label: "scroll"})
+	// The hint row already fills an 80-column footer exactly, so adding "space
+	// pick" has to buy its space from somewhere or the whole row gets truncated
+	// with an ellipsis. Detail-pane paging is the cheapest thing to drop: it's
+	// the one hint whose keys most users never reach for, and ? still lists it.
+	if !m.cfg.MultiSelect {
+		hints = append(hints, KeyHint{Keys: "⇞⇟", Label: "scroll"})
+	}
 
 	onSection := len(m.items) > 0 && m.cursor < len(m.items) && isCollapsible(m.items[m.cursor])
 	if onSection {
 		hints = append(hints, KeyHint{Keys: "enter", Label: "toggle"})
+	}
+	// Space is only advertised on rows it actually does something to, so a
+	// section header doesn't offer a tick that gets ignored.
+	if m.cfg.MultiSelect && !onSection {
+		hints = append(hints, KeyHint{Keys: "space", Label: "pick"})
 	}
 
 	// Deduplicate enter when it's absorbed by the first action.
@@ -950,6 +1082,9 @@ func (m Model) renderHelp() string {
 	}}
 	if m.cfg.Items != nil {
 		nav.rows = append(nav.rows, helpRow{"/", "filter list"})
+	}
+	if m.cfg.MultiSelect {
+		nav.rows = append(nav.rows, helpRow{"space", "pick / unpick this row (action applies to all picked)"})
 	}
 
 	scroll := helpGroup{title: "SCROLL DETAIL", rows: []helpRow{
