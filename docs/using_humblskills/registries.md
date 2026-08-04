@@ -21,11 +21,31 @@ Read this page when you want to:
 | **Registry** | A `registry.json` URL (or local file) listing available skills |
 | **Named registry** | A registry you've given a short name, e.g. `public`, `work` |
 | **Token** | A GitHub personal access token, needed only for **private** registries |
-| **Default registry** | The public humblSKILLS one, used when you've configured nothing |
+| **Default registry** | The public humblSKILLS one, used when you've configured **no named registries** |
 
 Tokens are stored in your **OS keychain** (macOS Keychain, Windows Credential
 Manager, Linux Secret Service), not in a config file. They never appear in
 `humblskills profile show`.
+
+!!! warning "Naming any registry replaces the default — it is not a fallback"
+    The CLI runs in one of two modes, and there is **no fallback between them**:
+
+    - **No named registries** → single-registry mode, using
+      `--registry` → `HUMBLSKILLS_REGISTRY` → `profile set registry` → the hosted public default.
+    - **One or more named registries** → the CLI uses **exactly that set** and nothing else.
+      The hosted public default is no longer consulted, and `--registry` /
+      `HUMBLSKILLS_REGISTRY` are **ignored**.
+
+    So `humblskills registry add work my-company/our-skills` on its own **silently hides every
+    public skill** — `search` stops listing them and `install` reports them as not found. If you
+    want both, add both:
+
+    ```sh
+    humblskills registry add public jjfantini/humblSKILLS
+    humblskills registry add work   my-company/our-skills
+    ```
+
+    Check what you actually have with `humblskills registry list`.
 
 ## Add a second registry
 
@@ -34,11 +54,15 @@ the `owner/repo` shorthand — the CLI expands that into the raw `registry.json`
 URL for you.
 
 ```sh
-humblskills registry add public     jjfantini/humblSKILLS
+humblskills registry add public     jjfantini/humblSKILLS               # add this too — see the warning above
 humblskills registry add work       my-company/our-skills
 humblskills registry add work       my-company/our-skills@develop   # pick a branch
 humblskills registry add                                            # no args → prompts you
 ```
+
+**Add `public` explicitly** the first time you name a registry. As soon as one named
+registry exists, the built-in public default stops being consulted — naming only your
+private registry is what makes public skills vanish.
 
 Run `humblskills registry add` with no arguments and it asks for the name, the
 URL, and (optionally) a token — handy if you'd rather not remember the flags.
@@ -127,8 +151,8 @@ Once configured, registry provenance flows through the rest of the CLI:
 
 ## Single-registry setup (no names)
 
-If you only ever use one registry, you can skip named registries entirely and
-just point the CLI at it:
+If you only ever use one registry — and don't want the public one — you can skip
+named registries entirely and just point the CLI at it:
 
 ```sh
 humblskills profile set registry https://raw.githubusercontent.com/<owner>/<repo>/main/registry.json
@@ -144,9 +168,21 @@ export HUMBLSKILLS_TOKEN=<github token with read access>
 humblskills search
 ```
 
-Registry resolution order, highest precedence first: `--registry` →
-`HUMBLSKILLS_REGISTRY` → named registries / `profile set registry` → the hosted
-public default.
+!!! note "How a registry is resolved"
+    Mode is decided first, by whether **any named registry** exists in your profile:
+
+    | Your profile | What the CLI uses |
+    |---|---|
+    | No named registries | One registry: `--registry` → `HUMBLSKILLS_REGISTRY` → `profile set registry` → hosted public default |
+    | One or more named registries | **Exactly** those, for every command. `--registry` and `HUMBLSKILLS_REGISTRY` are ignored; the hosted default is not added |
+
+    This means `--registry` is **not** a global override — it only takes effect in
+    single-registry mode. To temporarily query somewhere else while you have named
+    registries configured, use `--from <name>` to pick among them, or
+    `humblskills registry remove` / a separate `--profile <path>` for a throwaway config.
+
+Token lookup is independent of that, highest precedence first: `--token` →
+`HUMBLSKILLS_TOKEN` → OS keychain → `0600` fallback file.
 
 ## Tab completion
 
