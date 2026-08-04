@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.45.2](https://github.com/jjfantini/humblSKILLS/compare/v2.45.1...v2.45.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* **tui:** scroll long lists instead of pushing the header off screen ([216eb96](https://github.com/jjfantini/humblSKILLS/commit/216eb968a8f621260f9326d506f99e834143a122))
+* **tui:** scroll long lists instead of pushing the header off screen ([107ccff](https://github.com/jjfantini/humblSKILLS/commit/107ccffffe14032cf0e054432327f5187cd24ab6))
+* **tui:** scroll long lists instead of pushing the header off screen ([098f562](https://github.com/jjfantini/humblSKILLS/commit/098f5629087d3fcbffedb7f93220e05670e08f8a))
+
 ## [2.45.1](https://github.com/jjfantini/humblSKILLS/compare/v2.45.0...v2.45.1) (2026-08-04)
 
 
