@@ -162,17 +162,26 @@ func TestPadBetween_NoRoom(t *testing.T) {
 	}
 }
 
-func TestPadToHeight_AddsLines(t *testing.T) {
-	got := padToHeight("line1\nline2", 5)
+func TestFitToHeight_AddsLines(t *testing.T) {
+	got := fitToHeight("line1\nline2", 5)
 	if strings.Count(got, "\n") < 4 {
 		t.Errorf("expected 5 rows, got: %q", got)
 	}
 }
 
-func TestPadToHeight_NoOpWhenTallEnough(t *testing.T) {
-	got := padToHeight("a\nb\nc", 2)
+func TestFitToHeight_ExactHeightIsUnchanged(t *testing.T) {
+	got := fitToHeight("a\nb\nc", 3)
 	if got != "a\nb\nc" {
 		t.Errorf("got %q", got)
+	}
+}
+
+// A body taller than its budget must lose the overflow: in an alt-screen an
+// over-tall frame scrolls the header off the top for good.
+func TestFitToHeight_TruncatesOverflow(t *testing.T) {
+	got := fitToHeight("a\nb\nc\nd", 2)
+	if got != "a\nb" {
+		t.Errorf("got %q, want %q", got, "a\nb")
 	}
 }
 
