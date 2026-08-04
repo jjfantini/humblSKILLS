@@ -26,12 +26,29 @@ asking twice.
 |--------|-------------|-------|--------|-----------------|
 | Instruction file | `CLAUDE.md` | `AGENTS.md` | `.cursor/rules`, `.cursorrules` | "the repo's agent instruction file" |
 | Skill invocation | `/smart-commit` or "use the smart-commit skill" | prose: "follow the smart-commit skill at `<path>`" | prose + `@`-file references | prose only |
-| Skill install path | `~/.claude/skills/` | `~/.codex/skills/` (varies) | `~/.cursor/skills/` | `humblskills install <name>` and let the CLI resolve it |
+| Skill install path | `~/.claude/skills/` | `~/.agents/skills/` (**not** `~/.codex/`) | `~/.cursor/skills/` | `humblskills install <name>` and let the CLI resolve it |
 | Sub-agents / tasks | available | plain execution | plain execution | do not assume |
 | Tool naming | Read / Edit / Bash | shell-first | editor-first | describe the action, not the tool |
 
 Name the instruction file the target actually reads, and check it exists —
 `preflight.sh` prints an `instruction-files` block.
+
+The SKILL.md format itself is identical across all three (the humblskills
+adapters are `transform: passthrough`), so a suggested skill is portable. Only
+the *path* and the *way you reference it* change.
+
+## Claude Desktop and claude.ai Are the Exception
+
+They cannot read skills off the filesystem — skills arrive as an account-level
+zip upload. An `humblskills install` line is useless to them. When the target
+is Claude Desktop or claude.ai, write the install column as:
+
+```markdown
+| `smart-commit` | step 3 | `humblskills export desktop smart-commit`, then upload the zip in Settings → Capabilities → Skills |
+```
+
+Also drop every filesystem path from Next Steps — that agent has no shell and
+no repo.
 
 ## Write Actions, Not Tool Calls
 
@@ -51,7 +68,7 @@ which tool does it.
 1. Add the retry guard at `src/auth.ts:88` — wrap `fetchToken()` so a 429
    retries once after honouring `Retry-After`.
 2. Commit it following the smart-commit skill
-   (`~/.codex/skills/smart-commit/SKILL.md`, install:
+   (`~/.agents/skills/smart-commit/SKILL.md`, install:
    `humblskills install smart-commit`) — one atomic conventional commit.
 ```
 
