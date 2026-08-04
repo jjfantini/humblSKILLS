@@ -35,6 +35,11 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: go test -count=1 ./...
         working-directory: cli
+      # The one piece of non-Go logic that can silently ship a wrong release.
+      - name: release guard self-test
+        if: matrix.os == 'ubuntu-latest'
+        run: bash scripts/guard-major-bump.sh --self-test
+
       - name: upload coverage
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4

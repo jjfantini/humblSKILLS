@@ -40,15 +40,31 @@ jobs:
     # and gh errors out with "GH_TOKEN ... not set".
     environment: release
     steps:
+      # A major bump is never auto-merged. See scripts/guard-major-bump.sh for
+      # why. This step failing is the intended outcome, not a broken pipeline:
+      # the PR stays open for a human to merge.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/guard-major-bump.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Block auto-merge on a major bump
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          bash scripts/guard-major-bump.sh \
+            "${{ github.repository }}" "${{ github.event.pull_request.head.sha }}"
+
       # Use the release-please PAT, not GITHUB_TOKEN. When auto-merge fires
       # with GITHUB_TOKEN, the resulting merge commit is authored by
       # github-actions[bot] and GitHub suppresses downstream workflow
       # triggers — so the `release` workflow never runs, no v tag, no
       # GoReleaser artifacts. A PAT-authored merge cascades normally.
       #
-      # `gh pr merge` shells out to `git` to auto-discover the repo, which
-      # fails ("not a git repository") without actions/checkout. Passing -R
-      # skips the git lookup entirely.
+      # -R names the repo explicitly instead of letting `gh pr merge` shell out
+      # to `git` to discover it. The guard step above now checks out the repo
+      # (sparsely), so the lookup would succeed either way — but -R keeps this
+      # step working if that checkout is ever dropped.
       - name: Enable auto-merge (merge commit)
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
