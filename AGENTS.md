@@ -64,3 +64,14 @@ Every commit message, on every branch that will reach `main` (not just the PR ti
   that caused the missed release).
 - If a PR/branch has no `feat`/`fix`/`perf` commit but ships a user-visible change, add one (or make the
   final merge commit one) — don't rely on non-conventional prose to describe user-facing work.
+
+**Never write the literal string `[skip ci]` (or `[ci skip]`, `[no ci]`, `[skip actions]`) in a commit
+message body, even when describing it.** GitHub scans every commit message in a push, not just the subject
+line, and skips *all* workflow runs for that push. A commit body explaining the marker suppressed CI for an
+entire branch here — no failing check, no queued run, nothing to notice. Write it unbracketed (`skip-ci`)
+when you need to refer to it in prose.
+
+### A conflicted PR gets no CI at all
+GitHub cannot build the merge ref for a PR with conflicts, so it dispatches **no** `pull_request` workflows.
+The PR shows no checks rather than failing ones, and with nothing gating `main` it stays merge-able by hand.
+If CI "didn't trigger", check `gh pr view <n> --json mergeable` before suspecting Actions.
