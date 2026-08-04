@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.46.0](https://github.com/jjfantini/humblSKILLS/compare/v2.45.2...v2.46.0) (2026-08-04)
+
+
+### Features
+
+* **install:** install several skills in one go ([8c22ca8](https://github.com/jjfantini/humblSKILLS/commit/8c22ca830dc576d9aface1c1bf41a5c99b566f0a))
+* **install:** install several skills in one go ([7d3f3e9](https://github.com/jjfantini/humblSKILLS/commit/7d3f3e90db92c97406eb950b6684701085fe068f))
+* **install:** install several skills in one go ([639b04e](https://github.com/jjfantini/humblSKILLS/commit/639b04e76402e6b84f1ca1a543d6890d6eadb7d2))
+
 ## [2.45.2](https://github.com/jjfantini/humblSKILLS/compare/v2.45.1...v2.45.2) (2026-08-04)
 
 
