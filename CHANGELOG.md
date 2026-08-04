@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.45.1](https://github.com/jjfantini/humblSKILLS/compare/v2.45.0...v2.45.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **registry:** keep the current registry reachable when naming the first one ([b671688](https://github.com/jjfantini/humblSKILLS/commit/b671688f792bd33633e2c50866389ff7760e0f6d))
+* **registry:** keep the current registry reachable when naming the first one ([c1b65c5](https://github.com/jjfantini/humblSKILLS/commit/c1b65c5308cd44b453e9da621df1954452c59ae5))
+
 ## [2.45.0](https://github.com/jjfantini/humblSKILLS/compare/v2.44.1...v2.45.0) (2026-08-04)
 
 
