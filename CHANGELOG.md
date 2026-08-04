@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.44.0](https://github.com/jjfantini/humblSKILLS/compare/v2.43.0...v2.44.0) (2026-08-04)
+
+
+### Features
+
+* **skills:** add smart-handoff for cross-harness session handoff ([7ecf16a](https://github.com/jjfantini/humblSKILLS/commit/7ecf16a1f78e225f41dea1071466addccfe6321c))
+* **skills:** add smart-handoff for cross-harness session handoff ([6dc124c](https://github.com/jjfantini/humblSKILLS/commit/6dc124cdc1e9d11efc2506c8ae1846924682e9ca))
+
 ## [2.43.0](https://github.com/jjfantini/humblSKILLS/compare/v2.42.0...v2.43.0) (2026-08-03)
 
 
