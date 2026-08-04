@@ -124,7 +124,8 @@ func matches(s registry.Skill, q string) bool {
 }
 
 // runSearchTUI opens the shared skill browser over hits and, if the user picks
-// one, hands the skill to runInstall so one TUI flows into the next.
+// any, hands them to runInstall so one TUI flows into the next. Search is
+// multi-select, so this can carry a whole batch through.
 func runSearchTUI(app *App, hits []registry.Skill, fromDashboard bool) error {
 	m, err := manifest.Load(app.Config.ManifestPath)
 	if err != nil {
@@ -132,14 +133,14 @@ func runSearchTUI(app *App, hits []registry.Skill, fromDashboard bool) error {
 	}
 	items := buildSkillItems(hits, m, app.resolvedGroupByCategory())
 
-	skill, action, err := runSkillBrowser(app, "Search", items, modeSearch, "no skills match", fromDashboard)
+	picked, action, err := runSkillBrowser(app, "Search", items, modeSearch, "no skills match", fromDashboard)
 	if err != nil {
 		return err
 	}
-	if action != "install" || skill == "" {
+	if action != "install" || len(picked) == 0 {
 		return nil
 	}
-	return runInstall(app, skill, installFlags{}, fromDashboard)
+	return runInstall(app, picked, installFlags{}, fromDashboard)
 }
 
 // renderSearchResults returns a multi-line, themed string listing every hit.

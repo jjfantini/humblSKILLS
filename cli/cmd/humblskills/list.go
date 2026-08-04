@@ -229,15 +229,19 @@ func runListTUI(app *App, m *manifest.Manifest, fromDashboard bool) error {
 
 	items := buildSkillItems(skills, m, app.resolvedGroupByCategory())
 
-	skill, action, err := runSkillBrowser(app, "Installed", items, modeInstalledOnly, "no skills installed", fromDashboard)
+	// modeInstalledOnly is single-select, so this always yields at most one name.
+	picked, action, err := runSkillBrowser(app, "Installed", items, modeInstalledOnly, "no skills installed", fromDashboard)
 	if err != nil {
 		return err
 	}
+	if len(picked) == 0 {
+		return nil
+	}
 	switch action {
 	case "update":
-		return runUpdate(app, []string{skill}, updateFlags{})
+		return runUpdate(app, picked, updateFlags{})
 	case "uninstall":
-		return runUninstall(app, skill)
+		return runUninstall(app, picked[0])
 	}
 	return nil
 }

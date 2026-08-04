@@ -517,15 +517,18 @@ func distinctRegistries(skills []skillItem) int {
 }
 
 // runSkillBrowser opens the shared two-pane picker over skills and routes the
-// user's choice through the right subcommand. Returns (skill, action) where
+// user's choice through the right subcommand. Returns (skills, action) where
 // action is one of "install", "update", "uninstall", or "" (user quit).
+//
+// The returned slice is every skill the action applies to: one name normally,
+// several when the mode enables multi-select and the user ticked rows with space.
 //
 // Pressing `p` opens the profile editor inline and re-enters the picker so
 // every surface that uses this browser gets the same footer shortcut.
-func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBrowseMode, emptyMsg string, fromDashboard bool) (string, string, error) {
+func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBrowseMode, emptyMsg string, fromDashboard bool) ([]string, string, error) {
 	if len(skills) == 0 {
 		app.UI.Info(emptyMsg)
-		return "", "", nil
+		return nil, "", nil
 	}
 
 	var actions []tui.ActionSpec
@@ -600,6 +603,11 @@ func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBr
 			RightTitle: "DETAIL",
 			Actions:    actions,
 			EmptyMsg:   emptyMsg,
+			// Ticking several rows only makes sense where the action is additive.
+			// modeInstalledOnly's verbs are update and uninstall, and a mis-aimed
+			// batch uninstall deletes work — that one stays deliberately one at a
+			// time.
+			MultiSelect: mode == modeSearch,
 		}
 		if fromDashboard {
 			cfg.BackKey = "esc"
@@ -607,22 +615,29 @@ func runSkillBrowser(app *App, section string, skills []skillItem, mode skillsBr
 		}
 		res, err := tui.RunListDetail(cfg)
 		if err != nil {
-			return "", "", err
+			return nil, "", err
 		}
-		if res.Quit || res.Item == nil {
-			return "", "", nil
+		if res.Quit || len(res.Items) == 0 {
+			return nil, "", nil
 		}
 		if res.Action == "profile" {
 			if err := runProfileEditor(app); err != nil {
-				return "", "", err
+				return nil, "", err
 			}
 			continue
 		}
-		it, ok := res.Item.(skillItem)
-		if !ok {
-			return "", "", nil
+		// Section headers can't be ticked and aren't returned, but a caller could
+		// still hand us a non-skill Item, so filter rather than assert.
+		names := make([]string, 0, len(res.Items))
+		for _, item := range res.Items {
+			if it, ok := item.(skillItem); ok {
+				names = append(names, it.s.Name)
+			}
 		}
-		return it.s.Name, res.Action, nil
+		if len(names) == 0 {
+			return nil, "", nil
+		}
+		return names, res.Action, nil
 	}
 }
 

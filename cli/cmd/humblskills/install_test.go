@@ -9,6 +9,7 @@ import (
 
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/profile"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
 )
 
@@ -744,5 +745,132 @@ func TestSelectPlatforms_RequestedSubset(t *testing.T) {
 		if inst.Platform == "claude-code" {
 			t.Errorf("claude-code installed despite --platform cursor: %+v", inst)
 		}
+	}
+}
+
+// --- batch install (multiple skills) -----------------------------------------
+
+func TestDedupeNames(t *testing.T) {
+	cases := []struct {
+		name string
+		in   []string
+		want string
+	}{
+		{"preserves order", []string{"c", "a", "b"}, "c,a,b"},
+		{"drops repeats keeping the first", []string{"a", "b", "a"}, "a,b"},
+		{"drops blanks", []string{"", "a", ""}, "a"},
+		{"empty stays empty", nil, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := strings.Join(dedupeNames(tc.in), ","); got != tc.want {
+				t.Errorf("dedupeNames(%v) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestBatchLabel(t *testing.T) {
+	if got := batchLabel([]string{"solo"}); got != "solo" {
+		t.Errorf("single skill should name itself, got %q", got)
+	}
+	if got := batchLabel([]string{"a", "b", "c"}); got != "3 skills" {
+		t.Errorf("batch should be counted, got %q", got)
+	}
+}
+
+// loadedFixture builds two registries with an overlapping skill name so the
+// grouping tests can exercise both the unambiguous and ambiguous paths.
+func loadedFixture() []registrySkills {
+	pub := registry.Registry{Skills: []registry.Skill{
+		{Name: "alpha", Version: "1.0.0", Registry: "public"},
+		{Name: "shared", Version: "1.0.0", Registry: "public"},
+	}}
+	priv := registry.Registry{Skills: []registry.Skill{
+		{Name: "beta", Version: "1.0.0", Registry: "work"},
+		{Name: "shared", Version: "2.0.0", Registry: "work"},
+	}}
+	return []registrySkills{
+		{Name: "public", URL: "https://pub", Reg: &pub, Skills: pub.Skills},
+		{Name: "work", URL: "https://work", Reg: &priv, Skills: priv.Skills},
+	}
+}
+
+// A batch spanning registries must split into one group per registry, since each
+// carries its own token and document — but keep first-appearance order so the
+// run is reproducible.
+func TestGroupSkillsByRegistry_SplitsAndPreservesOrder(t *testing.T) {
+	groups, err := groupSkillsByRegistry(nil, loadedFixture(), []string{"beta", "alpha"}, "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(groups) != 2 {
+		t.Fatalf("expected 2 groups, got %d", len(groups))
+	}
+	if groups[0].target.Name != "work" || groups[1].target.Name != "public" {
+		t.Errorf("groups should follow first-appearance order, got %q then %q",
+			groups[0].target.Name, groups[1].target.Name)
+	}
+}
+
+func TestGroupSkillsByRegistry_SameRegistrySharesOneGroup(t *testing.T) {
+	groups, err := groupSkillsByRegistry(nil, loadedFixture(), []string{"alpha", "shared"}, "public", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(groups) != 1 {
+		t.Fatalf("expected 1 group, got %d", len(groups))
+	}
+	if got := strings.Join(groups[0].skills, ","); got != "alpha,shared" {
+		t.Errorf("group skills = %q, want %q", got, "alpha,shared")
+	}
+}
+
+// An unknown name must fail before anything is installed, so the whole batch
+// errors rather than silently installing the names that did resolve.
+func TestGroupSkillsByRegistry_UnknownNameFailsBatch(t *testing.T) {
+	_, err := groupSkillsByRegistry(nil, loadedFixture(), []string{"alpha", "ghost"}, "", false)
+	if err == nil {
+		t.Fatal("expected an error for an unknown skill")
+	}
+	if !strings.Contains(err.Error(), "ghost") {
+		t.Errorf("error should name the offending skill: %v", err)
+	}
+}
+
+// Without a TTY there's nobody to prompt, so an ambiguous name must say how to
+// resolve it rather than guessing a registry.
+func TestGroupSkillsByRegistry_AmbiguousNameNeedsFrom(t *testing.T) {
+	_, err := groupSkillsByRegistry(nil, loadedFixture(), []string{"shared"}, "", false)
+	if err == nil {
+		t.Fatal("expected an error for an ambiguous skill")
+	}
+	if !strings.Contains(err.Error(), "--from") {
+		t.Errorf("error should point at --from: %v", err)
+	}
+}
+
+// --from resolves ambiguity for the batch, and must not drag an unambiguous
+// skill into a registry that doesn't have it.
+func TestGroupSkillsByRegistry_FromOnlyAppliesToAmbiguous(t *testing.T) {
+	groups, err := groupSkillsByRegistry(nil, loadedFixture(), []string{"shared", "alpha"}, "work", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(groups) != 2 {
+		t.Fatalf("expected 2 groups (work for shared, public for alpha), got %d", len(groups))
+	}
+	if groups[0].target.Name != "work" || groups[0].skills[0] != "shared" {
+		t.Errorf("shared should resolve to work via --from, got %+v", groups[0])
+	}
+	if groups[1].target.Name != "public" || groups[1].skills[0] != "alpha" {
+		t.Errorf("alpha is only in public and should stay there, got %+v", groups[1])
+	}
+}
+
+func TestGroupSkillsByRegistry_FromNamingAWrongRegistryErrors(t *testing.T) {
+	_, err := groupSkillsByRegistry(nil, loadedFixture(), []string{"shared"}, "nope", false)
+	if err == nil {
+		t.Fatal("expected an error when --from names a registry without the skill")
 	}
 }

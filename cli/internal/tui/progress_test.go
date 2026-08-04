@@ -386,3 +386,17 @@ func TestProgressEntry_Key(t *testing.T) {
 		t.Error("different scopes should differ")
 	}
 }
+
+// A batch install whose skills span registries runs the engine once per
+// registry, so the screen sees several run_start events and the totals have to
+// add up rather than the last one replacing the first.
+func TestProgressModel_TotalsAccumulateAcrossRuns(t *testing.T) {
+	m := NewProgressModel(ui.DefaultTheme(), "install", nil, nil, 0)
+
+	m.applyEvent(install.Event{Phase: install.PhaseRunStart, Total: 3})
+	m.applyEvent(install.Event{Phase: install.PhaseRunStart, Total: 5})
+
+	if m.total != 8 {
+		t.Errorf("total = %d, want 8 (3 + 5 across two engine runs)", m.total)
+	}
+}
