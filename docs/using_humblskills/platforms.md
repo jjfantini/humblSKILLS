@@ -43,7 +43,11 @@ into it. That means one copy on disk, one place to update.
 |-------|---------------------|
 | `global` (the default) | `~/.humblskills/skills/<skill-id>` |
 | `user` | `$XDG_DATA_HOME/humblskills/skills/<skill-id>` |
-| `project` | `<current repo>/.humblskills/skills/<skill-id>` |
+| `project` | `<current directory>/.humblskills/skills/<skill-id>` |
+| `adapter-default` | Whatever each platform adapter defines as its own default location |
+
+`project` scope resolves against your **working directory**, not the repository root —
+running it from a subdirectory creates a second store nested there.
 
 ```sh
 humblskills install smart-commit                    # global (default)

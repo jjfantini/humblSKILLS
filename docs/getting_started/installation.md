@@ -41,7 +41,7 @@ curl -fsSL https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/scripts/
 Pin a version (example: `0.1.0`):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/scripts/install.sh | VERSION=0.1.0 sh
+curl -fsSL https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/scripts/install.sh | VERSION=2.45.0 sh
 ```
 
 ## Go
@@ -80,8 +80,10 @@ humblskills upgrade              # self-update: download, verify, swap the binar
 humblskills upgrade --dry-run    # just show the version you'd move to
 ```
 
-Homebrew installs are upgraded through Homebrew instead, so its bookkeeping stays
-correct — `upgrade` will tell you so:
+On a Homebrew-managed install, `upgrade` detects that, asks for confirmation, and
+runs `brew update && brew upgrade humblskills` for you, so Homebrew's own Cellar
+bookkeeping stays correct. It only asks you to run brew yourself if `brew` isn't on
+`PATH`. You can of course still do it directly:
 
 ```sh
 brew upgrade humblskills
@@ -98,7 +100,9 @@ Tab-complete skill names, registry names, and flag values:
 humblskills completion zsh --help    # also: bash, fish, powershell
 ```
 
-Each shell's `--help` prints the exact line to add to your shell config.
+Each shell's `--help` prints the exact setup steps for that shell — for zsh and bash
+that's a one-time command to run (writing the completion file), not a line to paste
+into your shell config.
 
 ## Next
 

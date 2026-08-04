@@ -33,7 +33,7 @@ Optional:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/scripts/install.sh | INSTALL_DIR=$HOME/.local/bin sh
-curl -fsSL https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/scripts/install.sh | VERSION=0.1.0 sh
+curl -fsSL https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/scripts/install.sh | VERSION=2.45.0 sh
 ```
 
 ### Go
@@ -56,7 +56,7 @@ humblskills doctor
 
 ```sh
 humblskills upgrade            # self-update; --dry-run to check only
-brew upgrade humblskills       # use this instead for Homebrew installs
+brew upgrade humblskills       # equivalent; on brew installs `upgrade` runs this for you
 ```
 
 `upgrade` updates the CLI binary; `update` updates installed skills.
@@ -91,15 +91,24 @@ Claude Desktop and claude.ai can't read skills from disk. Restrict with
 
 ### Private / additional registries
 
+Naming **any** registry makes the CLI use **only** its named set — the hosted public
+default stops being consulted, and `--registry` / `HUMBLSKILLS_REGISTRY` /
+`profile set registry` are ignored. So adding just a private registry silently hides
+every public skill (`search` omits them, `install` reports them as not found). Add
+`public` too unless private-only is what you want:
+
 ```sh
+humblskills registry add public https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/registry.json
 humblskills registry add work my-company/our-skills   # owner/repo shorthand works
 humblskills registry login --name work                # token → OS keychain (or pipe it on stdin)
-humblskills registry list
+humblskills registry list                             # confirm what you ended up with
 humblskills install <skill> --from work               # if a name exists in several registries
 ```
 
-Non-interactive alternative: `HUMBLSKILLS_REGISTRY` + `HUMBLSKILLS_TOKEN`, or the
-global `--registry` / `--token` flags.
+Tokens for named registries come from the keychain (`registry login --name`), with
+`HUMBLSKILLS_TOKEN` as a shared fallback. The global `--token` and `--registry` flags
+and `HUMBLSKILLS_REGISTRY` apply **only** when no registry is named. Details:
+[Registries](https://jjfantini.github.io/humblSKILLS/using_humblskills/registries/#the-mental-model).
 
 ### Team skillsets
 
