@@ -11,7 +11,7 @@ license: MIT
 compatibility: "Requires git 2.5+, GitHub CLI (`gh`) for PR/check operations, and network access for remote sync, CI, releases, and Homebrew verification."
 metadata:
   author: jjfantini
-  version: "1.0.3"
+  version: "1.1.0"
   previous_names: ["use-worktree-flow"]
   category: development
   tags: [git, worktree, pull-requests, release, workflow, humblskill]
@@ -83,6 +83,17 @@ the workspace is dirty.
 6. Sync local branches with upstream, remove the worktree, and delete stale
    local and remote feature branches unless the user opted out.
 
+**Confirm which branch releases before choosing a base.** Release automation
+watches one branch. Work merged anywhere else is finished, green, and unshipped
+— the quietest failure in this whole flow, because nothing reports an error.
+Check the release workflow's trigger rather than assuming `develop` feeds it.
+
+A single-commit fix may go straight to the production branch instead of steps
+3-4, if the user says so. Then `develop` must be brought back to it, or the
+next feature branches off stale work; some repos automate that on push. Verify
+with `git rev-list --count <production>..develop` — a non-zero count there is
+unmerged work, and fast-forwarding would destroy it.
+
 ## How to Use
 
 **Live enumeration of categories and concepts:**
@@ -141,4 +152,7 @@ Result: The user keeps the final review gates while work stays isolated.
 - Worktree and branch names share the same conventional type and slug.
 - No PR merges until tests, lint, local verification, and CI/CD are green.
 - Release automation is monitored through tag/artifact/Homebrew completion.
-- Local `develop` and `main` or `master` match upstream after cleanup.
+- The merged work actually shipped: the released version contains it, not just
+  the production branch.
+- Local `develop` and `main` or `master` match upstream after cleanup, and
+  `develop` is not behind the production branch.
