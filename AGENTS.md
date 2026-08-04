@@ -71,6 +71,22 @@ line, and skips *all* workflow runs for that push. A commit body explaining the 
 entire branch here — no failing check, no queued run, nothing to notice. Write it unbracketed (`skip-ci`)
 when you need to refer to it in prose.
 
+### Merge PRs with `--merge`. Never `--squash`, never `--rebase`.
+Two independent things break on a squash, both silently:
+
+1. **release-please reads the individual commit messages on `main`.** A squash collapses the whole PR into
+   its title, so a branch carrying `fix:` plus two `feat:` commits ships as a patch and loses both feature
+   changelog entries. A merge commit preserved all four and correctly produced the 2.43.0 minor bump.
+2. **`registry.json` pins `source.sha` to the commit where skill content last changed, and `install`
+   fetches the skill tarball at exactly that SHA.** Under a merge commit that SHA stays reachable forever.
+   A squash replaces it with a new commit and orphans the original, so the recorded SHA becomes
+   unreachable and installs of those skills start failing — long after the PR is forgotten.
+
+```sh
+gh pr merge <n> --merge      # correct
+gh pr merge <n> --squash     # breaks both of the above
+```
+
 ### A conflicted PR gets no CI at all
 GitHub cannot build the merge ref for a PR with conflicts, so it dispatches **no** `pull_request` workflows.
 The PR shows no checks rather than failing ones, and with nothing gating `main` it stays merge-able by hand.
