@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.45.0](https://github.com/jjfantini/humblSKILLS/compare/v2.44.1...v2.45.0) (2026-08-04)
+
+
+### Features
+
+* **ci:** keep develop from falling behind main ([02d5a95](https://github.com/jjfantini/humblSKILLS/commit/02d5a953bac87e18fb039e197ab0b3028dd0567d))
+
+
+### Bug Fixes
+
+* **ci:** bound release-please history scan and serialize release runs ([0a4daf1](https://github.com/jjfantini/humblSKILLS/commit/0a4daf1ecf114dc62a80763f477426bbd6ad1e0a))
+* **ci:** never auto-merge a release PR that changes the major version ([461dd2a](https://github.com/jjfantini/humblSKILLS/commit/461dd2ae34f587109abf2771c23a2d865697379e))
+* **ci:** run CI on the registry bot's auto-fix commit ([37706a6](https://github.com/jjfantini/humblSKILLS/commit/37706a67e6b23375d47d555e6a4914bb12f2c7b1))
+* **cli:** declare the /v2 module path so go install resolves releases ([9164e5a](https://github.com/jjfantini/humblSKILLS/commit/9164e5a9b924c6d8c5f524f2ded01d1ecfee8d5c))
+* **registry:** stop rewriting registry.json when nothing changed ([920e52b](https://github.com/jjfantini/humblSKILLS/commit/920e52b1dd56a1005219aa50f9d4febc016d8810))
+
 ## [2.44.1](https://github.com/jjfantini/humblSKILLS/compare/v2.44.0...v2.44.1) (2026-08-04)
 
 
