@@ -1,0 +1,46 @@
+name: Sync develop
+
+# Keeps `develop` at or ahead of `main`, never behind.
+#
+# The normal flow is feature -> develop -> main, but small changes sometimes go
+# straight to main, and release-please and the registry bot commit there too.
+# Left alone `develop` drifts: it sat 126 commits behind for a month, which
+# broke the "Edit this page" links on the docs site and made every doc link
+# into tree/develop 404 after the smart-* rename.
+#
+# Deliberately a plain push, never --force. When develop holds feature work
+# that has not merged into main yet the push is a non-fast-forward and is
+# skipped — that work is the reason develop exists and must not be clobbered.
+# Merging develop into main makes develop an ancestor of main again, and the
+# next push to main fast-forwards it.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-develop
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fast-forward develop to main
+        run: |
+          set -euo pipefail
+          if git merge-base --is-ancestor origin/develop origin/main; then
+            git push origin "origin/main:refs/heads/develop"
+            echo "develop fast-forwarded to $(git rev-parse --short origin/main)"
+          else
+            ahead=$(git rev-list --count origin/main..origin/develop)
+            echo "::notice::develop has ${ahead} commit(s) not on main; leaving it alone."
+          fi
