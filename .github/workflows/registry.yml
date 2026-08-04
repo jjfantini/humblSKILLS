@@ -12,9 +12,14 @@ name: Registry
 # forever waiting for a run that can never start.
 #
 # Pushing with the PAT and no [skip ci] means this workflow re-triggers on its
-# own commit. That does not loop: the second run regenerates, finds no diff,
-# and exits at the "already in sync" check. Idempotence is what makes it safe,
-# so keep that early exit intact.
+# own commit. That does not loop, but only because build-registry now leaves
+# registry.json untouched when nothing semantic changed: the second run
+# regenerates, finds no diff, and exits at "already in sync".
+#
+# That property is load-bearing here. It did not hold before — generated_at and
+# source.ref/sha were rewritten on every run, so the early exit was unreachable
+# and this workflow would push on every trigger, forever. If build-registry ever
+# goes back to writing unconditionally, this becomes an infinite push loop.
 
 on:
   push:

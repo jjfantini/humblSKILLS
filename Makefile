@@ -4,16 +4,22 @@ ROOT := $(CURDIR)
 
 # Regenerate registry.json at the repo root from skills/ + the adapters
 # embedded in the build-registry binary.
+#
+# --ref is pinned rather than left to default to the current branch. The
+# registry is only ever published from main, and letting the branch name leak
+# in made the artifact differ per branch for no semantic reason.
 registry:
 	go -C cli run ./cmd/build-registry \
 		--skills-dir=$(ROOT)/skills \
-		--out=$(ROOT)/registry.json
+		--out=$(ROOT)/registry.json \
+		--ref=main
 
 # Fail if registry.json is out of sync with skills/ + embedded adapters.
 registry-check:
 	go -C cli run ./cmd/build-registry \
 		--skills-dir=$(ROOT)/skills \
 		--out=$(ROOT)/registry.json \
+		--ref=main \
 		--check
 
 build:

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -250,6 +251,50 @@ func TestRun_DirSHADeterministicAcrossRuns(t *testing.T) {
 	_ = json.Unmarshal(d2, &r2)
 	if r1.Skills[0].DirSHA != r2.Skills[0].DirSHA {
 		t.Errorf("DirSHA non-deterministic: %s vs %s", r1.Skills[0].DirSHA, r2.Skills[0].DirSHA)
+	}
+}
+
+// A rebuild from a different branch and commit must leave the file untouched
+// when no skill changed. Before this, every run rewrote generated_at and
+// source.ref/sha, so the CI auto-fix committed on every push and each branch's
+// registry.json conflicted with every other branch's.
+func TestRun_ByteStableWhenNothingChanged(t *testing.T) {
+	root := t.TempDir()
+	skillsDir := filepath.Join(root, "skills")
+	writeSkill(t, skillsDir, "alpha", "1.0.0")
+	out := filepath.Join(root, "registry.json")
+
+	if err := run(skillsDir, out, "r", "main", "sha-one", false); err != nil {
+		t.Fatal(err)
+	}
+	first, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Same skills, different branch and commit — the shape a second CI run takes.
+	if err := run(skillsDir, out, "r", "some-feature-branch", "sha-two", false); err != nil {
+		t.Fatal(err)
+	}
+	second, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(first, second) {
+		t.Errorf("rebuild rewrote the file with no skill change:\nfirst:  %s\nsecond: %s", first, second)
+	}
+
+	// A real change must still be written.
+	writeSkill(t, skillsDir, "beta", "1.0.0")
+	if err := run(skillsDir, out, "r", "main", "sha-three", false); err != nil {
+		t.Fatal(err)
+	}
+	third, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Equal(second, third) {
+		t.Error("adding a skill did not update registry.json")
 	}
 }
 
