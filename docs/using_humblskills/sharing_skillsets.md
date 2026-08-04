@@ -44,10 +44,31 @@ On `sync`, for each listed registry the CLI:
 None of this is fatal: if a registry stays unreachable, `sync` continues and
 reports the skills it couldn't find as warnings.
 
-Skills from the public default registry contribute nothing here — every install
-of the CLI already has it. When a skill name exists in more than one registry,
-`sync` prefers the order the skillset lists them in, on the grounds that the
-file's author knows where their skills live.
+When a skill name exists in more than one registry, `sync` prefers the order the
+skillset lists them in, on the grounds that the file's author knows where their
+skills live.
+
+!!! warning "List `public` in your skillset if the team also uses public skills"
+    `export` only records **named** registries, on the assumption that every CLI already
+    has the public default. That assumption breaks on the receiving machine: adding a named
+    registry means the CLI uses **only** its named set, so the hosted public default stops
+    being consulted (see
+    [Registries](registries.md#the-mental-model)).
+
+    Concretely — a teammate with **no** named registries who syncs a skillset carrying only
+    a private `work` registry ends up with exactly one named registry, and every public
+    skill silently disappears from their `search` and `install`.
+
+    Fix it in the skillset by listing both:
+
+    ```json
+    "registries": [
+      { "name": "public", "url": "https://raw.githubusercontent.com/jjfantini/humblSKILLS/main/registry.json" },
+      { "name": "work",   "url": "https://raw.githubusercontent.com/my-company/our-skills/main/registry.json" }
+    ]
+    ```
+
+    After syncing, `humblskills registry list` shows what you actually ended up with.
 
 ## Create a skillset
 
