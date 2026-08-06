@@ -1,0 +1,72 @@
+# ──────────────────────────────────────────────────────────────────────────
+# SkillOpt config — ExactMatch demo env (pindex)
+# ──────────────────────────────────────────────────────────────────────────
+# Inherits SkillOpt's base defaults straight from the vendored submodule, so
+# there is a single source of truth for the full default surface. `_base_` is
+# resolved RELATIVE TO THIS FILE'S DIRECTORY (not the CWD).
+_base_: ../../external/SkillOpt/configs/_base_/default.yaml
+
+# ── Model ─────────────────────────────────────────────────────────────────
+# DEFAULT = Claude. NOTE: SkillOpt's `claude_chat` backend drives the LOCAL
+# `claude` CLI as a subprocess (it does not call the Anthropic SDK directly),
+# so it relies on your `claude` CLI being installed and authenticated.
+#
+# For a fast / cheap WIRING SMOKE without nested CLI calls, override on the CLI:
+#   --cfg-options model.optimizer_backend=openai_chat model.target_backend=openai_chat \
+#                 model.optimizer=gpt-4o model.target=gpt-4o \
+#                 model.azure_openai_auth_mode=openai_compatible \
+#                 model.azure_openai_endpoint=https://api.openai.com/v1
+#   (with AZURE_OPENAI_API_KEY=$OPENAI_API_KEY exported)
+model:
+  optimizer_backend: claude_chat
+  target_backend: claude_chat
+  optimizer: claude-sonnet-4-6
+  target: claude-sonnet-4-6
+  reasoning_effort: ""
+
+# ── Training ──────────────────────────────────────────────────────────────
+# Small by design: this is a wiring demo, not a benchmark. Scale up for real work.
+train:
+  num_epochs: 1
+  train_size: 0          # 0 = use the whole train split
+  batch_size: 4
+  accumulation: 1
+  seed: 42
+
+# ── Gradient (reflection) ─────────────────────────────────────────────────
+gradient:
+  minibatch_size: 2
+  merge_batch_size: 2
+  analyst_workers: 4
+  failure_only: false
+
+# ── Optimizer ─────────────────────────────────────────────────────────────
+optimizer:
+  learning_rate: 3        # max edits per step (the textual "learning rate")
+  min_learning_rate: 1
+  lr_scheduler: constant
+  skill_update_mode: patch
+  use_slow_update: false  # keep the demo loop short
+  use_meta_skill: false
+
+# ── Evaluation ────────────────────────────────────────────────────────────
+# The validation gate is MANDATORY in this SkillOpt branch (use_gate: false raises).
+evaluation:
+  use_gate: true
+  sel_env_num: 0          # 0 = use the whole val split for the gate
+  test_env_num: 0
+  eval_test: true
+
+# ── Environment ───────────────────────────────────────────────────────────
+# Paths are resolved relative to the CWD (run from the repo root).
+env:
+  name: exactmatch
+  skill_init: skillopt_lab/envs/exactmatch/skills/initial.md
+  split_mode: ratio
+  split_ratio: "2:1:1"    # train:val:test of the raw items
+  split_seed: 42
+  data_path: skillopt_lab/data/exactmatch/raw.jsonl
+  exec_timeout: 120
+  workers: 4
+  max_completion_tokens: 512
+  limit: 0
