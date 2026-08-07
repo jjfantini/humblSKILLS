@@ -26,6 +26,7 @@ No account, no server, no telemetry. [Full installation options →](getting_sta
 | Install the CLI | [Installation](getting_started/installation.md) - agent prompt, Homebrew, shell, Go, releases |
 | Learn the everyday commands | [Quickstart](getting_started/quickstart.md) - `doctor`, `search`, `install`, `list`, `update` |
 | See what's installable | [Skill catalog](skills.md) - every skill in the public registry |
+| Understand self-learning skills | [Smart skills & the brain](smart_skills.md) - the CCCCC ontology and the brain protocol |
 | Know where skills land on disk | [Platforms](using_humblskills/platforms.md) - paths, scopes, Claude Desktop zips |
 | Use a private or second registry | [Registries](using_humblskills/registries.md) - tokens, multiple registries, `--from` |
 | Keep skills current | [Updating skills](using_humblskills/updating.md) - `update` vs `upgrade`, renames |
