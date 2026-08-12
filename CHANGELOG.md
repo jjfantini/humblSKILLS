@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.48.0](https://github.com/jjfantini/humblSKILLS/compare/v2.47.3...v2.48.0) (2026-08-12)
+
+
+### Features
+
+* **smart-orchestrate:** Grok 4.6, and fix source.sha for skill content updates ([6547ddd](https://github.com/jjfantini/humblSKILLS/commit/6547ddda4606fb22748a896f3e664e69ee544491))
+* **smart-orchestrate:** Grok 4.6, and fix source.sha for skill content updates ([46d8ba6](https://github.com/jjfantini/humblSKILLS/commit/46d8ba652dbf6ee1c3b105eb9652e41a54fd3468))
+* **smart-orchestrate:** point model tiers at Grok 4.6 ([25b4a4c](https://github.com/jjfantini/humblSKILLS/commit/25b4a4c5bf1d19ad7d9b61b7f74d39b04ef1dd4c))
+
+
+### Bug Fixes
+
+* **registry:** compare skill tree ids, not path existence, for source.sha ([6936b7e](https://github.com/jjfantini/humblSKILLS/commit/6936b7eeb4594809450a928c0adf8880a520c8c1))
+
 ## [2.47.3](https://github.com/jjfantini/humblSKILLS/compare/v2.47.2...v2.47.3) (2026-08-12)
 
 
