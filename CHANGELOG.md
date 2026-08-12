@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.49.0](https://github.com/jjfantini/humblSKILLS/compare/v2.48.0...v2.49.0) (2026-08-12)
+
+
+### Features
+
+* **smart-animation:** add liquid-gooey as the ninth bundled library ([5f2bf22](https://github.com/jjfantini/humblSKILLS/commit/5f2bf22d3a472dfb09a58521cc943cecfd9be300))
+* **smart-animation:** add liquid-gooey as the ninth bundled library ([181e20f](https://github.com/jjfantini/humblSKILLS/commit/181e20f92cd8d8ef2ff0b664b9be7116d21da86f))
+* **smart-animation:** add liquid-gooey as the ninth bundled library ([89a6a76](https://github.com/jjfantini/humblSKILLS/commit/89a6a76cacb9dafc8906bc1cc287f35997844da7))
+
 ## [2.48.0](https://github.com/jjfantini/humblSKILLS/compare/v2.47.3...v2.48.0) (2026-08-12)
 
 
