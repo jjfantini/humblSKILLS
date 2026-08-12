@@ -123,9 +123,17 @@ If you ever need to repair it by hand:
 
 ```sh
 go -C cli run ./cmd/build-registry --skills-dir=$PWD/skills --out=$PWD/registry.json --ref=main --sha=<sha>
-git cat-file -e <sha>:skills/<name>/SKILL.md   # verify path exists before pushing
-git rev-parse <sha>:skills/<name>              # tree id must match what install will hash
+
+# Verify before pushing: equal tree ids mean <sha> serves the same bytes as HEAD.
+git rev-parse "<sha>:skills/<name>" "HEAD:skills/<name>"
 ```
+
+A git tree id is **not** the `dir_sha` install checks — that is a sha256 over
+canonicalized `(rel_path, mode, content_sha)` tuples (`registry.DirSHA`), while
+a tree id is a sha1 over git's own serialization. The two are never equal and
+comparing them is meaningless. Tree ids are only useful *between commits*,
+which is exactly how `sourceSHAVerdict` uses them: same id at two commits means
+identical bytes, so whatever `dir_sha` one produces the other produces too.
 
 ### A conflicted PR gets no CI at all
 GitHub cannot build the merge ref for a PR with conflicts, so it dispatches **no** `pull_request` workflows.
