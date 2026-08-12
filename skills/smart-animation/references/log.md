@@ -68,3 +68,22 @@ Entry shape:
 [LINT 2026-07-30] 16 wiki, 10 raw. Hard: 0, Soft: 11. Regenerated _index.md.
 
 [LINT 2026-07-30] 16 wiki, 10 raw. Hard: 0, Soft: 11. Regenerated _index.md.
+
+[LINT 2026-08-12] 17 wiki, 11 raw. Hard: 0, Soft: 12. Regenerated _index.md.
+
+[INGEST 2026-08-12] Added liquid-gooey (gooey.jakubantalik.com); version 0.4.0 -> 0.5.0.
+  - raw/liquid-gooey.md: full README distillation from the npm package README in
+    Jakubantalik/Libraries (packages/liquid-gooey), plus registry metadata
+    (v0.1.0, MIT, zero deps, react/react-dom >=18 peers).
+  - wiki/lib/gooey/usage.md: ninth bundled library. Headline is the two-layer
+    architecture (SVG silhouette below carries goo + shadow, real DOM above stays
+    unfiltered) — that is what separates it from the CSS `filter: blur+contrast`
+    gooey hack, which blurs text and can't draw one shadow on a merged shape.
+  - The knob users get wrong first: bridging is a ratio of `blur` to gap, not a
+    mode. 8px apart barely bridges at blur 5, merges cleanly at blur 12.
+  - Reduced motion is honored for component-driven transitions (collapse to
+    instant snaps) — unlike metal-fx, which needs manual `paused` wiring.
+  - SKILL.md description, When-to-Use count (eight -> nine) and library routing
+    list updated so the skill can actually be selected for gooey work.
+
+[LINT 2026-08-12] 17 wiki, 11 raw. Hard: 0, Soft: 12. Regenerated _index.md.
