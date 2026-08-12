@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.47.2](https://github.com/jjfantini/humblSKILLS/compare/v2.47.1...v2.47.2) (2026-08-12)
+
+
+### Bug Fixes
+
+* **registry:** rewrite a source.sha that predates a listed skill ([42b2e57](https://github.com/jjfantini/humblSKILLS/commit/42b2e57b4111484752148dbc48a3f5ccd40c9fb4))
+* **registry:** rewrite a source.sha that predates a listed skill ([089bd07](https://github.com/jjfantini/humblSKILLS/commit/089bd07362f3ffe95947e8d9f87d128984573a86))
+* **registry:** rewrite a source.sha that predates a listed skill ([ad3360b](https://github.com/jjfantini/humblSKILLS/commit/ad3360bc515e9ad8f24c0c81451ff7865c60098a))
+
 ## [2.47.1](https://github.com/jjfantini/humblSKILLS/compare/v2.47.0...v2.47.1) (2026-08-12)
 
 
