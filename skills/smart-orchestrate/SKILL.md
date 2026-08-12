@@ -14,7 +14,7 @@ compatibility: "Requires git 2.5+ for worktree isolation and at least one agent 
 disable-model-invocation: true
 metadata:
   author: jjfantini
-  version: "1.0.0"
+  version: "1.0.1"
   category: development
   tags: [orchestration, multi-agent, subagents, planning, worktree, routing, humblskill]
   platforms: [claude-code, cursor, codex]

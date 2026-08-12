@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-12T17:36:35Z",
+  "generated_at": "2026-08-12T19:22:01Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "885504c0f0df10ef14c5e8d67bc3b49a9a4539d1"
+    "sha": "25b4a4c5bf1d19ad7d9b61b7f74d39b04ef1dd4c"
   },
   "skills": [
     {
@@ -648,7 +648,7 @@
     },
     {
       "name": "smart-orchestrate",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Run a frontier-parent / cost-optimized-worker orchestration pattern across the Claude, Codex, and Cursor CLIs: plan on a strong model, isolate in a worktree, dispatch bounded briefs to cheaper worker agents, and verify the whole. Use when the user says \"orchestrate this\", \"farm this out to subagents\", \"plan then gate execution\", \"parent orchestrator\", \"multi-agent this feature\", or wants planning split from implementation across model tiers. Do NOT use for a single-file edit, for authoring commits (use smart-commit), or for the worktree/PR mechanics themselves (use smart-worktree-flow).\n",
       "category": "development",
       "tags": [
@@ -673,7 +673,7 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-orchestrate",
-      "dir_sha": "a01d707139e46a3bfff3ea0a31e4f88b011a16015ee190245a97435966a2b0c2"
+      "dir_sha": "e529a1249f1543f404c66d14e890482da1573b9ae9cd047dd2ca67f9d0b62156"
     },
     {
       "name": "smart-skill",

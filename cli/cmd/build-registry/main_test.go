@@ -394,30 +394,40 @@ func TestRun_UnknownRole_Rejected(t *testing.T) {
 // in tarball`, and semanticDiff (which zeroes the source block) made that
 // state permanent.
 
-// fakeTree substitutes gitPathsAt with an in-memory sha -> paths map for the
-// duration of a test. A sha absent from the map behaves like an object git
-// cannot resolve, which is the "do not draw conclusions" case.
-func fakeTree(t *testing.T, trees map[string][]string) {
+// fakeTree substitutes gitPathsAt with an in-memory sha -> (path -> tree id)
+// map for the duration of a test. A sha absent from the map behaves like an
+// object git cannot resolve, which is the "do not draw conclusions" case.
+//
+// Tree ids matter as much as presence: two commits can both contain a skill
+// while serving different revisions of it, and install rejects that as a
+// dir_sha mismatch.
+func fakeTree(t *testing.T, trees map[string]map[string]string) {
 	t.Helper()
 	prev := gitPathsAt
 	t.Cleanup(func() { gitPathsAt = prev })
-	gitPathsAt = func(sha string, paths []string) (map[string]bool, error) {
+	gitPathsAt = func(sha string, paths []string) (map[string]string, error) {
 		have, ok := trees[sha]
 		if !ok {
 			return nil, fmt.Errorf("git ls-tree %s: not a valid object name", sha)
 		}
-		set := make(map[string]bool, len(have))
-		for _, p := range have {
-			set[p] = true
-		}
-		out := make(map[string]bool, len(paths))
+		out := make(map[string]string, len(paths))
 		for _, p := range paths {
-			if set[p] {
-				out[p] = true
+			if id := have[p]; id != "" {
+				out[p] = id
 			}
 		}
 		return out, nil
 	}
+}
+
+// tree builds a sha's contents: every path mapped to the same revision marker,
+// so callers say "these paths, at revision v1".
+func tree(rev string, paths ...string) map[string]string {
+	m := make(map[string]string, len(paths))
+	for _, p := range paths {
+		m[p] = p + "@" + rev
+	}
+	return m
 }
 
 func registryBytes(t *testing.T, sha string, paths ...string) []byte {
@@ -438,55 +448,65 @@ func registryBytes(t *testing.T, sha string, paths ...string) []byte {
 
 func TestSourceSHAVerdict(t *testing.T) {
 	const (
-		old = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" // pre-dates skills/beta
-		new = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" // contains both
+		old = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		new = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 	)
 	both := []string{"skills/alpha", "skills/beta"}
 	skills := []registry.Skill{{Name: "alpha", Path: "skills/alpha"}, {Name: "beta", Path: "skills/beta"}}
 
 	tests := []struct {
 		name        string
-		trees       map[string][]string
+		trees       map[string]map[string]string
 		existingSHA string
 		newSHA      string
 		wantRewrite bool
 		wantNote    string // substring; "" means no note
 	}{
 		{
-			name:        "recorded sha contains every skill",
-			trees:       map[string][]string{old: both, new: both},
+			name:        "recorded sha serves identical content",
+			trees:       map[string]map[string]string{old: tree("v1", both...), new: tree("v1", both...)},
 			existingSHA: old, newSHA: new,
 			wantRewrite: false,
 		},
 		{
-			name:        "recorded sha predates a skill and the new one fixes it",
-			trees:       map[string][]string{old: {"skills/alpha"}, new: both},
+			// v2.47.0: skills/beta added in the same change that stamped old.
+			name:        "recorded sha is missing a skill entirely",
+			trees:       map[string]map[string]string{old: tree("v1", "skills/alpha"), new: tree("v1", both...)},
 			existingSHA: old, newSHA: new,
-			wantRewrite: true, wantNote: "predates skills/beta",
+			wantRewrite: true, wantNote: "does not contain skills/beta",
 		},
 		{
-			// Both broken: rewriting cannot help, and doing it anyway would
-			// make every run dirty the file -> the workflow pushes forever.
-			name:        "neither sha contains the skill",
-			trees:       map[string][]string{old: {"skills/alpha"}, new: {"skills/alpha"}},
+			// The common case: skills/beta was edited, not added. Both commits
+			// contain it, so a presence-only check passes while install fails
+			// on dir_sha.
+			name:  "recorded sha serves an outdated revision of a skill",
+			trees: map[string]map[string]string{old: tree("v1", both...), new: {"skills/alpha": "skills/alpha@v1", "skills/beta": "skills/beta@v2"}},
+			existingSHA: old, newSHA: new,
+			wantRewrite: true, wantNote: "serves outdated skills/beta",
+		},
+		{
+			// Rewriting would trade one broken SHA for another, and the result
+			// would differ again on every run -> the workflow pushes forever.
+			name:        "replacement sha is missing a skill",
+			trees:       map[string]map[string]string{old: tree("v1", "skills/alpha"), new: tree("v1", "skills/alpha")},
 			existingSHA: old, newSHA: new,
 			wantRewrite: false, wantNote: "cannot be installed",
 		},
 		{
 			name:        "git cannot resolve the recorded sha",
-			trees:       map[string][]string{new: both},
+			trees:       map[string]map[string]string{new: tree("v1", both...)},
 			existingSHA: old, newSHA: new,
 			wantRewrite: false,
 		},
 		{
 			name:        "same sha is never rewritten",
-			trees:       map[string][]string{old: {"skills/alpha"}},
+			trees:       map[string]map[string]string{old: tree("v1", "skills/alpha")},
 			existingSHA: old, newSHA: old,
 			wantRewrite: false,
 		},
 		{
 			name:        "empty recorded sha is left alone",
-			trees:       map[string][]string{new: both},
+			trees:       map[string]map[string]string{new: tree("v1", both...)},
 			existingSHA: "", newSHA: new,
 			wantRewrite: false,
 		},
@@ -525,9 +545,9 @@ func TestRun_StaleSourceSHA_IsRewrittenThenConverges(t *testing.T) {
 	out := filepath.Join(root, "registry.json")
 
 	// Seed the broken state: both skills listed, SHA from before beta existed.
-	fakeTree(t, map[string][]string{
-		beforeBeta: {"skills/alpha"},
-		afterBeta:  {"skills/alpha", "skills/beta"},
+	fakeTree(t, map[string]map[string]string{
+		beforeBeta: tree("v1", "skills/alpha"),
+		afterBeta:  tree("v1", "skills/alpha", "skills/beta"),
 	})
 	if err := run(skillsDir, out, "r", "main", beforeBeta, false); err != nil {
 		t.Fatalf("seed run: %v", err)
@@ -548,9 +568,9 @@ func TestRun_StaleSourceSHA_IsRewrittenThenConverges(t *testing.T) {
 	// Convergence: a second rebuild at a third good commit must be a no-op,
 	// since the recorded SHA now resolves every skill.
 	const laterStillGood = "3333333333333333333333333333333333333333"
-	fakeTree(t, map[string][]string{
-		afterBeta:      {"skills/alpha", "skills/beta"},
-		laterStillGood: {"skills/alpha", "skills/beta"},
+	fakeTree(t, map[string]map[string]string{
+		afterBeta:      tree("v1", "skills/alpha", "skills/beta"),
+		laterStillGood: tree("v1", "skills/alpha", "skills/beta"),
 	})
 	before, err := os.ReadFile(out)
 	if err != nil {
@@ -652,10 +672,10 @@ func TestGitLsTree(t *testing.T) {
 	if err != nil {
 		t.Fatalf("gitLsTree: %v", err)
 	}
-	if !present["skills/alpha"] {
-		t.Error("skills/alpha should resolve as a tree entry at HEAD")
+	if present["skills/alpha"] == "" {
+		t.Error("skills/alpha should resolve to a tree object id at HEAD")
 	}
-	if present["skills/beta"] {
+	if present["skills/beta"] != "" {
 		t.Error("skills/beta was never committed and must not resolve")
 	}
 
@@ -679,7 +699,7 @@ func TestGitLsTree(t *testing.T) {
 	if err != nil {
 		t.Fatalf("gitLsTree from subdirectory: %v", err)
 	}
-	if !fromSub["skills/alpha"] {
+	if fromSub["skills/alpha"] == "" {
 		t.Error("skills/alpha must resolve from a subdirectory; pathspec is repo-root-relative")
 	}
 }
@@ -709,7 +729,7 @@ func TestRun_Check_FailsOnFixableStaleSHA(t *testing.T) {
 	}
 
 	t.Run("fixable stale sha fails", func(t *testing.T) {
-		fakeTree(t, map[string][]string{beforeBeta: {"skills/alpha"}, afterBeta: both})
+		fakeTree(t, map[string]map[string]string{beforeBeta: tree("v1", "skills/alpha"), afterBeta: tree("v1", both...)})
 		skillsDir, out := setup(t)
 		err := run(skillsDir, out, "r", "main", afterBeta, true)
 		if err == nil || !strings.Contains(err.Error(), "out of date") {
@@ -721,7 +741,7 @@ func TestRun_Check_FailsOnFixableStaleSHA(t *testing.T) {
 		// The skill is not committed anywhere yet, so no regeneration can help.
 		// Failing here would put `make registry-check` red on a normal,
 		// self-healing state, which trains people to ignore it.
-		fakeTree(t, map[string][]string{beforeBeta: {"skills/alpha"}, afterBeta: {"skills/alpha"}})
+		fakeTree(t, map[string]map[string]string{beforeBeta: tree("v1", "skills/alpha"), afterBeta: tree("v1", "skills/alpha")})
 		skillsDir, out := setup(t)
 		if err := run(skillsDir, out, "r", "main", afterBeta, true); err != nil {
 			t.Fatalf("--check should not fail when no rebuild can fix it: %v", err)
@@ -729,7 +749,7 @@ func TestRun_Check_FailsOnFixableStaleSHA(t *testing.T) {
 	})
 
 	t.Run("healthy sha passes", func(t *testing.T) {
-		fakeTree(t, map[string][]string{beforeBeta: both, afterBeta: both})
+		fakeTree(t, map[string]map[string]string{beforeBeta: tree("v1", both...), afterBeta: tree("v1", both...)})
 		skillsDir, out := setup(t)
 		if err := run(skillsDir, out, "r", "main", afterBeta, true); err != nil {
 			t.Fatalf("--check should pass on a healthy registry: %v", err)
