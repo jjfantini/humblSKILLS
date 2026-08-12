@@ -96,6 +96,34 @@ deliberately never automated.
 
 Published skills live under `skills/<skill-id>/` in the [humblSKILLS repository](https://github.com/jjfantini/humblSKILLS). The CLI reads the bundled registry and installs the matching directory to your configured location for Cursor, Claude Code, Codex, etc.
 
+## How `registry.json` is built (contributors)
+
+`make registry` (from the repo root) scans `skills/*/SKILL.md` and writes
+`registry.json`. Each entry's download pin is the registry-level
+`source.sha` — `humblskills install` fetches the skill tarball at **exactly
+that commit**, then verifies the extracted directory matches the advertised
+`dir_sha`.
+
+Constraints that trip people up:
+
+- The generator reads skill **content** from the working tree but stamps
+  `source.sha` from **git HEAD**. The first local run after you add or edit a
+  skill therefore records a SHA that cannot yet serve those new bytes. That is
+  expected: commit the skill change, then let the Registry workflow (or a
+  second `make registry` at the new HEAD) rewrite the pin.
+- "The skill directory exists at that SHA" is not enough. An older revision of
+  the same path still installs the wrong bytes and fails the `dir_sha` check.
+  The self-heal compares **git tree object ids** per skill, so both missing and
+  outdated content trigger a rewrite.
+- Run `make registry-check` locally after skill edits. It fails on the same
+  conditions a rebuild would fix; CI's Registry job auto-repairs on push rather
+  than blocking the PR.
+
+```sh
+make registry        # regenerate registry.json
+make registry-check  # fail if a rebuild would change anything (local gate)
+```
+
 ## Local install layout
 
 `humblskills install` writes one canonical skill directory, then exposes that
