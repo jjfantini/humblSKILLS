@@ -21,7 +21,8 @@ so **no backend/database/network services are required** to build, test, or run 
 - Registry: `make registry` regenerates `registry.json`; `make registry-check` fails if it's stale — run it
   after editing anything under `skills/`. It is a **local** gate: the Registry workflow's self-heal job
   replaced the old pre-merge check, so nothing in CI runs `--check` today. "Stale" means *anything a rebuild
-  would change* — drifted content, or a `source.sha` that predates a listed skill (see below).
+  would change* — drifted content, or a `source.sha` whose skill tree ids disagree with HEAD (skill missing
+  or serving an older revision; see below).
 - Eval (no external deps): `make eval-mock` runs the eval harness with the deterministic `mock` runner,
   writing artifacts to `.eval-workspace/` (gitignored). Real eval runners (`claudecode`, `cursor-agent`,
   `codex`, `anthropic-api`, `openai-api`) are optional and need their respective agent CLI or
@@ -89,18 +90,30 @@ gh pr merge <n> --merge      # correct
 gh pr merge <n> --squash     # breaks both of the above
 ```
 
-### `registry.json`'s `source.sha` must contain every skill it lists
-`install` fetches each skill's tarball at `source.sha`, so a SHA that predates a listed skill produces
-`extract: no files found under "skills/<name>" in tarball` — the skill is discoverable and uninstallable.
-`make registry` reads the working tree but stamps `source.sha` from git HEAD, so **the run that first adds a
-skill always records a SHA that cannot contain it**. That is expected locally; the Registry workflow repairs
-it on the next push, once the skill is committed.
+### `registry.json`'s `source.sha` must serve every skill it lists (current bytes)
+`install` fetches each skill's tarball at `source.sha`, then recomputes `dir_sha` over what it extracted
+and rejects a mismatch. Two failure modes share that path:
+
+| Recorded `source.sha` vs skill content | What install sees |
+|---|---|
+| Skill directory absent at that commit | `extract: no files found under "skills/<name>" in tarball` |
+| Skill directory present but an **older revision** | Extract succeeds, then `dir_sha` mismatch rejects the install |
+
+Presence alone is not enough. `sourceSHAVerdict` (`cli/cmd/build-registry/main.go`) compares **git tree
+object ids** per skill path (`git ls-tree`) between the recorded SHA and the candidate stamp — so a commit
+that still has `skills/<name>/` but with stale bytes is rewritten the same way as a missing skill
+(`serves outdated` vs `does not contain` in the log line).
+
+`make registry` reads the working tree but stamps `source.sha` from git HEAD, so **the run that first adds
+or edits a skill always records a SHA that cannot yet serve the new bytes**. That is expected locally; the
+Registry workflow repairs it on the next push, once the change is committed. Editing skills is the common
+case — the older presence-only check left those SHAs frozen after CI reported "already in sync".
 
 Do not "fix" this by making `semanticDiff` compare the `source` block — that comparison is zeroed on purpose,
-and reinstating it makes the workflow push on every trigger forever. The repair lives in `sourceSHAVerdict`
-(`cli/cmd/build-registry/main.go`), which bypasses the "already in sync" exit only when the recorded SHA is
-provably broken **and** the replacement provably fixes it, so it converges after one write. It needs real
-history, which is why the workflow checks out with `fetch-depth: 0`.
+and reinstating it makes the workflow push on every trigger forever. The repair bypasses the "already in sync"
+exit only when the recorded SHA is provably broken **and** the replacement provably contains every listed
+skill tree, so it converges after one write. It needs real history, which is why the workflow checks out
+with `fetch-depth: 0`.
 
 `make registry-check` fails on the same condition, so `--check` never disagrees with `make registry`. It stays
 green when *no* rebuild could fix it — the uncommitted-skill case above — because that state is normal and
@@ -110,7 +123,8 @@ If you ever need to repair it by hand:
 
 ```sh
 go -C cli run ./cmd/build-registry --skills-dir=$PWD/skills --out=$PWD/registry.json --ref=main --sha=<sha>
-git cat-file -e <sha>:skills/<name>/SKILL.md   # verify before pushing
+git cat-file -e <sha>:skills/<name>/SKILL.md   # verify path exists before pushing
+git rev-parse <sha>:skills/<name>              # tree id must match what install will hash
 ```
 
 ### A conflicted PR gets no CI at all

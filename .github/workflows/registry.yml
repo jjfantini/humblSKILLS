@@ -22,13 +22,14 @@ name: Registry
 # goes back to writing unconditionally, this becomes an infinite push loop.
 #
 # There is exactly one sanctioned exception, and this job is what applies it: a
-# source.sha that predates a skill registry.json already lists. `make registry`
-# reads the working tree but stamps source.sha from HEAD, so the commit that
-# first adds a skill records a SHA that cannot contain it, and install then
-# fails with "no files found under skills/<name> in tarball". build-registry
-# rewrites in that case only, and only when the new SHA actually resolves every
-# skill — so it converges after one push rather than looping. See
-# sourceSHAVerdict in cli/cmd/build-registry/main.go.
+# source.sha whose skill tree ids disagree with HEAD. `make registry` reads the
+# working tree but stamps source.sha from HEAD, so the commit that first adds
+# or edits a skill records a SHA that cannot yet serve the new bytes. install
+# then fails — missing path ("no files found under skills/<name> in tarball")
+# or outdated bytes (dir_sha mismatch after extract). build-registry compares
+# git tree object ids per skill, rewrites only when the recorded SHA is broken
+# and the new SHA resolves every skill, and converges after one push rather
+# than looping. See sourceSHAVerdict in cli/cmd/build-registry/main.go.
 
 on:
   push:
@@ -72,10 +73,10 @@ jobs:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           # Full history, not the default depth-1. Two steps here need commits
           # other than the tip: build-registry resolves the *recorded*
-          # source.sha to check it contains every skill (on a shallow clone
-          # that object is absent, git errors, and the check silently declines
-          # to fire), and the push-retry below does `git reset --hard HEAD~1`,
-          # which has no parent to reach at depth 1.
+          # source.sha to compare skill tree ids against HEAD (on a shallow
+          # clone that object is absent, git errors, and the check silently
+          # declines to fire), and the push-retry below does
+          # `git reset --hard HEAD~1`, which has no parent to reach at depth 1.
           fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
