@@ -18,8 +18,10 @@ so **no backend/database/network services are required** to build, test, or run 
 - Build: `make build` → binary at `bin/humblskills`.
 - Lint/vet: `make vet` (CI uses `go vet`; there is no golangci-lint config).
 - Test: `make test`, or CI-equivalent `go -C cli test -race -count=1 ./...`.
-- Registry: `make registry` regenerates `registry.json`; `make registry-check` fails if it's stale
-  (enforced in CI — run it after editing anything under `skills/`).
+- Registry: `make registry` regenerates `registry.json`; `make registry-check` fails if it's stale — run it
+  after editing anything under `skills/`. It is a **local** gate: the Registry workflow's self-heal job
+  replaced the old pre-merge check, so nothing in CI runs `--check` today. "Stale" means *anything a rebuild
+  would change* — drifted content, or a `source.sha` that predates a listed skill (see below).
 - Eval (no external deps): `make eval-mock` runs the eval harness with the deterministic `mock` runner,
   writing artifacts to `.eval-workspace/` (gitignored). Real eval runners (`claudecode`, `cursor-agent`,
   `codex`, `anthropic-api`, `openai-api`) are optional and need their respective agent CLI or
@@ -99,6 +101,10 @@ and reinstating it makes the workflow push on every trigger forever. The repair 
 (`cli/cmd/build-registry/main.go`), which bypasses the "already in sync" exit only when the recorded SHA is
 provably broken **and** the replacement provably fixes it, so it converges after one write. It needs real
 history, which is why the workflow checks out with `fetch-depth: 0`.
+
+`make registry-check` fails on the same condition, so `--check` never disagrees with `make registry`. It stays
+green when *no* rebuild could fix it — the uncommitted-skill case above — because that state is normal and
+self-heals on the next push; a gate that goes red on the expected path just teaches people to ignore it.
 
 If you ever need to repair it by hand:
 
