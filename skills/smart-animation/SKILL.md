@@ -4,7 +4,8 @@ description: >
   Professional, performance-first frontend animation and transition guidance
   that routes by the codebase you are in (HTML, CSS, JavaScript, TypeScript,
   React) and by ready-made libraries (thinking-orbs, border-beam, metal-fx,
-  transitions.dev, Canvas UI, Motion/Framer Motion, React Bits, Beautiful UI).
+  liquid-gooey, transitions.dev, Canvas UI, Motion/Framer Motion, React Bits,
+  Beautiful UI).
   Use when adding animations, motion, transitions, page or
   route transitions, scroll reveals, hover micro-interactions, loading/thinking
   indicators, agent and AI-interface states (streaming text, tool calls,
@@ -20,7 +21,7 @@ license: MIT
 compatibility: Requires bash, POSIX utilities (awk, sed, find, grep), python3, writable filesystem at the skill target path.
 metadata:
   author: jjfantini
-  version: "0.4.0"
+  version: "0.5.0"
   previous_names: ["use-smart-animation"]
   category: design
   tags: [animation, transitions, frontend, motion, css, react, webgl, performance, accessibility, agent-ui, humblskill]
@@ -74,7 +75,7 @@ _Full spec: `references/_brain.md`._
 
 - Adding or reviewing animations/transitions in a web frontend
 - Choosing a motion approach for a specific language (HTML/CSS/JS/TS/React)
-- Wiring one of the eight bundled libraries (orbs, border-beam, metal-fx, transitions.dev, Canvas UI, Motion, React Bits, Beautiful UI)
+- Wiring one of the nine bundled libraries (orbs, border-beam, metal-fx, liquid-gooey, transitions.dev, Canvas UI, Motion, React Bits, Beautiful UI)
 - Building the UI around an agent: thinking states, streaming answers, tool calls, human-in-the-loop approval
 - Page/route transitions, scroll reveals, hover micro-interactions, loading states
 - Fixing janky animation (dropped frames) or missing reduced-motion handling
@@ -99,6 +100,7 @@ and `references/wiki/motion/principles/accessibility.md` (reduced-motion floor +
 - **Thinking / loading indicator for an AI or agent UI:** Read `references/wiki/lib/orbs/usage.md` (thinking-orbs)
 - **Animated glow around a card, button, or input border:** Read `references/wiki/lib/beams/usage.md` (border-beam)
 - **Metallic / liquid-metal accent on one premium element:** Read `references/wiki/lib/metal/usage.md` (metal-fx)
+- **Elements that merge like drops of liquid (expanding FAB cluster, morphing card, slider thumb with a rubbery trail):** Read `references/wiki/lib/gooey/usage.md` (liquid-gooey)
 - **Standard UI transitions (modals, toasts, tabs) in any stack:** Read `references/wiki/lib/transitions/usage.md` (transitions.dev)
 - **Creative canvas/WebGL effects over content (particle reveal, liquid, glass, shatter) for a hero or signature moment:** Read `references/wiki/lib/canvas-ui/usage.md` (Canvas UI)
 - **Exit animations, layout/FLIP animation, spring physics, or interruptible orchestration in React:** Read `references/wiki/lib/motion-react/usage.md` (Motion, formerly Framer Motion) — the four things CSS cannot do
