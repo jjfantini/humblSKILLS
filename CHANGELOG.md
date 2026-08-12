@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.47.0](https://github.com/jjfantini/humblSKILLS/compare/v2.46.0...v2.47.0) (2026-08-12)
+
+
+### Features
+
+* **skills:** add smart-orchestrate ([e28e186](https://github.com/jjfantini/humblSKILLS/commit/e28e1863e1d4bc01e1b319cb7fa1416e72e78459))
+* **skills:** add smart-orchestrate ([f5c403a](https://github.com/jjfantini/humblSKILLS/commit/f5c403ab4b1fd0a0494514000bcff3363c57033f))
+* **skills:** add smart-orchestrate for frontier-parent/cheap-worker runs ([3928180](https://github.com/jjfantini/humblSKILLS/commit/3928180815d90701fde224f6cc6552900c392361))
+
 ## [2.46.0](https://github.com/jjfantini/humblSKILLS/compare/v2.45.2...v2.46.0) (2026-08-04)
 
 
