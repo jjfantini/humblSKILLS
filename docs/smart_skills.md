@@ -30,6 +30,13 @@ The brain divides `references/` into three ownership zones:
 
 The agent never edits or renames anything in `raw/` — that is human territory, the ground truth. Wiki concepts link back to it through a `sources:` array in their frontmatter, so every distilled claim has a causal chain to its origin.
 
+A wiki that has moved ahead of its raw source is the **normal state of a living
+skill**, not drift to reconcile. Raw is a point-in-time snapshot (and the
+provenance baseline `sources:` points at); rewriting it to match a later fact
+erases that citation. Read the gap as "wiki is current, snapshot is historical"
+— for example, a model-tier concept may name today's model while
+`references/raw/` still records the upstream skill that said yesterday's.
+
 ## The loop: read before, write after
 
 This is the self-learning mechanism. Every session — even a simple query — runs it:

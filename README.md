@@ -427,7 +427,14 @@ The CLI source lives under [`cli/`](cli) as a nested Go module.
 make build           # builds ./bin/humblskills
 make test            # runs go test ./...
 make registry        # regenerates registry.json from skills/ + embedded adapters
+make registry-check  # local gate: fail if a rebuild would change registry.json
 ```
+
+After adding or editing anything under `skills/`, regenerate (or let the
+Registry workflow rewrite) so `source.sha` pins a commit that serves the
+**current** skill trees — not merely one that still has the directory path.
+Install fetches at that SHA and rejects `dir_sha` mismatches. Details:
+[Registry & skill format](docs/using_humblskills/registry_and_format.md#how-registryjson-is-built-contributors).
 
 ### Mirrored skills
 
