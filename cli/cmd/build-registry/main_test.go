@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -382,5 +384,302 @@ func TestRun_UnknownRole_Rejected(t *testing.T) {
 	err := run(skillsDir, filepath.Join(root, "registry.json"), "r", "main", "sha", false)
 	if err == nil || !strings.Contains(err.Error(), `unknown role "astronaut"`) {
 		t.Fatalf("expected unknown-role validation error, got %v", err)
+	}
+}
+
+// --- source.sha staleness -------------------------------------------------
+//
+// Regression cover for the v2.47.0 bug: a registry.json whose source.sha
+// predates a skill it lists installs as `no files found under skills/<name>
+// in tarball`, and semanticDiff (which zeroes the source block) made that
+// state permanent.
+
+// fakeTree substitutes gitPathsAt with an in-memory sha -> paths map for the
+// duration of a test. A sha absent from the map behaves like an object git
+// cannot resolve, which is the "do not draw conclusions" case.
+func fakeTree(t *testing.T, trees map[string][]string) {
+	t.Helper()
+	prev := gitPathsAt
+	t.Cleanup(func() { gitPathsAt = prev })
+	gitPathsAt = func(sha string, paths []string) (map[string]bool, error) {
+		have, ok := trees[sha]
+		if !ok {
+			return nil, fmt.Errorf("git ls-tree %s: not a valid object name", sha)
+		}
+		set := make(map[string]bool, len(have))
+		for _, p := range have {
+			set[p] = true
+		}
+		out := make(map[string]bool, len(paths))
+		for _, p := range paths {
+			if set[p] {
+				out[p] = true
+			}
+		}
+		return out, nil
+	}
+}
+
+func registryBytes(t *testing.T, sha string, paths ...string) []byte {
+	t.Helper()
+	reg := registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "r", Ref: "main", SHA: sha},
+	}
+	for _, p := range paths {
+		reg.Skills = append(reg.Skills, registry.Skill{Name: filepath.Base(p), Path: p})
+	}
+	b, err := json.Marshal(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
+}
+
+func TestSourceSHAVerdict(t *testing.T) {
+	const (
+		old = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" // pre-dates skills/beta
+		new = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" // contains both
+	)
+	both := []string{"skills/alpha", "skills/beta"}
+	skills := []registry.Skill{{Name: "alpha", Path: "skills/alpha"}, {Name: "beta", Path: "skills/beta"}}
+
+	tests := []struct {
+		name        string
+		trees       map[string][]string
+		existingSHA string
+		newSHA      string
+		wantRewrite bool
+		wantNote    string // substring; "" means no note
+	}{
+		{
+			name:        "recorded sha contains every skill",
+			trees:       map[string][]string{old: both, new: both},
+			existingSHA: old, newSHA: new,
+			wantRewrite: false,
+		},
+		{
+			name:        "recorded sha predates a skill and the new one fixes it",
+			trees:       map[string][]string{old: {"skills/alpha"}, new: both},
+			existingSHA: old, newSHA: new,
+			wantRewrite: true, wantNote: "predates skills/beta",
+		},
+		{
+			// Both broken: rewriting cannot help, and doing it anyway would
+			// make every run dirty the file -> the workflow pushes forever.
+			name:        "neither sha contains the skill",
+			trees:       map[string][]string{old: {"skills/alpha"}, new: {"skills/alpha"}},
+			existingSHA: old, newSHA: new,
+			wantRewrite: false, wantNote: "cannot be installed",
+		},
+		{
+			name:        "git cannot resolve the recorded sha",
+			trees:       map[string][]string{new: both},
+			existingSHA: old, newSHA: new,
+			wantRewrite: false,
+		},
+		{
+			name:        "same sha is never rewritten",
+			trees:       map[string][]string{old: {"skills/alpha"}},
+			existingSHA: old, newSHA: old,
+			wantRewrite: false,
+		},
+		{
+			name:        "empty recorded sha is left alone",
+			trees:       map[string][]string{new: both},
+			existingSHA: "", newSHA: new,
+			wantRewrite: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			fakeTree(t, tc.trees)
+			rewrite, note := sourceSHAVerdict(registryBytes(t, tc.existingSHA, both...), tc.newSHA, skills)
+			if rewrite != tc.wantRewrite {
+				t.Errorf("rewrite = %v, want %v (note: %q)", rewrite, tc.wantRewrite, note)
+			}
+			if tc.wantNote == "" && note != "" {
+				t.Errorf("note = %q, want none", note)
+			}
+			if tc.wantNote != "" && !strings.Contains(note, tc.wantNote) {
+				t.Errorf("note = %q, want substring %q", note, tc.wantNote)
+			}
+		})
+	}
+}
+
+// TestRun_StaleSourceSHA_IsRewrittenThenConverges is the end-to-end shape of
+// the bug: content identical, source.sha too old. The first rebuild must fix
+// the SHA; the second must take the early exit, or the Registry workflow
+// commits and pushes on every trigger.
+func TestRun_StaleSourceSHA_IsRewrittenThenConverges(t *testing.T) {
+	const (
+		beforeBeta = "1111111111111111111111111111111111111111"
+		afterBeta  = "2222222222222222222222222222222222222222"
+	)
+	root := t.TempDir()
+	skillsDir := filepath.Join(root, "skills")
+	writeSkill(t, skillsDir, "alpha", "1.0.0")
+	writeSkill(t, skillsDir, "beta", "1.0.0")
+	out := filepath.Join(root, "registry.json")
+
+	// Seed the broken state: both skills listed, SHA from before beta existed.
+	fakeTree(t, map[string][]string{
+		beforeBeta: {"skills/alpha"},
+		afterBeta:  {"skills/alpha", "skills/beta"},
+	})
+	if err := run(skillsDir, out, "r", "main", beforeBeta, false); err != nil {
+		t.Fatalf("seed run: %v", err)
+	}
+	if got := readSourceSHA(t, out); got != beforeBeta {
+		t.Fatalf("seed sha = %s, want %s", got, beforeBeta)
+	}
+
+	// Rebuild at a commit that does contain beta: nothing semantic changed,
+	// but the SHA must still be replaced.
+	if err := run(skillsDir, out, "r", "main", afterBeta, false); err != nil {
+		t.Fatalf("rebuild: %v", err)
+	}
+	if got := readSourceSHA(t, out); got != afterBeta {
+		t.Fatalf("sha = %s, want it rewritten to %s", got, afterBeta)
+	}
+
+	// Convergence: a second rebuild at a third good commit must be a no-op,
+	// since the recorded SHA now resolves every skill.
+	const laterStillGood = "3333333333333333333333333333333333333333"
+	fakeTree(t, map[string][]string{
+		afterBeta:      {"skills/alpha", "skills/beta"},
+		laterStillGood: {"skills/alpha", "skills/beta"},
+	})
+	before, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := run(skillsDir, out, "r", "main", laterStillGood, false); err != nil {
+		t.Fatalf("converge run: %v", err)
+	}
+	after, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Errorf("registry.json changed on a run with a healthy source.sha; the Registry workflow would push on every trigger")
+	}
+}
+
+// TestRun_OutsideGitRepo_KeepsEarlyExit guards the fallback: when git cannot
+// answer, behaviour must be exactly what it was before this check existed.
+func TestRun_OutsideGitRepo_KeepsEarlyExit(t *testing.T) {
+	root := t.TempDir()
+	skillsDir := filepath.Join(root, "skills")
+	writeSkill(t, skillsDir, "alpha", "1.0.0")
+	out := filepath.Join(root, "registry.json")
+
+	fakeTree(t, nil) // every lookup errors, as outside a repository
+	if err := run(skillsDir, out, "r", "main", "1111111111111111111111111111111111111111", false); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := run(skillsDir, out, "r", "main", "9999999999999999999999999999999999999999", false); err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Error("file was rewritten despite git being unable to verify the recorded sha")
+	}
+}
+
+func readSourceSHA(t *testing.T, path string) string {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reg registry.Registry
+	if err := json.Unmarshal(data, &reg); err != nil {
+		t.Fatal(err)
+	}
+	return reg.Source.SHA
+}
+
+// TestGitLsTree exercises the real git plumbing the fake stands in for: a
+// directory path resolves as a tree entry, an absent path is simply missing
+// from the output, and an unknown revision is an error rather than "absent".
+func TestGitLsTree(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not available")
+	}
+	repo := t.TempDir()
+	gitRun := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = repo
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
+	gitRun("init", "-q")
+	gitRun("config", "user.email", "t@example.com")
+	gitRun("config", "user.name", "t")
+	writeSkill(t, filepath.Join(repo, "skills"), "alpha", "1.0.0")
+	gitRun("add", "-A")
+	gitRun("commit", "-qm", "add alpha")
+
+	shaOut, err := exec.Command("git", "-C", repo, "rev-parse", "HEAD").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sha := strings.TrimSpace(string(shaOut))
+
+	// gitLsTree shells out to git in the process CWD, so run from the repo.
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(repo); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+
+	present, err := gitLsTree(sha, []string{"skills/alpha", "skills/beta"})
+	if err != nil {
+		t.Fatalf("gitLsTree: %v", err)
+	}
+	if !present["skills/alpha"] {
+		t.Error("skills/alpha should resolve as a tree entry at HEAD")
+	}
+	if present["skills/beta"] {
+		t.Error("skills/beta was never committed and must not resolve")
+	}
+
+	if _, err := gitLsTree("0000000000000000000000000000000000000000", []string{"skills/alpha"}); err == nil {
+		t.Error("an unresolvable revision must error, not report the path as absent")
+	}
+
+	// Paths recorded in the registry are repo-root-relative, but the Makefile
+	// invokes this binary as `go -C cli run ...`, so the process CWD is a
+	// subdirectory. Without --full-tree git would resolve "skills/alpha" as
+	// "<subdir>/skills/alpha" and report every skill as missing — which reads
+	// as "the recorded SHA is broken" for a registry that is perfectly fine.
+	sub := filepath.Join(repo, "cli")
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(sub); err != nil {
+		t.Fatal(err)
+	}
+	fromSub, err := gitLsTree(sha, []string{"skills/alpha"})
+	if err != nil {
+		t.Fatalf("gitLsTree from subdirectory: %v", err)
+	}
+	if !fromSub["skills/alpha"] {
+		t.Error("skills/alpha must resolve from a subdirectory; pathspec is repo-root-relative")
 	}
 }

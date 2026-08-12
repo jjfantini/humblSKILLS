@@ -87,6 +87,26 @@ gh pr merge <n> --merge      # correct
 gh pr merge <n> --squash     # breaks both of the above
 ```
 
+### `registry.json`'s `source.sha` must contain every skill it lists
+`install` fetches each skill's tarball at `source.sha`, so a SHA that predates a listed skill produces
+`extract: no files found under "skills/<name>" in tarball` — the skill is discoverable and uninstallable.
+`make registry` reads the working tree but stamps `source.sha` from git HEAD, so **the run that first adds a
+skill always records a SHA that cannot contain it**. That is expected locally; the Registry workflow repairs
+it on the next push, once the skill is committed.
+
+Do not "fix" this by making `semanticDiff` compare the `source` block — that comparison is zeroed on purpose,
+and reinstating it makes the workflow push on every trigger forever. The repair lives in `sourceSHAVerdict`
+(`cli/cmd/build-registry/main.go`), which bypasses the "already in sync" exit only when the recorded SHA is
+provably broken **and** the replacement provably fixes it, so it converges after one write. It needs real
+history, which is why the workflow checks out with `fetch-depth: 0`.
+
+If you ever need to repair it by hand:
+
+```sh
+go -C cli run ./cmd/build-registry --skills-dir=$PWD/skills --out=$PWD/registry.json --ref=main --sha=<sha>
+git cat-file -e <sha>:skills/<name>/SKILL.md   # verify before pushing
+```
+
 ### A conflicted PR gets no CI at all
 GitHub cannot build the merge ref for a PR with conflicts, so it dispatches **no** `pull_request` workflows.
 The PR shows no checks rather than failing ones, and with nothing gating `main` it stays merge-able by hand.
