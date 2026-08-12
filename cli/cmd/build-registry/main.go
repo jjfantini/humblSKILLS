@@ -176,10 +176,20 @@ func run(skillsDir, outFile, repo, ref, sha string, check bool) error {
 	// "already in sync" reachable. semanticDiff is the same comparison
 	// --check uses. If the existing file is unreadable or malformed, fall
 	// through and write.
+	//
+	// The one exception is a source.sha that predates a skill the file already
+	// lists — see sourceSHAVerdict. Ignoring the source block is what made the
+	// early exit safe, and also what made that particular corruption permanent.
 	if existing, rerr := os.ReadFile(outFile); rerr == nil {
 		if diff, derr := semanticDiff(existing, out); derr == nil && !diff {
-			fmt.Printf("%s already up to date (%d skills)\n", outFile, len(skills))
-			return nil
+			rewrite, note := sourceSHAVerdict(existing, sha, skills)
+			if note != "" {
+				fmt.Fprintln(os.Stderr, "build-registry:", note)
+			}
+			if !rewrite {
+				fmt.Printf("%s already up to date (%d skills)\n", outFile, len(skills))
+				return nil
+			}
 		}
 	}
 
@@ -273,6 +283,122 @@ func semanticDiff(a, b []byte) (bool, error) {
 	ra.GeneratedAt, rb.GeneratedAt = "", ""
 	ra.Source, rb.Source = registry.Source{}, registry.Source{}
 	return !reflect.DeepEqual(ra, rb), nil
+}
+
+// gitPathsAt reports which of paths exist in the tree at sha, as a set. One
+// `git ls-tree` call answers for every path at once; entries that do not exist
+// are simply absent from the output. An error means git could not answer at
+// all (not a repository, unknown or pruned object, shallow clone that never
+// fetched that commit) and must never be read as "the paths are missing".
+//
+// Package-level so tests can substitute a fake without building a repository.
+var gitPathsAt = gitLsTree
+
+func gitLsTree(sha string, paths []string) (map[string]bool, error) {
+	// --full-tree is load-bearing: without it ls-tree resolves pathspecs
+	// relative to the process CWD, and the Makefile runs this binary via
+	// `go -C cli run ...`, so every "skills/x" would be looked up as
+	// "cli/skills/x" and report as missing. The skill paths recorded in the
+	// registry are repo-root-relative, so the lookup must be too.
+	args := make([]string, 0, len(paths)+6)
+	args = append(args, "ls-tree", "--full-tree", "--name-only", "-z", sha, "--")
+	args = append(args, paths...)
+
+	cmd := exec.Command("git", args...)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("git ls-tree %s: %w: %s", sha, err, strings.TrimSpace(stderr.String()))
+	}
+
+	present := make(map[string]bool, len(paths))
+	for _, name := range strings.Split(string(out), "\x00") {
+		if name != "" {
+			present[name] = true
+		}
+	}
+	return present, nil
+}
+
+// missingSkillAt returns the first skill path absent from the tree at sha, or
+// "" when every one of them is present.
+func missingSkillAt(sha string, skills []registry.Skill) (string, error) {
+	paths := make([]string, 0, len(skills))
+	for _, s := range skills {
+		paths = append(paths, s.Path)
+	}
+	present, err := gitPathsAt(sha, paths)
+	if err != nil {
+		return "", err
+	}
+	for _, p := range paths {
+		if !present[p] {
+			return p, nil
+		}
+	}
+	return "", nil
+}
+
+// sourceSHAVerdict decides whether a registry.json that is otherwise in sync
+// must still be rewritten because its recorded source.sha predates a skill it
+// lists.
+//
+// This is the one hole semanticDiff leaves open. `make registry` reads the
+// working tree but stamps source.sha from git HEAD, so the run that first adds
+// a skill necessarily records a commit that does not contain it. install
+// fetches each skill's tarball at exactly that SHA, so the skill is listed and
+// then fails with "no files found under skills/<name> in tarball". Because
+// semanticDiff zeroes the whole source block, every later rebuild reports
+// "already in sync" and the broken SHA is never replaced. It bites only the
+// release that introduces a skill — for skills that already existed the frozen
+// SHA still contains them, which is why it went unnoticed until v2.47.0.
+//
+// rewrite is true only when the recorded SHA is provably broken AND newSHA
+// provably fixes it. That conjunction is what keeps this convergent: the write
+// records a SHA containing every skill, so the next run takes the early exit
+// and the Registry workflow pushes exactly once. Rewriting whenever the
+// recorded SHA merely looked suspect would push on every trigger, forever —
+// the failure mode the early exit exists to prevent.
+//
+// note is advisory text for the operator; it is printed whether or not the
+// file is rewritten, so the unfixable case cannot fail silently.
+func sourceSHAVerdict(existing []byte, newSHA string, skills []registry.Skill) (rewrite bool, note string) {
+	var reg registry.Registry
+	if err := json.Unmarshal(existing, &reg); err != nil {
+		return false, ""
+	}
+	oldSHA := reg.Source.SHA
+	if oldSHA == "" || newSHA == "" || oldSHA == newSHA {
+		return false, ""
+	}
+
+	missing, err := missingSkillAt(oldSHA, skills)
+	if err != nil {
+		// Git cannot answer. Staying silent is deliberate: building outside a
+		// repository (tests, a vendored tarball) is normal and must not warn.
+		return false, ""
+	}
+	if missing == "" {
+		return false, ""
+	}
+
+	if stillMissing, err := missingSkillAt(newSHA, skills); err != nil || stillMissing != "" {
+		return false, fmt.Sprintf(
+			"source.sha %s does not contain %s, and %s does not either — registry.json lists a skill that cannot be installed. Commit the skill, then re-run `make registry`.",
+			shortSHA(oldSHA), missing, shortSHA(newSHA))
+	}
+
+	return true, fmt.Sprintf(
+		"source.sha %s predates %s; rewriting with %s",
+		shortSHA(oldSHA), missing, shortSHA(newSHA))
+}
+
+func shortSHA(sha string) string {
+	if len(sha) > 12 {
+		return sha[:12]
+	}
+	return sha
 }
 
 func writeAtomic(path string, data []byte) error {

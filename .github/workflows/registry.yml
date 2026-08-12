@@ -20,6 +20,15 @@ name: Registry
 # source.ref/sha were rewritten on every run, so the early exit was unreachable
 # and this workflow would push on every trigger, forever. If build-registry ever
 # goes back to writing unconditionally, this becomes an infinite push loop.
+#
+# There is exactly one sanctioned exception, and this job is what applies it: a
+# source.sha that predates a skill registry.json already lists. `make registry`
+# reads the working tree but stamps source.sha from HEAD, so the commit that
+# first adds a skill records a SHA that cannot contain it, and install then
+# fails with "no files found under skills/<name> in tarball". build-registry
+# rewrites in that case only, and only when the new SHA actually resolves every
+# skill — so it converges after one push rather than looping. See
+# sourceSHAVerdict in cli/cmd/build-registry/main.go.
 
 on:
   push:
@@ -61,6 +70,13 @@ jobs:
           # A GITHUB_TOKEN push does not trigger workflows, so CI would never
           # run on the auto-fix commit.
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          # Full history, not the default depth-1. Two steps here need commits
+          # other than the tip: build-registry resolves the *recorded*
+          # source.sha to check it contains every skill (on a shallow clone
+          # that object is absent, git errors, and the check silently declines
+          # to fire), and the push-retry below does `git reset --hard HEAD~1`,
+          # which has no parent to reach at depth 1.
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"
