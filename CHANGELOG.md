@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.47.3](https://github.com/jjfantini/humblSKILLS/compare/v2.47.2...v2.47.3) (2026-08-12)
+
+
+### Bug Fixes
+
+* **registry:** fail --check on a source.sha a rebuild would repair ([72f085a](https://github.com/jjfantini/humblSKILLS/commit/72f085ae61f40f2669afe81d77715391ab522b4c))
+* **registry:** fail --check on a source.sha a rebuild would repair ([f4aed10](https://github.com/jjfantini/humblSKILLS/commit/f4aed100f0eb65bd161e3d3b8f46cf367e65511d))
+* **registry:** fail --check on a source.sha a rebuild would repair ([97525ac](https://github.com/jjfantini/humblSKILLS/commit/97525acb8daa36f0231b4c9687a767a8f4f072ab))
+
 ## [2.47.2](https://github.com/jjfantini/humblSKILLS/compare/v2.47.1...v2.47.2) (2026-08-12)
 
 
