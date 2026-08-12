@@ -34,3 +34,14 @@ Entry shape:
   - humblSKILLS extension fields nested under `metadata:` per repo convention
 
 [LINT 2026-08-12] 9 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[QUERY 2026-08-12] Pointed the model tiers at Grok 4.6 (was 4.5).
+  - Updated: wiki/orchestrate/roles/parent-orchestrator.md (Cursor parent tier)
+  - Updated: wiki/orchestrate/roles/worker-agent.md (cheap worker tier)
+  - references/raw/orchestrate-SKILL.md deliberately NOT touched - raw is
+    immutable and is the provenance baseline; see decisions.md 2026-08-12
+  - metadata.version 1.0.0 -> 1.0.1
+
+[LINT 2026-08-12] 9 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[LINT 2026-08-12] 9 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.

@@ -14,7 +14,7 @@ last_ingested: 2026-08-12
 
 Prefer the smallest, fastest model that can finish the brief cleanly:
 
-- Grok 4.5, Composer 2.5
+- Grok 4.6, Composer 2.5
 - GPT-5.6 Terra, Luna
 - Claude Sonnet 5, Opus 5 (reserve Opus for the harder worker slots)
 

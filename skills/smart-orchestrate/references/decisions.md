@@ -59,3 +59,10 @@ Entry shape:
 - Chose: B.
 - Why: a second file named `SKILL.md` inside a skill directory is a genuine hazard for humans grepping the tree, and would be a hazard for tooling too if `build-registry` ever walked recursively (today it only joins `skills/<name>/SKILL.md`, so it is safe by one implementation detail). The no-rename rule exists to protect human-dropped provenance; here the drop was performed by the migration itself, and the prefix adds provenance rather than erasing it.
 - Result: raw file is `references/raw/orchestrate-SKILL.md`, cited by all 9 concepts, byte-identical to the upstream flat skill.
+
+### 2026-08-12 | Refresh model names in the wiki, leave `references/raw/` at 4.5
+- Context: Grok 4.5 was superseded by Grok 4.6. Two wiki concepts named 4.5 as a model tier (`roles/parent-orchestrator` for the Cursor parent slot, `roles/worker-agent` for the cheap worker slot), and so does the preserved upstream skill at `references/raw/orchestrate-SKILL.md`.
+- Options: (A) update the wiki only, (B) update the wiki and the raw file so nothing in the skill reads "4.5", (C) update the wiki and annotate the raw file's line as superseded.
+- Chose: A - wiki only. The raw file keeps saying Grok 4.5.
+- Why: raw is human territory and immutable by the brain spec ("Never edit raw to satisfy a wiki claim"). It is a point-in-time snapshot of what was handed over, and it doubles as the provenance baseline every concept's `sources:` array points at - editing it to match a later fact destroys what makes the citation meaningful, and silently rewrites history for anyone diffing the distillation against its origin. A wiki that has moved ahead of its raw source is the normal state of a living skill, not drift to be reconciled.
+- Result: `roles/parent-orchestrator.md` and `roles/worker-agent.md` say Grok 4.6; the raw file still says 4.5. Read the difference as "wiki is current, snapshot is historical" - that is exactly what `sources:` is for. Skill version 1.0.0 -> 1.0.1.
