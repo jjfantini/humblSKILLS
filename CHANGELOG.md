@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.47.1](https://github.com/jjfantini/humblSKILLS/compare/v2.47.0...v2.47.1) (2026-08-12)
+
+
+### Bug Fixes
+
+* **registry:** pin source.sha to a commit that contains every skill ([df49305](https://github.com/jjfantini/humblSKILLS/commit/df49305f414336c88833800a9494d09a5774872c))
+
 ## [2.47.0](https://github.com/jjfantini/humblSKILLS/compare/v2.46.0...v2.47.0) (2026-08-12)
 
 
