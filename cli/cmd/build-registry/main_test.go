@@ -683,3 +683,64 @@ func TestGitLsTree(t *testing.T) {
 		t.Error("skills/alpha must resolve from a subdirectory; pathspec is repo-root-relative")
 	}
 }
+
+// TestRun_Check_FailsOnFixableStaleSHA covers --check's contract: it answers
+// "would a rebuild change this file?", so it must fail on exactly what the
+// write path acts on. Reporting clean on a stale source.sha is how the
+// v2.47.0 registry passed every gate while listing an uninstallable skill.
+func TestRun_Check_FailsOnFixableStaleSHA(t *testing.T) {
+	const (
+		beforeBeta = "1111111111111111111111111111111111111111"
+		afterBeta  = "2222222222222222222222222222222222222222"
+	)
+	both := []string{"skills/alpha", "skills/beta"}
+
+	setup := func(t *testing.T) (skillsDir, out string) {
+		t.Helper()
+		root := t.TempDir()
+		skillsDir = filepath.Join(root, "skills")
+		writeSkill(t, skillsDir, "alpha", "1.0.0")
+		writeSkill(t, skillsDir, "beta", "1.0.0")
+		out = filepath.Join(root, "registry.json")
+		if err := run(skillsDir, out, "r", "main", beforeBeta, false); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+		return skillsDir, out
+	}
+
+	t.Run("fixable stale sha fails", func(t *testing.T) {
+		fakeTree(t, map[string][]string{beforeBeta: {"skills/alpha"}, afterBeta: both})
+		skillsDir, out := setup(t)
+		err := run(skillsDir, out, "r", "main", afterBeta, true)
+		if err == nil || !strings.Contains(err.Error(), "out of date") {
+			t.Fatalf("--check should fail when a rebuild would repair source.sha, got %v", err)
+		}
+	})
+
+	t.Run("unfixable stale sha passes", func(t *testing.T) {
+		// The skill is not committed anywhere yet, so no regeneration can help.
+		// Failing here would put `make registry-check` red on a normal,
+		// self-healing state, which trains people to ignore it.
+		fakeTree(t, map[string][]string{beforeBeta: {"skills/alpha"}, afterBeta: {"skills/alpha"}})
+		skillsDir, out := setup(t)
+		if err := run(skillsDir, out, "r", "main", afterBeta, true); err != nil {
+			t.Fatalf("--check should not fail when no rebuild can fix it: %v", err)
+		}
+	})
+
+	t.Run("healthy sha passes", func(t *testing.T) {
+		fakeTree(t, map[string][]string{beforeBeta: both, afterBeta: both})
+		skillsDir, out := setup(t)
+		if err := run(skillsDir, out, "r", "main", afterBeta, true); err != nil {
+			t.Fatalf("--check should pass on a healthy registry: %v", err)
+		}
+	})
+
+	t.Run("git unavailable passes", func(t *testing.T) {
+		fakeTree(t, nil)
+		skillsDir, out := setup(t)
+		if err := run(skillsDir, out, "r", "main", afterBeta, true); err != nil {
+			t.Fatalf("--check must not fail when git cannot verify: %v", err)
+		}
+	})
+}

@@ -160,6 +160,19 @@ func run(skillsDir, outFile, repo, ref, sha string, check bool) error {
 		if diff {
 			return fmt.Errorf("%s is out of date. Run `make registry` and commit the result.", outFile)
 		}
+		// --check answers "would a rebuild change this file?". Content is only
+		// half of that: a source.sha that predates a listed skill is also
+		// something a rebuild would fix, and reporting clean there let the
+		// v2.47.0 registry pass every gate while listing a skill nobody could
+		// install. Fail on the same condition the write path acts on — broken
+		// AND fixable — so --check never disagrees with `make registry`.
+		rewrite, note := sourceSHAVerdict(existing, sha, skills)
+		if note != "" {
+			fmt.Fprintln(os.Stderr, "build-registry:", note)
+		}
+		if rewrite {
+			return fmt.Errorf("%s is out of date. Run `make registry` and commit the result.", outFile)
+		}
 		return nil
 	}
 
@@ -184,7 +197,11 @@ func run(skillsDir, outFile, repo, ref, sha string, check bool) error {
 		if diff, derr := semanticDiff(existing, out); derr == nil && !diff {
 			rewrite, note := sourceSHAVerdict(existing, sha, skills)
 			if note != "" {
-				fmt.Fprintln(os.Stderr, "build-registry:", note)
+				action := ""
+				if rewrite {
+					action = "; rewriting"
+				}
+				fmt.Fprintf(os.Stderr, "build-registry: %s%s\n", note, action)
 			}
 			if !rewrite {
 				fmt.Printf("%s already up to date (%d skills)\n", outFile, len(skills))
@@ -390,7 +407,7 @@ func sourceSHAVerdict(existing []byte, newSHA string, skills []registry.Skill) (
 	}
 
 	return true, fmt.Sprintf(
-		"source.sha %s predates %s; rewriting with %s",
+		"source.sha %s predates %s, which %s contains",
 		shortSHA(oldSHA), missing, shortSHA(newSHA))
 }
 
