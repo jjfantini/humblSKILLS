@@ -45,7 +45,7 @@ against anything.
 |--------|--------------|
 | Claude | Opus 5 on max is the default — same or better performance than Fable 5 and much cheaper. Reach for Fable 5 (high–max) only when the user asks for it. |
 | Codex  | GPT-5.6 Sol Max |
-| Cursor | Auto Intelligence, or Grok 4.5 High |
+| Cursor | Auto Intelligence, or Grok 4.6 High |
 
 **Ultracode is a spend decision, not a quality dial.** Use it only for a massive
 refactor touching many services and e2e flows, and **always confirm with the user
