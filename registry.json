@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-12T19:22:01Z",
+  "generated_at": "2026-08-12T20:17:07Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "25b4a4c5bf1d19ad7d9b61b7f74d39b04ef1dd4c"
+    "sha": "d397ab7eb24e23b936c03b2f8b7753bbf6122dc6"
   },
   "skills": [
     {
@@ -461,8 +461,8 @@
     },
     {
       "name": "smart-animation",
-      "version": "0.4.0",
-      "description": "Professional, performance-first frontend animation and transition guidance that routes by the codebase you are in (HTML, CSS, JavaScript, TypeScript, React) and by ready-made libraries (thinking-orbs, border-beam, metal-fx, transitions.dev, Canvas UI, Motion/Framer Motion, React Bits, Beautiful UI). Use when adding animations, motion, transitions, page or route transitions, scroll reveals, hover micro-interactions, loading/thinking indicators, agent and AI-interface states (streaming text, tool calls, approval gates), or when the user says \"animate this\", \"add motion\", \"make it feel premium/polished\", \"page transition\", \"reveal on scroll\", or asks which animation library to use. Enforces compositor-only performance and a prefers-reduced-motion floor, and favors distinctive, non-generic motion. This skill owns motion implementation - technique, orchestration, performance, reduced-motion, and library choice. For whole-interface design direction (aesthetic thesis, typography, color, layout) use smart-frontend-design. Do NOT use for non-frontend work or for static visual design with no motion.\n",
+      "version": "0.5.0",
+      "description": "Professional, performance-first frontend animation and transition guidance that routes by the codebase you are in (HTML, CSS, JavaScript, TypeScript, React) and by ready-made libraries (thinking-orbs, border-beam, metal-fx, liquid-gooey, transitions.dev, Canvas UI, Motion/Framer Motion, React Bits, Beautiful UI). Use when adding animations, motion, transitions, page or route transitions, scroll reveals, hover micro-interactions, loading/thinking indicators, agent and AI-interface states (streaming text, tool calls, approval gates), or when the user says \"animate this\", \"add motion\", \"make it feel premium/polished\", \"page transition\", \"reveal on scroll\", or asks which animation library to use. Enforces compositor-only performance and a prefers-reduced-motion floor, and favors distinctive, non-generic motion. This skill owns motion implementation - technique, orchestration, performance, reduced-motion, and library choice. For whole-interface design direction (aesthetic thesis, typography, color, layout) use smart-frontend-design. Do NOT use for non-frontend work or for static visual design with no motion.\n",
       "category": "design",
       "tags": [
         "animation",
@@ -493,7 +493,7 @@
         "use-smart-animation"
       ],
       "path": "skills/smart-animation",
-      "dir_sha": "f1db4765581c0527aaeff8f85388472e39a01339bd00ba1eaffdfb111c79125e"
+      "dir_sha": "d88803e2c246f9ddfe8648020ec8521a347f1e18b03fbb0123a41485bf79e8d6"
     },
     {
       "name": "smart-claude-init",

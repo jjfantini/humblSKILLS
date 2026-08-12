@@ -12,7 +12,7 @@ files and re-run lint.
 Context -> categories. See `## Wiki` below for the concept enumeration.
 
 - **lang** -> `css`, `html`, `js`, `react`, `ts`
-- **lib** -> `beams`, `beautiful-ui`, `canvas-ui`, `metal`, `motion-react`, `orbs`, `react-bits`, `transitions`
+- **lib** -> `beams`, `beautiful-ui`, `canvas-ui`, `gooey`, `metal`, `motion-react`, `orbs`, `react-bits`, `transitions`
 - **motion** -> `principles`
 
 ## Wiki
@@ -53,6 +53,10 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 - [usage.md](wiki/lib/canvas-ui/usage.md) - Canvas UI: Creative Canvas & WebGL Effects
 
+#### gooey
+
+- [usage.md](wiki/lib/gooey/usage.md) - liquid-gooey: Metaball Merge and Liquid Trails
+
 #### metal
 
 - [usage.md](wiki/lib/metal/usage.md) - metal-fx: Liquid-Metal Shader Accent
@@ -89,6 +93,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 - [border-beam.md](raw/border-beam.md) - cited by: references/wiki/lib/beams/usage.md
 - [canvas-ui.md](raw/canvas-ui.md) - cited by: references/wiki/lib/canvas-ui/usage.md
 - [frontend-design-motion-principles.md](raw/frontend-design-motion-principles.md) - cited by: references/wiki/lang/react/animation.md, references/wiki/motion/principles/design.md
+- [liquid-gooey.md](raw/liquid-gooey.md) - cited by: references/wiki/lib/gooey/usage.md
 - [metal-fx.md](raw/metal-fx.md) - cited by: references/wiki/lib/metal/usage.md
 - [motion-react.md](raw/motion-react.md) - cited by: references/wiki/lib/motion-react/usage.md
 - [react-bits.md](raw/react-bits.md) - cited by: references/wiki/lib/react-bits/usage.md
