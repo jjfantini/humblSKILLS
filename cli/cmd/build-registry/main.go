@@ -302,23 +302,30 @@ func semanticDiff(a, b []byte) (bool, error) {
 	return !reflect.DeepEqual(ra, rb), nil
 }
 
-// gitPathsAt reports which of paths exist in the tree at sha, as a set. One
-// `git ls-tree` call answers for every path at once; entries that do not exist
-// are simply absent from the output. An error means git could not answer at
-// all (not a repository, unknown or pruned object, shallow clone that never
-// fetched that commit) and must never be read as "the paths are missing".
+// gitPathsAt maps each of paths to its git object id in the tree at sha.
+// Paths that do not exist there are absent from the map. One `git ls-tree`
+// call answers for every path at once.
+//
+// Object ids, not mere presence: a skill directory that exists at sha but
+// holds older content hashes to a different tree id, and serving that content
+// is just as broken as serving nothing — install recomputes dir_sha over what
+// it extracted and rejects the mismatch.
+//
+// An error means git could not answer at all (not a repository, unknown or
+// pruned object, shallow clone that never fetched that commit) and must never
+// be read as "the paths are missing".
 //
 // Package-level so tests can substitute a fake without building a repository.
 var gitPathsAt = gitLsTree
 
-func gitLsTree(sha string, paths []string) (map[string]bool, error) {
+func gitLsTree(sha string, paths []string) (map[string]string, error) {
 	// --full-tree is load-bearing: without it ls-tree resolves pathspecs
 	// relative to the process CWD, and the Makefile runs this binary via
 	// `go -C cli run ...`, so every "skills/x" would be looked up as
 	// "cli/skills/x" and report as missing. The skill paths recorded in the
 	// registry are repo-root-relative, so the lookup must be too.
 	args := make([]string, 0, len(paths)+6)
-	args = append(args, "ls-tree", "--full-tree", "--name-only", "-z", sha, "--")
+	args = append(args, "ls-tree", "--full-tree", "-z", sha, "--")
 	args = append(args, paths...)
 
 	cmd := exec.Command("git", args...)
@@ -329,54 +336,67 @@ func gitLsTree(sha string, paths []string) (map[string]bool, error) {
 		return nil, fmt.Errorf("git ls-tree %s: %w: %s", sha, err, strings.TrimSpace(stderr.String()))
 	}
 
-	present := make(map[string]bool, len(paths))
-	for _, name := range strings.Split(string(out), "\x00") {
-		if name != "" {
-			present[name] = true
+	// Each NUL-terminated record is "<mode> SP <type> SP <objectid> TAB <path>".
+	ids := make(map[string]string, len(paths))
+	for _, rec := range strings.Split(string(out), "\x00") {
+		if rec == "" {
+			continue
 		}
+		meta, path, ok := strings.Cut(rec, "\t")
+		if !ok {
+			continue
+		}
+		fields := strings.Fields(meta)
+		if len(fields) < 3 {
+			continue
+		}
+		ids[path] = fields[2]
 	}
-	return present, nil
+	return ids, nil
 }
 
-// missingSkillAt returns the first skill path absent from the tree at sha, or
-// "" when every one of them is present.
-func missingSkillAt(sha string, skills []registry.Skill) (string, error) {
+// skillTreeIDs returns the git object id of every skill directory at sha,
+// keyed by the skill's registry path. A path missing from the result did not
+// exist at that commit.
+func skillTreeIDs(sha string, skills []registry.Skill) (map[string]string, error) {
 	paths := make([]string, 0, len(skills))
 	for _, s := range skills {
 		paths = append(paths, s.Path)
 	}
-	present, err := gitPathsAt(sha, paths)
-	if err != nil {
-		return "", err
-	}
-	for _, p := range paths {
-		if !present[p] {
-			return p, nil
-		}
-	}
-	return "", nil
+	return gitPathsAt(sha, paths)
 }
 
 // sourceSHAVerdict decides whether a registry.json that is otherwise in sync
-// must still be rewritten because its recorded source.sha predates a skill it
-// lists.
+// must still be rewritten because its recorded source.sha serves the wrong
+// content for a skill it lists.
 //
 // This is the one hole semanticDiff leaves open. `make registry` reads the
-// working tree but stamps source.sha from git HEAD, so the run that first adds
-// a skill necessarily records a commit that does not contain it. install
-// fetches each skill's tarball at exactly that SHA, so the skill is listed and
-// then fails with "no files found under skills/<name> in tarball". Because
-// semanticDiff zeroes the whole source block, every later rebuild reports
-// "already in sync" and the broken SHA is never replaced. It bites only the
-// release that introduces a skill — for skills that already existed the frozen
-// SHA still contains them, which is why it went unnoticed until v2.47.0.
+// working tree but stamps source.sha from git HEAD, so a run that adds or edits
+// a skill necessarily records a commit that predates the change. install
+// fetches each skill's tarball at exactly that SHA, so:
 //
-// rewrite is true only when the recorded SHA is provably broken AND newSHA
-// provably fixes it. That conjunction is what keeps this convergent: the write
-// records a SHA containing every skill, so the next run takes the early exit
-// and the Registry workflow pushes exactly once. Rewriting whenever the
-// recorded SHA merely looked suspect would push on every trigger, forever —
-// the failure mode the early exit exists to prevent.
+//   - a skill added in that change is absent from the tarball entirely —
+//     "no files found under skills/<name> in tarball" (shipped in v2.47.0)
+//   - a skill *edited* in that change extracts at its old content, and install
+//     recomputes dir_sha over it and rejects the mismatch
+//
+// Because semanticDiff zeroes the whole source block, every later rebuild
+// reports "already in sync" and the wrong SHA is never replaced. The trap is
+// that committing a locally generated registry.json — which AGENTS.md and
+// `make registry-check` both ask for — is exactly what makes CI's regeneration
+// a no-op and freezes the bad SHA.
+//
+// Comparison is by git tree object id, not path existence. "The directory is
+// there" is not the invariant install needs; "the directory hashes to what the
+// registry advertises" is, and an older revision of a skill fails that just as
+// surely as a missing one.
+//
+// rewrite is true only when the recorded SHA provably serves different content
+// AND newSHA provably contains every listed skill. That conjunction keeps this
+// convergent: the write records a SHA whose skill trees match, so the next run
+// takes the early exit and the Registry workflow pushes exactly once. Rewriting
+// whenever the recorded SHA merely looked suspect would push on every trigger,
+// forever — the failure mode the early exit exists to prevent.
 //
 // note is advisory text for the operator; it is printed whether or not the
 // file is rewritten, so the unfixable case cannot fail silently.
@@ -390,25 +410,47 @@ func sourceSHAVerdict(existing []byte, newSHA string, skills []registry.Skill) (
 		return false, ""
 	}
 
-	missing, err := missingSkillAt(oldSHA, skills)
+	oldIDs, err := skillTreeIDs(oldSHA, skills)
 	if err != nil {
 		// Git cannot answer. Staying silent is deliberate: building outside a
 		// repository (tests, a vendored tarball) is normal and must not warn.
 		return false, ""
 	}
-	if missing == "" {
+	newIDs, err := skillTreeIDs(newSHA, skills)
+	if err != nil {
 		return false, ""
 	}
 
-	if stillMissing, err := missingSkillAt(newSHA, skills); err != nil || stillMissing != "" {
-		return false, fmt.Sprintf(
-			"source.sha %s does not contain %s, and %s does not either — registry.json lists a skill that cannot be installed. Commit the skill, then re-run `make registry`.",
-			shortSHA(oldSHA), missing, shortSHA(newSHA))
+	// Completeness of the stamp candidate is checked first and on its own. A
+	// listed skill that exists at neither SHA compares "equal" and would
+	// otherwise look like agreement, silently swallowing the one case the
+	// operator most needs told about: nothing committed anywhere serves this
+	// skill, so no rewrite can help and the release will ship uninstallable.
+	for _, s := range skills {
+		if newIDs[s.Path] == "" {
+			return false, fmt.Sprintf(
+				"%s does not contain %s — registry.json lists a skill that cannot be installed. Commit the skill, then re-run `make registry`.",
+				shortSHA(newSHA), s.Path)
+		}
 	}
 
-	return true, fmt.Sprintf(
-		"source.sha %s predates %s, which %s contains",
-		shortSHA(oldSHA), missing, shortSHA(newSHA))
+	// Now the recorded SHA only has to agree with the candidate. Differing
+	// means it would serve the wrong bytes; name which way so the remedy is
+	// obvious.
+	for _, s := range skills {
+		if oldIDs[s.Path] == newIDs[s.Path] {
+			continue
+		}
+		kind := "serves outdated"
+		if oldIDs[s.Path] == "" {
+			kind = "does not contain"
+		}
+		return true, fmt.Sprintf(
+			"source.sha %s %s %s; %s matches",
+			shortSHA(oldSHA), kind, s.Path, shortSHA(newSHA))
+	}
+
+	return false, ""
 }
 
 func shortSHA(sha string) string {
