@@ -14,7 +14,7 @@ compatibility: "Requires git 2.5+ for worktree isolation and at least one agent 
 disable-model-invocation: true
 metadata:
   author: jjfantini
-  version: "1.0.1"
+  version: "1.1.0"
   category: development
   tags: [orchestration, multi-agent, subagents, planning, worktree, routing, humblskill]
   platforms: [claude-code, cursor, codex]
@@ -88,6 +88,10 @@ Read `references/wiki/orchestrate/isolation/worktree-first.md`, then follow
 
 **Pick a model tier for a subtask, or decide to escalate:**
 Read `references/wiki/orchestrate/routing/model-selection.md`.
+
+**Dispatch to a Cursor CLI worker — which `--model` IDs actually work:**
+Read `references/wiki/orchestrate/routing/cursor-cli-models.md`, then dispatch
+with `scripts/dispatch-cursor-worker.sh`. Never `--model auto` (measured 0/12).
 
 **Run the end-to-end orchestration loop:**
 Read `references/wiki/orchestrate/loop/session-loop.md`.

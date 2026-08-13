@@ -45,18 +45,21 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 #### routing
 
+- [cursor-cli-models.md](wiki/orchestrate/routing/cursor-cli-models.md) - Which Cursor CLI Model IDs Are Actually Reachable
 - [model-selection.md](wiki/orchestrate/routing/model-selection.md) - Route Subtasks by Scope, Difficulty, and Blast Radius
 
 ---
 
 ## Raw Sources
 
+- [cursor-cli-model-sweep-2026-08-13.md](raw/cursor-cli-model-sweep-2026-08-13.md) - cited by: references/wiki/orchestrate/routing/cursor-cli-models.md
 - [orchestrate-SKILL.md](raw/orchestrate-SKILL.md) - cited by: references/wiki/orchestrate/anti-patterns/avoid.md, references/wiki/orchestrate/closeout/commit-and-ship.md, references/wiki/orchestrate/contracts/brief-template.md, references/wiki/orchestrate/contracts/handoff-contract.md, references/wiki/orchestrate/isolation/worktree-first.md, references/wiki/orchestrate/loop/session-loop.md, references/wiki/orchestrate/roles/parent-orchestrator.md, references/wiki/orchestrate/roles/worker-agent.md, references/wiki/orchestrate/routing/model-selection.md
 
 ---
 
 ## Scripts
 
+- [scripts/dispatch-cursor-worker.sh](../scripts/dispatch-cursor-worker.sh)
 - [scripts/lint.sh](../scripts/lint.sh)
 
 <!-- GENERATED:END -->

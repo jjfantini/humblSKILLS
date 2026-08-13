@@ -21,6 +21,12 @@ These are judgment calls, not hard rules. Bias cheap and narrow; escalate when u
 | Ambiguous design, high blast radius, tricky correctness | Stronger worker (e.g. Opus 5) or keep on parent |
 | Cross-cutting architecture, phase planning, final integration check | Parent frontier only |
 
+This table is deliberately generic so it survives model churn. For which
+concrete `cursor-agent --model` IDs are actually reachable — and which are
+measured-broken — see
+`references/wiki/orchestrate/routing/cursor-cli-models.md`. Pick the tier here,
+then pick a verified ID there.
+
 ## Escalate to the Parent (or a Stronger Worker) When
 
 - The brief is underspecified or contradicts the codebase
