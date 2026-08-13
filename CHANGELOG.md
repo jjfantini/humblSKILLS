@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.50.0](https://github.com/jjfantini/humblSKILLS/compare/v2.49.0...v2.50.0) (2026-08-13)
+
+
+### Features
+
+* **smart-orchestrate:** add measured Cursor CLI model routing table ([0c813ea](https://github.com/jjfantini/humblSKILLS/commit/0c813ea682bf5c60ecee5d52e972accc54458c37))
+* **smart-orchestrate:** add measured Cursor CLI model routing table ([1a378ec](https://github.com/jjfantini/humblSKILLS/commit/1a378ec5467d2b4f00d8123af336fca9f9472251))
+* **smart-orchestrate:** add measured Cursor CLI model routing table ([ff091d2](https://github.com/jjfantini/humblSKILLS/commit/ff091d2e7224b009aa7fae2d3f81b923f8a84f07))
+
 ## [2.49.0](https://github.com/jjfantini/humblSKILLS/compare/v2.48.0...v2.49.0) (2026-08-12)
 
 
