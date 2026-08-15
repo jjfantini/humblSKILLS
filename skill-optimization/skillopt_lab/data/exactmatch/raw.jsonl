@@ -1,0 +1,20 @@
+{"id": "q01", "question": "What is the capital of France?", "answers": ["paris"], "task_type": "factual"}
+{"id": "q02", "question": "What is 7 times 8?", "answers": ["56"], "task_type": "math"}
+{"id": "q03", "question": "What color do you get by mixing blue and yellow?", "answers": ["green"], "task_type": "factual"}
+{"id": "q04", "question": "Reverse the word 'cat'.", "answers": ["tac"], "task_type": "transform"}
+{"id": "q05", "question": "What is the chemical symbol for gold?", "answers": ["au"], "task_type": "factual"}
+{"id": "q06", "question": "How many continents are there on Earth?", "answers": ["7", "seven"], "task_type": "factual"}
+{"id": "q07", "question": "What is the largest planet in our solar system?", "answers": ["jupiter"], "task_type": "factual"}
+{"id": "q08", "question": "What gas do plants absorb from the atmosphere?", "answers": ["carbon dioxide", "co2"], "task_type": "factual"}
+{"id": "q09", "question": "What is the square root of 144?", "answers": ["12"], "task_type": "math"}
+{"id": "q10", "question": "Who wrote the play 'Romeo and Juliet'?", "answers": ["shakespeare", "william shakespeare"], "task_type": "factual"}
+{"id": "q11", "question": "What is the freezing point of water in degrees Celsius?", "answers": ["0", "zero"], "task_type": "factual"}
+{"id": "q12", "question": "What is the opposite of 'hot'?", "answers": ["cold"], "task_type": "transform"}
+{"id": "q13", "question": "How many sides does a hexagon have?", "answers": ["6", "six"], "task_type": "math"}
+{"id": "q14", "question": "What is the currency of Japan?", "answers": ["yen", "japanese yen"], "task_type": "factual"}
+{"id": "q15", "question": "Which planet is known as the Red Planet?", "answers": ["mars"], "task_type": "factual"}
+{"id": "q16", "question": "What is 100 divided by 4?", "answers": ["25"], "task_type": "math"}
+{"id": "q17", "question": "Reverse the word 'dog'.", "answers": ["god"], "task_type": "transform"}
+{"id": "q18", "question": "What is the chemical symbol for sodium?", "answers": ["na"], "task_type": "factual"}
+{"id": "q19", "question": "What is the opposite of 'up'?", "answers": ["down"], "task_type": "transform"}
+{"id": "q20", "question": "How many days are there in a leap year?", "answers": ["366"], "task_type": "math"}
