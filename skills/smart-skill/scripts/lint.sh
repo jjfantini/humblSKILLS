@@ -13,6 +13,10 @@
 #   5. Wiki concepts with empty sources: (orphan concept - warning)
 #   6. Duplicate concept: values across different paths (contradiction)
 #   7. last_ingested older than STALE_DAYS (default 180) - info only
+#   8. decisions.md / patterns.md entries match the required field schema
+#      (missing field = hard fail, empty field or non-numeric pattern
+#      Result = soft warning). Content quality/length is never checked -
+#      only that the data model's required keys are present.
 #
 # Side effect: rewrites references/_index.md between <!-- GENERATED:START -->
 # and <!-- GENERATED:END --> markers. Preamble above :START is preserved.
@@ -237,6 +241,76 @@ for wf in wiki_files:
             warn(f"{rel}: last_ingested='{last}' is not a valid ISO date")
 
 print(f"  scanned {len(wiki_files)} wiki files")
+print()
+
+# --------------------------------------------------------------------------
+# decisions.md / patterns.md entry schema
+#
+# Entries are free-text prose under fixed field labels - the schema is the
+# labels, not the wording. Missing label = hard fail (data model broken).
+# Empty label or non-numeric pattern Result = soft warning (weak data, but
+# structurally intact). Never gates on length or phrasing.
+# --------------------------------------------------------------------------
+
+ENTRY_HEADING_RE = re.compile(r"^### (\d{4}-\d{2}-\d{2}) \| (.+)$")
+
+def check_brain_entries(path: Path, required_fields, numeric_result=False):
+    if not path.exists():
+        return
+    rel = path.relative_to(SKILL_ROOT).as_posix()
+    lines = path.read_text().splitlines()
+
+    entries = []
+    in_fence = False
+    current = None
+    for i, line in enumerate(lines):
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if line.startswith("### "):
+            if current is not None:
+                entries.append(current)
+                current = None
+            m = ENTRY_HEADING_RE.match(line)
+            if m:
+                current = {"line": i + 1, "date": m.group(1), "title": line[4:], "body": []}
+            else:
+                fail(f"{rel}:{i + 1}: malformed entry heading, expected "
+                     f"'### YYYY-MM-DD | title': {line!r}")
+            continue
+        if current is not None:
+            current["body"].append(line)
+    if current is not None:
+        entries.append(current)
+
+    for e in entries:
+        try:
+            datetime.date.fromisoformat(e["date"])
+        except ValueError:
+            warn(f"{rel} ({e['title']}): heading date '{e['date']}' is not a valid ISO date")
+
+        body_text = "\n".join(e["body"])
+        for field in required_fields:
+            fpat = re.compile(rf"(?m)^- {re.escape(field)}:\s*(.*)$")
+            fm = fpat.search(body_text)
+            if not fm:
+                fail(f"{rel} ({e['title']}): missing '- {field}:' field")
+            elif not fm.group(1).strip():
+                warn(f"{rel} ({e['title']}): '- {field}:' is present but empty")
+            elif field == "Result" and numeric_result and not re.search(r"\d", fm.group(1)):
+                warn(f"{rel} ({e['title']}): '- Result:' has no numeric outcome")
+
+    if entries or path.exists():
+        print(f"  {rel}: {len(entries)} entries checked against schema")
+
+bold("Checking decisions.md / patterns.md schema...")
+check_brain_entries(REFS / "decisions.md",
+                     ["Context", "Options", "Chose", "Why", "Result"])
+check_brain_entries(REFS / "patterns.md",
+                     ["Context", "Approach", "Result", "Worked", "Didn't", "Lesson"],
+                     numeric_result=True)
 print()
 
 # --------------------------------------------------------------------------

@@ -11,10 +11,9 @@ description: >
   themselves (use smart-worktree-flow).
 license: MIT
 compatibility: "Requires git 2.5+ for worktree isolation and at least one agent CLI (claude, codex, or cursor-agent) to dispatch workers to. Network access for model calls."
-disable-model-invocation: true
 metadata:
   author: jjfantini
-  version: "1.1.0"
+  version: "1.2.0"
   category: development
   tags: [orchestration, multi-agent, subagents, planning, worktree, routing, humblskill]
   platforms: [claude-code, cursor, codex]
@@ -33,9 +32,12 @@ cheaper models, verify the whole. Prefer **Claude** as the entry point; **Codex*
 or **Cursor** can also be the parent, and any parent may farm work to agents
 running through Claude, the Cursor CLI, or the Codex plugin.
 
-This skill is explicitly invoked (`disable-model-invocation: true`) because a
-full orchestration run spends frontier tokens and creates worktrees. The user
-opts in; the model does not decide to start one.
+This skill is model-invocable: the description's trigger phrases ("orchestrate
+this", "farm this out to subagents", "parent orchestrator", etc.) let the
+model start a run without the user typing `/smart-orchestrate`. A run still
+spends frontier tokens and creates worktrees, so match the request to a real
+multi-phase or multi-agent need before invoking - don't reach for this on a
+single-file edit.
 
 ## Brain Protocol (read BEFORE orchestrating anything)
 

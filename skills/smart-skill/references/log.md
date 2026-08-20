@@ -80,3 +80,17 @@ Entry shape:
 [LINT 2026-07-30] 23 wiki, 2 raw. Hard: 0, Soft: 16. Regenerated _index.md.
 
 [LINT 2026-07-30] 23 wiki, 2 raw. Hard: 0, Soft: 16. Regenerated _index.md.
+
+[LINT 2026-08-19] 23 wiki, 2 raw. Hard: 0, Soft: 16. Regenerated _index.md.
+
+[QUERY 2026-08-20] Hardened scripts/lint.sh: validates decisions.md/patterns.md entry schema.
+  - Missing required field or malformed '### YYYY-MM-DD | title' heading = hard fail
+  - Empty field, or pattern Result: with no digit = soft warning
+  - No gate on content length/wording - only that the field labels exist
+  - Docs updated: _brain.md, wiki/brain/lint/checks.md, SKILL.md Brain Operations
+    table, docs/smart_skills.md
+  - decisions.md: recorded the hard-fail-vs-soft-warn split and why
+  - Propagated the same patch to smart-orchestrate/scripts/lint.sh (dogfood)
+  - metadata.version 1.1.3 -> 1.2.0
+
+[LINT 2026-08-20] 23 wiki, 2 raw. Hard: 0, Soft: 16. Regenerated _index.md.
