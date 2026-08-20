@@ -80,3 +80,5 @@ Entry shape:
 [LINT 2026-07-30] 23 wiki, 2 raw. Hard: 0, Soft: 16. Regenerated _index.md.
 
 [LINT 2026-07-30] 23 wiki, 2 raw. Hard: 0, Soft: 16. Regenerated _index.md.
+
+[LINT 2026-08-19] 23 wiki, 2 raw. Hard: 0, Soft: 16. Regenerated _index.md.
