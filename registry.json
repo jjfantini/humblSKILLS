@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-13T18:23:22Z",
+  "generated_at": "2026-08-20T18:34:12Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "5ff19ae8569ccc61df5e4b8857ef50b6ad91f49f"
+    "sha": "bbd60c54e7ec17a32327bbcbef0e12f920e40eed"
   },
   "skills": [
     {
@@ -648,7 +648,7 @@
     },
     {
       "name": "smart-orchestrate",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "description": "Run a frontier-parent / cost-optimized-worker orchestration pattern across the Claude, Codex, and Cursor CLIs: plan on a strong model, isolate in a worktree, dispatch bounded briefs to cheaper worker agents, and verify the whole. Use when the user says \"orchestrate this\", \"farm this out to subagents\", \"plan then gate execution\", \"parent orchestrator\", \"multi-agent this feature\", or wants planning split from implementation across model tiers. Do NOT use for a single-file edit, for authoring commits (use smart-commit), or for the worktree/PR mechanics themselves (use smart-worktree-flow).\n",
       "category": "development",
       "tags": [
@@ -673,11 +673,11 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-orchestrate",
-      "dir_sha": "0e6e795fb81c5ef0204fd343e1e53136f5bcf1e747eb2ce780af46bb750f1fb4"
+      "dir_sha": "a8842f426fbcb509323a093ebad48546d4b29d79c3be5fc7c54f7195ac7f5bd2"
     },
     {
       "name": "smart-skill",
-      "version": "1.1.3",
+      "version": "1.2.0",
       "description": "Scaffold production-grade humblSKILLS with progressive disclosure, self-learning memory (patterns/decisions/session log), and lint tooling. Use when creating a new humblSKILL (also known as a smart skill), scaffolding a SKILL.md, migrating a flat skill to a smart skill, refactoring a skill that exceeds ~300 lines, or adding memory/patterns tracking to an existing skill. Do NOT use for editing skill content after scaffold - use the skill directly. Uses CCCCC layering internally (Core/Context/Category/Concept/Command).\n",
       "category": "meta",
       "tags": [
@@ -703,7 +703,7 @@
         "use-smart-skill"
       ],
       "path": "skills/smart-skill",
-      "dir_sha": "e859da02c646bb0676a238a9fb7c6323a6bf1a8a2678b38cabb97e2c034beb52"
+      "dir_sha": "b95a2bfe03b8c8028c1dba6d6851552cadc879d4db68ac070adfe6178a2e385d"
     },
     {
       "name": "smart-upload-thing",
