@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.51.0](https://github.com/jjfantini/humblSKILLS/compare/v2.50.0...v2.51.0) (2026-08-20)
+
+
+### Features
+
+* **smart-orchestrate:** make skill model-invocable ([5c7814e](https://github.com/jjfantini/humblSKILLS/commit/5c7814e50f7f1313bf887dcac0077079efa4778e))
+* **smart-skill:** validate decisions.md/patterns.md entry schema in lint.sh ([514502e](https://github.com/jjfantini/humblSKILLS/commit/514502e89cee4a4d04467e784187acbcd0f392c9))
+
 ## [2.50.0](https://github.com/jjfantini/humblSKILLS/compare/v2.49.0...v2.50.0) (2026-08-13)
 
 
