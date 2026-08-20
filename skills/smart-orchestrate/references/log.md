@@ -126,3 +126,13 @@ Entry shape:
 [LINT 2026-08-13] 10 wiki, 2 raw. Hard: 0, Soft: 0. Regenerated _index.md.
 
 [LINT 2026-08-13] 10 wiki, 2 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[LINT 2026-08-19] 10 wiki, 2 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[QUERY 2026-08-19] Dropped `disable-model-invocation: true`; skill is now model-invocable.
+  - SKILL.md 1.1.0 -> 1.2.0, rationale paragraph rewritten
+  - decisions.md: reversal entry added, references the 2026-08-12 entry it supersedes
+  - lint.sh hardened (shared change, see smart-skill): decisions.md/patterns.md entries
+    now validated against the required-field schema (missing field = hard fail)
+
+[LINT 2026-08-19] 10 wiki, 2 raw. Hard: 0, Soft: 0. Regenerated _index.md.
