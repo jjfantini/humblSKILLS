@@ -68,7 +68,7 @@ That's the compounding: every session leaves at least a log line, every measured
 Two conventions stop the brain from decaying into a junk drawer:
 
 - **`patterns.md` requires evidence.** Every entry carries Context / Approach / Result / Worked / Didn't / Lesson, with numbers in the result. A session with no measurable outcome writes only to `log.md` — patterns are never invented. Entries are append-only: a later contradiction gets a new entry referencing the old one, never an edit.
-- **`scripts/lint.sh` is the health check.** It verifies that every wiki file's path matches its frontmatter, that no raw file is orphaned, that every `sources:` entry resolves, and flags stale or duplicate concepts. It also regenerates `_index.md` between sentinel markers, and the taxonomy itself is derived from the filesystem — there is no registry file to drift.
+- **`scripts/lint.sh` is the health check.** It verifies that every wiki file's path matches its frontmatter, that no raw file is orphaned, that every `sources:` entry resolves, and flags stale or duplicate concepts. It also validates that every `decisions.md`/`patterns.md` entry carries its required field labels (missing field or malformed heading fails the run; an empty field or a non-numeric pattern `Result` only warns — content quality is never gated). It regenerates `_index.md` between sentinel markers, and the taxonomy itself is derived from the filesystem — there is no registry file to drift.
 
 !!! note "The brain survives updates"
     `log.md`, `patterns.md`, `decisions.md`, `raw/`, and the wiki are declared in the skill's `preserve` list, so `humblskills update` ships new instructions without wiping accumulated memory. See [Preserving user content](using_humblskills/preserving_user_content.md).

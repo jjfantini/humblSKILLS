@@ -14,7 +14,7 @@ compatibility: Requires bash, POSIX utilities (awk, sed, find, grep), python3, w
 allowed-tools: "Bash(bash:*) Bash(sh:*) Read Write Edit Glob Grep"
 metadata:
   author: jjfantini
-  version: 1.1.3
+  version: 1.2.0
   previous_names: ["use-smart-skill"]
   category: meta
   tags: [meta, skill-authoring, smart-skill, scaffolding, humblskill]
@@ -65,7 +65,7 @@ _Full spec (territories, linking, ingest/lint/patterns worked examples, command 
 |-----------|-------------------|---------------------------------------------------------------------|
 | Ingest    | Agent (no script) | Read new `raw/` file -> write/update wiki concepts + brain meta     |
 | Query     | Agent (runtime)   | Read brain first -> synthesize from wiki -> write novel concepts    |
-| Lint      | `scripts/lint.sh` | Regenerate `_index.md`; report orphans, contradictions, stale, broken |
+| Lint      | `scripts/lint.sh` | Regenerate `_index.md`; report orphans, contradictions, stale, broken, and decisions.md/patterns.md schema violations |
 
 ## CCCCC Architecture
 

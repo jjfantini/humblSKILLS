@@ -279,6 +279,18 @@ Checks performed:
    naming reuse (e.g. `workflow` across multiple categories); flagged
    as WARN for human audit.
 
+8. **`decisions.md` / `patterns.md` entry schema.** Every `### YYYY-MM-DD
+   | title` entry must carry its required field labels: `Context`,
+   `Options`, `Chose`, `Why`, `Result` for decisions; `Context`,
+   `Approach`, `Result`, `Worked`, `Didn't`, `Lesson` for patterns. A
+   malformed heading or a missing field is a hard fail; a present-but-empty
+   field, or a pattern `Result:` with no digit, is a soft warning. Content
+   quality and length are never checked - only that the labels exist.
+   ```
+   FAIL: references/decisions.md (2026-04-17 | some title): missing '- Why:' field
+   ```
+   Fix: add the missing field, or fix the heading to `### YYYY-MM-DD | title`.
+
 **Side effect - `_index.md` regeneration.** `lint.sh` rewrites everything
 between `<!-- GENERATED:START -->` and `<!-- GENERATED:END -->` markers
 in `references/_index.md`. Emits, in order:

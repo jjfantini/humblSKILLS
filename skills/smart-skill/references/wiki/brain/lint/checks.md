@@ -6,7 +6,7 @@ concept: checks
 description: "Keeps brain self-consistent as the skill scales"
 tags: lint, validation, checks, brain, health
 sources: []
-last_ingested: 2026-04-16
+last_ingested: 2026-08-20
 command: scripts/lint.sh
 ---
 
@@ -93,6 +93,24 @@ candidates for review; doesn't fail.
 Two wiki files sharing the same `concept:` value (even under different
 paths). Almost always a legitimate naming reuse (e.g. `workflow` across
 multiple categories); flagged as WARN for human audit.
+
+### 8. decisions.md / patterns.md entry schema
+
+Every `### YYYY-MM-DD | title` entry in `decisions.md` and `patterns.md`
+must carry its required field labels. Decisions: `Context`, `Options`,
+`Chose`, `Why`, `Result`. Patterns: `Context`, `Approach`, `Result`,
+`Worked`, `Didn't`, `Lesson`. Content quality and length are never
+checked - only that the labels exist.
+
+**Finding example:**
+```
+FAIL: references/decisions.md (2026-04-17 | some title): missing '- Why:' field
+FAIL: references/decisions.md:9: malformed entry heading, expected '### YYYY-MM-DD | title'
+```
+
+**Fix:** add the missing field, or fix the heading to
+`### YYYY-MM-DD | title`. A present-but-empty field, or a pattern
+`Result:` with no digit, is a soft warning (WARN), not a fail.
 
 ## Side Effect: _index.md Regeneration
 

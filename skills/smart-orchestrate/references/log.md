@@ -136,3 +136,5 @@ Entry shape:
     now validated against the required-field schema (missing field = hard fail)
 
 [LINT 2026-08-19] 10 wiki, 2 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[LINT 2026-08-20] 10 wiki, 2 raw. Hard: 0, Soft: 0. Regenerated _index.md.
