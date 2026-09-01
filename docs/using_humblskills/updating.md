@@ -120,23 +120,30 @@ humblskills profile get channel
 humblskills profile set channel beta
 ```
 
-The upgrade checks GitHub releases (stable → `/releases/latest`; beta → latest
-prerelease), verifies the checksum, and replaces the running binary in place.
+The upgrade checks GitHub releases (stable → `/releases/latest` only; beta →
+the higher semver of latest stable vs latest prerelease), verifies the
+checksum, and replaces the running binary in place. Beta is “always the newest
+version”: `v2.52.0` beats `v2.52.0-pre.1`; `v2.53.0-pre.1` beats `v2.52.0`.
+
+The same resolver feeds the CLI update notice (stderr on `doctor` / `start` /
+`version` / …) and the TUI Dashboard banner.
 
 The channel is the same `profile.json` field Homebrew uses. Change it from the
 existing Profile TUI (`humblskills` → Profile → **install channel**) or
 `profile set` — there is no second settings surface.
 
-If you installed via Homebrew, `upgrade` detects that and delegates: it confirms
-with you, then runs `brew update && brew upgrade <formula>` (`humblskills` or
-`humblskills-pre`) itself, so Homebrew's own bookkeeping stays correct. It falls
-back to telling you to run brew by hand only when `brew` isn't on `PATH`. Doing
-it directly works too:
+If you installed via Homebrew, `upgrade` detects that and delegates. The
+formula follows beta’s winner, not the channel name:
 
 ```sh
-brew upgrade humblskills
-brew upgrade humblskills-pre
+brew upgrade humblskills                                          # stable winner, already on humblskills
+brew upgrade humblskills-pre                                      # beta winner is still a pre
+brew uninstall humblskills-pre && brew install humblskills        # beta winner is a graduated stable
 ```
+
+`upgrade` runs those commands itself after confirming, so Homebrew's own
+bookkeeping stays correct. It falls back to telling you to run brew by hand
+only when `brew` isn't on `PATH`.
 
 ## Related topics
 

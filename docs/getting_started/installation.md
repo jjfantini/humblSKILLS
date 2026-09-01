@@ -104,19 +104,29 @@ Or the same TUI editor that already exists (do not look for a second settings
 app): run `humblskills` and open **Profile**, or `humblskills profile`. The
 **install channel** row shows the current value; enter to switch stable ↔ beta.
 
-| Channel | GitHub | Homebrew formula |
-|---------|--------|------------------|
-| `stable` (default) | `/releases/latest` | `humblskills` |
-| `beta` | latest prerelease (`vX.Y.Z-pre.N`) | `humblskills-pre` |
+| Channel | GitHub | Homebrew |
+|---------|--------|----------|
+| `stable` (default) | `/releases/latest` only | `brew upgrade humblskills` |
+| `beta` | higher semver of latest stable vs latest prerelease | formula follows the winner (see below) |
 
-On a Homebrew-managed install, `upgrade` detects that, asks for confirmation, and
-runs `brew update && brew upgrade <formula>` for the resolved channel, so
-Homebrew's own Cellar bookkeeping stays correct. It only asks you to run brew
-yourself if `brew` isn't on `PATH`. You can of course still do it directly:
+**beta** means “always the newest version,” not “prereleases only.” After a
+stable graduates (`v2.52.0` > `v2.52.0-pre.1`) beta picks the stable. A newer
+pre (`v2.53.0-pre.1` > `v2.52.0`) stays on the pre.
+
+On a Homebrew-managed install, `upgrade` detects that, asks for confirmation,
+and runs brew itself so Cellar bookkeeping stays correct:
+
+- Winner is a pre, already on `humblskills-pre`: `brew upgrade humblskills-pre`
+- Winner is a stable, currently on `humblskills-pre`: `brew uninstall humblskills-pre && brew install humblskills`
+- Winner is a stable, already on `humblskills`: `brew upgrade humblskills`
+
+It only asks you to run brew yourself if `brew` isn't on `PATH`. You can of
+course still do it directly:
 
 ```sh
-brew upgrade humblskills       # stable
-brew upgrade humblskills-pre   # beta
+brew upgrade humblskills                                          # already on the stable formula
+brew upgrade humblskills-pre                                      # beta, winner is still a pre
+brew uninstall humblskills-pre && brew install humblskills        # beta, winner is a graduated stable
 ```
 
 `upgrade` updates the **CLI**; `humblskills update` updates your installed

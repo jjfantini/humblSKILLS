@@ -43,10 +43,14 @@ brew upgrade humblskills-pre
 ```
 
 The CLI install channel is one field in `~/.humblskills/profile.json`
-(`channel`: `stable` or `beta`; unset means stable). Read or change it with
-`humblskills profile get channel` / `profile set channel beta`, the existing
-Profile TUI (`humblskills` → Profile → **install channel**), or a one-shot
-`humblskills upgrade --channel beta`. Same field Homebrew and `upgrade` use.
+(`channel`: `stable` or `beta`; unset means stable). **beta** is always the
+newest version (higher of latest stable vs latest prerelease) — not
+prereleases only. After a stable graduates, a Homebrew `humblskills-pre`
+install is switched with `brew uninstall humblskills-pre && brew install
+humblskills`. Read or change the field with `humblskills profile get channel`
+/ `profile set channel beta`, the existing Profile TUI (`humblskills` →
+Profile → **install channel**), or a one-shot `humblskills upgrade --channel
+beta`.
 
 Formulas live in [`jjfantini/homebrew-humbl`](https://github.com/jjfantini/homebrew-humbl)
 and are bumped by GoReleaser: `humblskills` on stable tags, `humblskills-pre`
