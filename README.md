@@ -475,14 +475,17 @@ not installed copies.
 Releases follow the two-branch path in
 [`.github/workflows/release.yml`](.github/workflows/release.yml):
 
-- **`develop`** — release-please opens a pre-release PR. Merging it tags
-  `vX.Y.Z-pre.N` and publishes a GitHub **pre-release** (archives + checksums).
-  GoReleaser updates `Formula/humblskills-pre.rb` only. The stable
-  `humblskills` formula is left alone.
-- **`main`** — merge `develop` with a merge commit (never squash). release-please
-  opens a stable PR. Merging it tags `vX.Y.Z`, publishes the GitHub Release, and
-  GoReleaser updates `Formula/humblskills.rb` so `brew upgrade humblskills`
-  gets that version. The pre formula is not rewritten.
+- **`develop`** — release-please opens a pre-release PR against
+  `.release-please-manifest.develop.json`. Merging it tags `vX.Y.Z-pre.N` and
+  publishes a GitHub **pre-release** (archives + checksums). GoReleaser updates
+  `Formula/humblskills-pre.rb` only. The stable `humblskills` formula is left
+  alone.
+- **`main`** — merge `develop` with a merge commit (never squash). That promote
+  does not tag. release-please then opens a stable PR against
+  `.release-please-manifest.json` (last stable, never a `-pre`). Merging *that*
+  PR tags `vX.Y.Z`, publishes the GitHub Release, and GoReleaser updates
+  `Formula/humblskills.rb` so `brew upgrade humblskills` gets that version. The
+  pre formula is not rewritten.
 
 Both release PRs auto-merge on green for same-major bumps. A major bump waits
 for a human.

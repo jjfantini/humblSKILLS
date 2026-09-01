@@ -48,3 +48,10 @@ Entry shape:
   - humblskills-pre on pre tags only; stable formula never jumps to -pre.N
   - Same profile.channel for profile get/set, TUI install channel, upgrade --channel
   - Skill version 1.2.1
+
+[QUERY 2026-09-01] Shared manifest blocked develop→main stable.
+  - run 33548192550 skipped: last release matched manifest 2.52.0-pre
+  - Split manifests; promote merge waits for the stable release PR
+  - Skill version 1.2.2
+
+[LINT 2026-09-01] 6 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.

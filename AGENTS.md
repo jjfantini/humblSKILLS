@@ -46,14 +46,18 @@ so **no backend/database/network services are required** to build, test, or run 
 ### Release path (develop pre-release → main stable + brew)
 `.github/workflows/release.yml` is the only release entry point:
 
-- Push/merge to **`develop`** → release-please (`release-please-config.develop.json`) cuts a
-  GitHub **pre-release** tagged `vX.Y.Z-pre.N`. GoReleaser publishes archives and the
-  `humblskills-pre` formula. The stable `humblskills` formula is not touched
-  (`skip_upload: auto`).
-- Merge **`develop` → `main`** (merge commit, never squash) → release-please
-  (`release-please-config.json`) cuts the **stable** `vX.Y.Z` GitHub Release and GoReleaser
-  updates `jjfantini/homebrew-humbl` `Formula/humblskills.rb` so `brew upgrade humblskills`
+- Push/merge to **`develop`** → release-please (`release-please-config.develop.json` +
+  `.release-please-manifest.develop.json`) cuts a GitHub **pre-release** tagged
+  `vX.Y.Z-pre.N`. GoReleaser publishes archives and the `humblskills-pre` formula.
+  The stable `humblskills` formula is not touched (`skip_upload: auto`).
+- Merge **`develop` → `main`** (merge commit, never squash) is the promote, not
+  the tag. release-please on main (`release-please-config.json` +
+  `.release-please-manifest.json`, last **stable** only) then opens the stable
+  PR. Merging that PR tags `vX.Y.Z` and GoReleaser updates
+  `jjfantini/homebrew-humbl` `Formula/humblskills.rb` so `brew upgrade humblskills`
   gets that version. The pre formula is not rewritten on a stable tag.
+  Do not put a `-pre` version in the main manifest: release-please will treat
+  `vX.Y.Z-pre` as the last release and skip (run 33548192550).
 
 Both release PRs auto-merge on green for same-major bumps (`scripts/guard-major-bump.sh`
 blocks majors). Secrets live on the `release` environment: `RELEASE_PLEASE_TOKEN` (repo PAT)
