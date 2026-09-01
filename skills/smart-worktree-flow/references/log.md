@@ -61,3 +61,10 @@ Entry shape:
 [LINT 2026-09-01] 6 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.
 
 [LINT 2026-09-01] 6 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[QUERY 2026-09-01] After v2.52.0, develop must not increment 2.52.0-pre.N.
+  - 2.52.0-pre.3 < 2.52.0 so beta stays on stable; next pre is 2.52.1-pre.1
+  - Reset develop manifest to graduated stable; Release-As only for this cut
+  - Skill version 1.2.3
+
+[LINT 2026-09-01] 6 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.

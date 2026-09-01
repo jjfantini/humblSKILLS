@@ -15,7 +15,9 @@ func TestCompare(t *testing.T) {
 		{"dev", "2.17.0", -1},    // unparseable current always upgradable
 		{"", "2.17.0", -1},
 		{"2.52.0-pre.1", "2.52.0", -1}, // graduated stable beats its own pre
-		{"2.52.0", "2.53.0-pre.1", -1}, // newer pre beats last stable
+		{"2.52.0-pre.3", "2.52.0", -1}, // stuck pre line: 2.52.0-pre.3 lost to 2.52.0
+		{"2.52.0", "2.52.1-pre.1", -1}, // patch pre beats last stable (beta ship)
+		{"2.52.0", "2.53.0-pre.1", -1}, // newer minor pre also beats last stable
 		{"2.52.0", "2.52.0-pre.1", +1},
 	}
 	for _, c := range cases {

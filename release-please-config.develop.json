@@ -7,7 +7,7 @@
   "prerelease-type": "pre",
   "commit-search-depth": 200,
   "release-search-depth": 50,
-  "pull-request-header": ":construction: Pre-release from `develop`. Tags `vX.Y.Z-pre.N` and marks the GitHub Release as a pre-release. Does **not** update the Homebrew tap. Promote by merging `develop` into `main` (merge commit, never squash). That merge opens a *stable* release PR on main because main records the last stable in `.release-please-manifest.json`, not this `-pre`. Merging develop does not itself create `vX.Y.Z`.",
+  "pull-request-header": ":construction: Pre-release from `develop`. Tags `vX.Y.Z-pre.N` and marks the GitHub Release as a pre-release. GoReleaser updates `humblskills-pre` only. After main graduates `vX.Y.Z`, this manifest must record `X.Y.Z` (not `X.Y.Z-pre.N`) so the next pre is `X.Y.(Z+1)-pre.1` or a feat minor — `2.52.0-pre.3` < `2.52.0` and beta stays on stable. Promote by merging `develop` into `main` (merge commit, never squash). That merge opens a *stable* release PR on main because main records the last stable in `.release-please-manifest.json`, not this `-pre`. Merging develop does not itself create `vX.Y.Z`.",
   "packages": {
     ".": {
       "package-name": "humblskills"

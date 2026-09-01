@@ -110,8 +110,8 @@ app): run `humblskills` and open **Profile**, or `humblskills profile`. The
 | `beta` | higher semver of latest stable vs latest prerelease | formula follows the winner (see below) |
 
 **beta** means “always the newest version,” not “prereleases only.” After a
-stable graduates (`v2.52.0` > `v2.52.0-pre.1`) beta picks the stable. A newer
-pre (`v2.53.0-pre.1` > `v2.52.0`) stays on the pre.
+stable graduates (`v2.52.0` > `v2.52.0-pre.3`) beta picks the stable. A newer
+pre (`v2.52.1-pre.1` > `v2.52.0`) stays on the pre.
 
 On a Homebrew-managed install, `upgrade` detects that, asks for confirmation,
 and runs brew itself so Cellar bookkeeping stays correct:

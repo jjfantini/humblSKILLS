@@ -123,7 +123,7 @@ humblskills profile set channel beta
 The upgrade checks GitHub releases (stable → `/releases/latest` only; beta →
 the higher semver of latest stable vs latest prerelease), verifies the
 checksum, and replaces the running binary in place. Beta is “always the newest
-version”: `v2.52.0` beats `v2.52.0-pre.1`; `v2.53.0-pre.1` beats `v2.52.0`.
+version”: `v2.52.0` beats `v2.52.0-pre.3`; `v2.52.1-pre.1` beats `v2.52.0`.
 
 The same resolver feeds the CLI update notice and the TUI Dashboard banner.
 When a newer release exists, `doctor`, `start` (and the non-TTY command table),
