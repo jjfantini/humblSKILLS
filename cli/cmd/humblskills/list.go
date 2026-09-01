@@ -59,6 +59,7 @@ func runList(app *App, fromDashboard bool) error {
 	if tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
 		return runListTUI(app, m, fromDashboard)
 	}
+	app.printUpgradeNotice()
 	renderListTable(app, installs, avail)
 	return nil
 }

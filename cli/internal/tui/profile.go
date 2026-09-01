@@ -286,13 +286,13 @@ var groupByCategoryOpts = []struct {
 
 // channelOpts is the picker for Profile.Channel. Selecting "stable (default)"
 // writes the explicit stable value so the field is first-class on disk;
-// "beta" follows the latest GitHub prerelease and the humblskills-pre formula.
+// "beta" follows the newer of latest stable vs latest prerelease.
 var channelOpts = []struct {
 	label string
 	value string
 }{
 	{"stable (default) — latest release", profile.ChannelStable},
-	{"beta — latest pre-release", profile.ChannelBeta},
+	{"beta — newest version (stable or pre)", profile.ChannelBeta},
 }
 
 func intPtr(n int) *int    { return &n }
@@ -692,9 +692,11 @@ func (m profileModel) renderChannelOptions(bar string, width int) []string {
 	rows := make([]string, 0, len(channelOpts)+4)
 	rows = append(rows, detailLines(th, bar,
 		"Which CLI build upgrade fetches. Stable is GitHub /releases/latest and the "+
-			"humblskills brew formula (the default). Beta is the latest pre-release "+
-			"and the humblskills-pre formula. Same field Homebrew and `humblskills "+
-			"upgrade --channel` use — nothing else to configure.", width)...)
+			"humblskills brew formula (the default). Beta picks the newer of latest "+
+			"stable vs latest pre-release — always the newest version. If that winner "+
+			"is a stable, Homebrew users on humblskills-pre are switched with "+
+			"`brew uninstall humblskills-pre && brew install humblskills`. Same field "+
+			"`humblskills upgrade --channel` uses — nothing else to configure.", width)...)
 	rows = append(rows, bar)
 	rows = append(rows, bar+" "+th.SectionTitle.Render("OPTIONS"))
 	for i, opt := range channelOpts {

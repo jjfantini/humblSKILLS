@@ -68,13 +68,15 @@ humblskills upgrade                 # profile channel (stable if unset)
 humblskills upgrade --channel beta  # this run only
 humblskills profile get channel
 humblskills profile set channel beta
-brew upgrade humblskills            # stable formula
-brew upgrade humblskills-pre        # beta formula
+brew upgrade humblskills                                          # stable formula
+brew upgrade humblskills-pre                                      # beta, winner is still a pre
+brew uninstall humblskills-pre && brew install humblskills        # beta, winner is a graduated stable
 ```
 
-On a brew install, `upgrade` runs `brew upgrade <formula>` for the resolved
-channel. Same `channel` field as `profile.json`. In the TUI: `humblskills` or
-`humblskills profile` → **install channel**.
+On a brew install, `upgrade` runs the brew commands for the resolved channel
+winner (beta = newer of latest stable vs latest prerelease). Same `channel`
+field as `profile.json`. In the TUI: `humblskills` or `humblskills profile` →
+**install channel**.
 
 `upgrade` updates the CLI binary; `update` updates installed skills.
 `humblskills install` installs **skills**, not the CLI.

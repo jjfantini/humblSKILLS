@@ -19,11 +19,15 @@ const (
 	PhaseVerifyingSum   Phase = "verifying_checksum"
 	PhaseInstalling     Phase = "installing"
 	// PhaseBrewUpdating fires while refreshing Homebrew's local tap
-	// metadata (`brew update`), before PhaseBrewUpgrading.
+	// metadata (`brew update`), before PhaseBrewUpgrading or a formula switch.
 	PhaseBrewUpdating Phase = "brew_updating"
-	// PhaseBrewUpgrading fires while running `brew upgrade humblskills`.
+	// PhaseBrewUpgrading fires while running `brew upgrade <formula>`.
 	PhaseBrewUpgrading Phase = "brew_upgrading"
-	PhaseError         Phase = "error"
+	// PhaseBrewUninstalling / PhaseBrewInstalling fire when beta's winning
+	// version lives on the other formula (pre → stable or stable → pre).
+	PhaseBrewUninstalling Phase = "brew_uninstalling"
+	PhaseBrewInstalling   Phase = "brew_installing"
+	PhaseError            Phase = "error"
 )
 
 // Event is a single progress notification emitted while running
@@ -56,7 +60,10 @@ type Plan struct {
 	UpgradeAvailable bool
 	Homebrew         bool
 	Channel          string
-	Formula          string // brew formula when Homebrew; empty otherwise
+	Formula          string // target brew formula when Homebrew; empty otherwise
+	CurrentFormula   string // installed brew formula when detected
+	BrewHint         string // exact brew (or CLI) command notices/dry-run print
+	SwitchFormula    bool
 	AssetName        string
 	AssetURL         string
 	ChecksumsURL     string
@@ -68,9 +75,9 @@ func ResolvePlan(client *http.Client, repo, currentVersion, exePath string, sink
 	return ResolvePlanForChannel(client, repo, currentVersion, exePath, ChannelStable, sink)
 }
 
-// ResolvePlanForChannel is ResolvePlan using channel to pick GitHub
-// /releases/latest (stable) or the newest prerelease (beta), and the
-// matching brew formula.
+// ResolvePlanForChannel is ResolvePlan using LatestReleaseForChannel so
+// beta picks the higher of latest stable vs latest prerelease. The brew
+// formula follows that winner, not the channel name.
 func ResolvePlanForChannel(client *http.Client, repo, currentVersion, exePath, channel string, sink EventSink) (*Plan, error) {
 	if repo == "" {
 		repo = DefaultRepo
@@ -85,6 +92,12 @@ func ResolvePlanForChannel(client *http.Client, repo, currentVersion, exePath, c
 
 	latest := rel.Version()
 	homebrew := IsHomebrewManaged(exePath)
+	target := FormulaForRelease(rel)
+	currentFormula := ""
+	if homebrew {
+		currentFormula = InstalledFormula(exePath)
+	}
+	action := PlanBrewAction(currentFormula, target)
 	plan := &Plan{
 		CurrentVersion:   currentVersion,
 		LatestVersion:    latest,
@@ -92,9 +105,12 @@ func ResolvePlanForChannel(client *http.Client, repo, currentVersion, exePath, c
 		UpgradeAvailable: IsUpgradeAvailable(currentVersion, latest),
 		Homebrew:         homebrew,
 		Channel:          channel,
+		BrewHint:         RecommendedUpgradeCommand(homebrew, currentFormula, target),
 	}
 	if homebrew {
-		plan.Formula = FormulaForChannel(channel)
+		plan.Formula = target
+		plan.CurrentFormula = currentFormula
+		plan.SwitchFormula = action.NeedsSwitch()
 	}
 	if !plan.UpgradeAvailable {
 		return plan, nil

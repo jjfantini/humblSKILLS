@@ -155,6 +155,7 @@ func runProfileShow(app *App) error {
 	if app.Config.JSON {
 		return app.UI.JSON(p)
 	}
+	app.printUpgradeNotice()
 	th := app.UI.Theme()
 	app.UI.Header("profile")
 	app.UI.Section("Defaults")
@@ -416,8 +417,9 @@ func formatGroupByCategory(flag *bool) string {
 }
 
 // parseChannel parses `profile set channel`: "default"/"" resets to unset
-// (stable), "stable" stores the explicit stable value, "beta" follows
-// prereleases. Same field Homebrew and `upgrade --channel` read.
+// (stable), "stable" stores the explicit stable value, "beta" follows the
+// newer of latest stable vs latest prerelease. Same field Homebrew and
+// `upgrade --channel` read.
 func parseChannel(value string) (string, error) {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "default", "":
