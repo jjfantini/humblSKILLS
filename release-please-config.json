@@ -6,6 +6,7 @@
   "versioning": "default",
   "commit-search-depth": 200,
   "release-search-depth": 50,
+  "pull-request-header": ":rocket: Stable release from `main`. Tags `vX.Y.Z` and updates Homebrew `humblskills`. Last version comes from `.release-please-manifest.json` (stable only). A `-pre` in that file would hide the feat commits already tagged as the pre-release.",
   "packages": {
     ".": {
       "package-name": "humblskills"
