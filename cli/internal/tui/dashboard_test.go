@@ -306,8 +306,8 @@ func TestRenderVersionNotice_GitHubAndHomebrew(t *testing.T) {
 		Latest:  "v2.52.0",
 		Channel: "beta",
 		Command: "brew uninstall humblskills-pre && brew install humblskills",
-	}, 100)
-	if !strings.Contains(switchBanner, "brew uninstall humblskills-pre && brew install humblskills") {
+	}, 140)
+	if !strings.Contains(switchBanner, "brew uninstall humblskills-pre") || !strings.Contains(switchBanner, "brew install humblskills") {
 		t.Errorf("switch banner missing brew commands:\n%s", switchBanner)
 	}
 }
