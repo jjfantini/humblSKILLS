@@ -16,6 +16,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/selfupdate"
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
 )
@@ -337,5 +338,205 @@ func TestUpgrade_HomebrewDryRun_DoesNotInvokeBrew(t *testing.T) {
 	}
 	if got.Applied {
 		t.Error("expected Applied = false for --dry-run")
+	}
+	if got.Channel != profile.ChannelStable {
+		t.Errorf("Channel = %q, want stable (unset profile default)", got.Channel)
+	}
+}
+
+func startFakePrereleaseAPI(t *testing.T, preVersion, binaryContent string) {
+	t.Helper()
+	assetName, err := selfupdate.CurrentAssetName(preVersion)
+	if err != nil {
+		t.Fatalf("CurrentAssetName: %v", err)
+	}
+	binName := selfupdate.BinaryName(runtime.GOOS)
+	archivePath := buildFakeTarGz(t, binName, binaryContent)
+	archiveBytes, err := os.ReadFile(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256Hex(t, archivePath)
+	checksums := sum + "  " + assetName + "\n"
+
+	var srv *httptest.Server
+	mux := http.NewServeMux()
+	mux.HandleFunc("/repos/"+selfupdate.DefaultRepo+"/releases/latest", func(w http.ResponseWriter, r *http.Request) {
+		t.Error("beta channel must not hit /releases/latest")
+		w.WriteHeader(http.StatusNotFound)
+	})
+	mux.HandleFunc("/repos/"+selfupdate.DefaultRepo+"/releases", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[
+			{
+				"tag_name": "v` + preVersion + `",
+				"prerelease": true,
+				"draft": false,
+				"assets": [
+					{"name": "` + assetName + `", "browser_download_url": "` + srv.URL + `/assets/` + assetName + `"},
+					{"name": "checksums.txt", "browser_download_url": "` + srv.URL + `/assets/checksums.txt"}
+				]
+			}
+		]`))
+	})
+	mux.HandleFunc("/assets/"+assetName, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(archiveBytes)
+	})
+	mux.HandleFunc("/assets/checksums.txt", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(checksums))
+	})
+	srv = httptest.NewServer(mux)
+
+	prev := selfupdate.GitHubAPIBase
+	selfupdate.GitHubAPIBase = srv.URL
+	t.Cleanup(func() {
+		srv.Close()
+		selfupdate.GitHubAPIBase = prev
+	})
+}
+
+func TestUpgrade_ChannelFlag_BetaHitsPrerelease(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	startFakePrereleaseAPI(t, "99.0.0-pre.1", "fake pre binary")
+
+	res := runCLIWithStdoutCapture(t,
+		"upgrade", "--dry-run", "--yes", "--json",
+		"--channel", "beta",
+		"--profile", s.ProfilePath,
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+
+	var got upgradeResult
+	if err := json.Unmarshal([]byte(strings.TrimSpace(res.Out)), &got); err != nil {
+		t.Fatalf("unmarshal %q: %v", res.Out, err)
+	}
+	if got.Channel != profile.ChannelBeta {
+		t.Errorf("Channel = %q, want beta", got.Channel)
+	}
+	if got.LatestVersion != "99.0.0-pre.1" {
+		t.Errorf("LatestVersion = %q, want 99.0.0-pre.1", got.LatestVersion)
+	}
+	if !got.UpgradeAvailable {
+		t.Error("expected UpgradeAvailable = true")
+	}
+}
+
+func TestUpgrade_ProfileChannel_BetaDefault(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	if err := profile.Save(s.ProfilePath, &profile.Profile{Channel: profile.ChannelBeta}); err != nil {
+		t.Fatal(err)
+	}
+	startFakePrereleaseAPI(t, "99.0.0-pre.1", "fake pre binary")
+
+	res := runCLIWithStdoutCapture(t,
+		"upgrade", "--dry-run", "--yes", "--json",
+		"--profile", s.ProfilePath,
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+
+	var got upgradeResult
+	if err := json.Unmarshal([]byte(strings.TrimSpace(res.Out)), &got); err != nil {
+		t.Fatalf("unmarshal %q: %v", res.Out, err)
+	}
+	if got.Channel != profile.ChannelBeta {
+		t.Errorf("Channel = %q, want beta (from profile)", got.Channel)
+	}
+	if got.LatestVersion != "99.0.0-pre.1" {
+		t.Errorf("LatestVersion = %q, want 99.0.0-pre.1", got.LatestVersion)
+	}
+}
+
+func TestUpgrade_ChannelFlag_OverridesProfile(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	if err := profile.Save(s.ProfilePath, &profile.Profile{Channel: profile.ChannelBeta}); err != nil {
+		t.Fatal(err)
+	}
+	startFakeReleaseAPI(t, "99.0.0", "fake stable")
+
+	res := runCLIWithStdoutCapture(t,
+		"upgrade", "--dry-run", "--yes", "--json",
+		"--channel", "stable",
+		"--profile", s.ProfilePath,
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+
+	var got upgradeResult
+	if err := json.Unmarshal([]byte(strings.TrimSpace(res.Out)), &got); err != nil {
+		t.Fatalf("unmarshal %q: %v", res.Out, err)
+	}
+	if got.Channel != profile.ChannelStable {
+		t.Errorf("Channel = %q, want stable (flag overrides profile)", got.Channel)
+	}
+	if got.LatestVersion != "99.0.0" {
+		t.Errorf("LatestVersion = %q, want 99.0.0", got.LatestVersion)
+	}
+}
+
+func TestUpgrade_ChannelFlag_Invalid(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	res := runCLIWithStdoutCapture(t,
+		"upgrade", "--dry-run", "--yes", "--json",
+		"--channel", "nightly",
+		"--profile", s.ProfilePath,
+	)
+	if res.RunErr == nil {
+		t.Fatal("expected error for invalid --channel")
+	}
+}
+
+func TestUpgrade_HomebrewManaged_BetaRunsPreFormula(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	const latest = "99.0.0-pre.1"
+
+	cellarDir := filepath.Join(s.Root, "Cellar", "humblskills-pre", latest, "bin")
+	if err := os.MkdirAll(cellarDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	exePath := filepath.Join(cellarDir, "humblskills")
+	fakeVersionScript(t, exePath, latest)
+	withFakeExecutable(t, exePath)
+	startFakePrereleaseAPI(t, latest, "irrelevant")
+
+	var invocations [][]string
+	prevRunner := brewRunner
+	brewRunner = func(ctx context.Context, name string, args ...string) *exec.Cmd {
+		invocations = append(invocations, append([]string{}, args...))
+		return exec.CommandContext(ctx, "true")
+	}
+	t.Cleanup(func() { brewRunner = prevRunner })
+
+	res := runCLIWithStdoutCapture(t,
+		"upgrade", "--yes", "--json",
+		"--channel", "beta",
+		"--profile", s.ProfilePath,
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	if len(invocations) != 2 {
+		t.Fatalf("brew invocations = %v, want 2 calls", invocations)
+	}
+	if len(invocations[1]) != 2 || invocations[1][0] != "upgrade" || invocations[1][1] != selfupdate.FormulaPre {
+		t.Errorf("second brew call = %v, want [upgrade %s]", invocations[1], selfupdate.FormulaPre)
+	}
+
+	var got upgradeResult
+	if err := json.Unmarshal([]byte(strings.TrimSpace(res.Out)), &got); err != nil {
+		t.Fatalf("unmarshal %q: %v", res.Out, err)
+	}
+	if got.Channel != profile.ChannelBeta {
+		t.Errorf("Channel = %q, want beta", got.Channel)
+	}
+	if got.Formula != selfupdate.FormulaPre {
+		t.Errorf("Formula = %q, want %s", got.Formula, selfupdate.FormulaPre)
+	}
+	if !got.Applied {
+		t.Errorf("expected Applied = true, got %+v", got)
 	}
 }

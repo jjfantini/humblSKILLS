@@ -16,16 +16,19 @@ import (
 func newProfileCmd(app *App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "profile",
-		Short: "View or edit your humblskills profile (default platforms + scope)",
-		Long: "profile edits the user profile that drives install defaults. " +
-			"Run bare for an interactive TUI editor, or use subcommands " +
-			"(`show`, `set`, `reset`, `path`) for scripting.",
+		Short: "View or edit your humblskills profile (defaults + CLI install channel)",
+		Long: "profile edits the user profile that drives install defaults and the " +
+			"CLI upgrade channel (stable vs beta). Run bare for an interactive TUI " +
+			"editor, or use subcommands (`show`, `get`, `set`, `reset`, `path`) " +
+			"for scripting. The TUI path is the same editor: `humblskills` → " +
+			"Profile, or `humblskills profile`.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runProfileDefault(app)
 		},
 	}
 	cmd.AddCommand(
 		newProfileShowCmd(app),
+		newProfileGetCmd(app),
 		newProfileSetCmd(app),
 		newProfileResetCmd(app),
 		newProfilePathCmd(app),
@@ -43,12 +46,28 @@ func newProfileShowCmd(app *App) *cobra.Command {
 	}
 }
 
+func newProfileGetCmd(app *App) *cobra.Command {
+	return &cobra.Command{
+		Use:   "get [key]",
+		Short: "Print a profile value. Keys: platforms, scope, registry, status_auto_return_seconds, group_by_category, channel, path. No key prints the full profile.",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			key := ""
+			if len(args) == 1 {
+				key = args[0]
+			}
+			return runProfileGet(app, key)
+		},
+		ValidArgsFunction: cobra.FixedCompletions(profileValueKeys, cobra.ShellCompDirectiveNoFileComp),
+	}
+}
+
 func newProfileSetCmd(app *App) *cobra.Command {
 	return &cobra.Command{
 		Use: "set <key> <value>",
 		Short: "Set a profile value. Keys: platforms (csv), scope (global|user|project|adapter-default), " +
 			"registry (URL/file:// path, or \"\" to clear), status_auto_return_seconds (seconds, or default|off), " +
-			"group_by_category (on|off|default).",
+			"group_by_category (on|off|default), channel (stable|beta|default).",
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runProfileSet(app, args[0], args[1])
@@ -149,6 +168,8 @@ func runProfileShow(app *App) error {
 		th.KVValue.Render(formatAutoReturn(p.StatusAutoReturnSeconds)))
 	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("group-by")+"     "+
 		th.KVValue.Render(formatGroupByCategory(p.GroupByCategory)))
+	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("channel")+"      "+
+		th.KVValue.Render(formatChannel(p.Channel)))
 	fmt.Fprintln(app.UI.Out(), "  "+th.KVKey.Render("path")+"         "+
 		th.KVValue.Render(app.Config.ProfilePath))
 
@@ -160,6 +181,56 @@ func runProfileShow(app *App) error {
 		}
 	}
 	return nil
+}
+
+var profileValueKeys = []string{
+	"platforms",
+	"scope",
+	"registry",
+	"status_auto_return_seconds",
+	"group_by_category",
+	"channel",
+	"path",
+}
+
+func runProfileGet(app *App, key string) error {
+	if key == "" {
+		return runProfileShow(app)
+	}
+	p, err := profile.Load(app.Config.ProfilePath)
+	if err != nil {
+		return err
+	}
+	val, err := profileValue(p, key, app.Config.ProfilePath)
+	if err != nil {
+		return err
+	}
+	if app.Config.JSON {
+		return app.UI.JSON(map[string]string{"key": key, "value": val})
+	}
+	fmt.Fprintln(app.UI.Out(), val)
+	return nil
+}
+
+func profileValue(p *profile.Profile, key, path string) (string, error) {
+	switch key {
+	case "platforms":
+		return formatPlatforms(p.DefaultPlatforms), nil
+	case "scope":
+		return formatScope(p.DefaultScope), nil
+	case "registry":
+		return formatRegistry(p.Registry), nil
+	case "status_auto_return_seconds":
+		return formatAutoReturn(p.StatusAutoReturnSeconds), nil
+	case "group_by_category":
+		return formatGroupByCategory(p.GroupByCategory), nil
+	case "channel":
+		return p.ResolvedChannel(), nil
+	case "path":
+		return path, nil
+	default:
+		return "", fmt.Errorf("unknown key %q — valid keys: %s", key, strings.Join(profileValueKeys, ", "))
+	}
 }
 
 func runProfileSet(app *App, key, value string) error {
@@ -209,8 +280,14 @@ func runProfileSet(app *App, key, value string) error {
 			return err
 		}
 		p.GroupByCategory = flag
+	case "channel":
+		ch, err := parseChannel(value)
+		if err != nil {
+			return err
+		}
+		p.Channel = ch
 	default:
-		return fmt.Errorf("unknown key %q — valid keys: platforms, scope, registry, status_auto_return_seconds, group_by_category", key)
+		return fmt.Errorf("unknown key %q — valid keys: platforms, scope, registry, status_auto_return_seconds, group_by_category, channel", key)
 	}
 
 	if err := profile.Save(app.Config.ProfilePath, p); err != nil {
@@ -335,6 +412,33 @@ func formatGroupByCategory(flag *bool) string {
 		return "on"
 	default:
 		return "off"
+	}
+}
+
+// parseChannel parses `profile set channel`: "default"/"" resets to unset
+// (stable), "stable" stores the explicit stable value, "beta" follows
+// prereleases. Same field Homebrew and `upgrade --channel` read.
+func parseChannel(value string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "default", "":
+		return "", nil
+	case profile.ChannelStable:
+		return profile.ChannelStable, nil
+	case profile.ChannelBeta:
+		return profile.ChannelBeta, nil
+	}
+	return "", fmt.Errorf("invalid channel %q — expected stable, beta, or default", value)
+}
+
+// formatChannel renders Profile.Channel for `profile show`.
+func formatChannel(channel string) string {
+	switch channel {
+	case "":
+		return "stable (default)"
+	case profile.ChannelBeta:
+		return profile.ChannelBeta
+	default:
+		return profile.ChannelStable
 	}
 }
 

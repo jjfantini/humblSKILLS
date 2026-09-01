@@ -36,7 +36,7 @@ const (
 var upgradeStepLabels = map[UpgradeStep]string{
 	UpgradeStepCheckingLatest:    "checking latest release",
 	UpgradeStepBrewUpdating:      "running brew update",
-	UpgradeStepBrewUpgrading:     "running brew upgrade humblskills",
+	UpgradeStepBrewUpgrading:     "running brew upgrade",
 	UpgradeStepDownloading:       "downloading release archive",
 	UpgradeStepVerifyingChecksum: "verifying checksum",
 	UpgradeStepInstalling:        "installing",

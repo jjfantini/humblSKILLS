@@ -14,6 +14,24 @@ import (
 // detected but the brew binary itself isn't on PATH.
 var ErrBrewNotFound = errors.New("brew not found on PATH")
 
+// Homebrew formula names in jjfantini/homebrew-humbl. `humblskills@beta` is
+// illegal (Homebrew only maps `@` + digits to a Ruby class). The pre
+// formula is therefore `humblskills-pre`.
+const (
+	FormulaStable = "humblskills"
+	FormulaPre    = "humblskills-pre"
+)
+
+// FormulaForChannel returns the tap formula `brew upgrade` should run for
+// the given profile channel. Unknown/empty → stable, so users who never
+// set a channel keep today's behaviour.
+func FormulaForChannel(channel string) string {
+	if NormalizeChannel(channel) == ChannelBeta {
+		return FormulaPre
+	}
+	return FormulaStable
+}
+
 // IsHomebrewManaged reports whether exePath resolves (after following
 // symlinks, the way Homebrew's opt/Cellar layout works) into a Homebrew
 // Cellar or Caskroom — the canonical signal that this install is managed by
@@ -33,9 +51,10 @@ func IsHomebrewManaged(exePath string) bool {
 type Runner func(ctx context.Context, name string, args ...string) *exec.Cmd
 
 // Upgrade refreshes Homebrew's local tap metadata (`brew update`) and then
-// runs `brew upgrade humblskills`, streaming both commands' own output to
+// runs `brew upgrade <formula>`, streaming both commands' own output to
 // stdout/stderr live so the user sees Homebrew's real progress instead of a
-// reimplementation of it. run defaults to exec.CommandContext when nil.
+// reimplementation of it. formula defaults to FormulaStable when empty.
+// run defaults to exec.CommandContext when nil.
 //
 // The `brew update` step exists because Homebrew throttles its own
 // opportunistic tap refresh (HOMEBREW_AUTO_UPDATE_SECS, 24h by default) —
@@ -45,9 +64,12 @@ type Runner func(ctx context.Context, name string, args ...string) *exec.Cmd
 // treated as fatal on its own: `brew upgrade` still runs, and the caller's
 // own post-upgrade version check (VerifyInstalledVersion) is what actually
 // decides whether the upgrade succeeded.
-func Upgrade(ctx context.Context, run Runner, stdout, stderr io.Writer, sink EventSink) error {
+func Upgrade(ctx context.Context, run Runner, stdout, stderr io.Writer, sink EventSink, formula string) error {
 	if run == nil {
 		run = exec.CommandContext
+	}
+	if formula == "" {
+		formula = FormulaStable
 	}
 
 	sink.emit(Event{Phase: PhaseBrewUpdating})
@@ -60,7 +82,7 @@ func Upgrade(ctx context.Context, run Runner, stdout, stderr io.Writer, sink Eve
 	}
 
 	sink.emit(Event{Phase: PhaseBrewUpgrading})
-	if err := runBrew(ctx, run, stdout, stderr, "upgrade", "humblskills"); err != nil {
+	if err := runBrew(ctx, run, stdout, stderr, "upgrade", formula); err != nil {
 		sink.emit(Event{Phase: PhaseError, Err: err})
 		return err
 	}
