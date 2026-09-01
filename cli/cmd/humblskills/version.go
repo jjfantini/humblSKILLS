@@ -54,6 +54,7 @@ func runVersion(app *App) error {
 	}
 
 	// Non-TTY fallback — preserves the existing pipe-friendly output.
+	app.printUpgradeNotice()
 	th := app.UI.Theme()
 	suffix := ""
 	if info.Dirty {

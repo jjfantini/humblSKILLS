@@ -155,6 +155,7 @@ func runProfileShow(app *App) error {
 	if app.Config.JSON {
 		return app.UI.JSON(p)
 	}
+	app.printUpgradeNotice()
 	th := app.UI.Theme()
 	app.UI.Header("profile")
 	app.UI.Section("Defaults")

@@ -127,6 +127,25 @@ The channel is the same `profile.json` field Homebrew uses. Change it from the
 existing Profile TUI (`humblskills` → Profile → **install channel**) or
 `profile set` — there is no second settings surface.
 
+When a newer release exists on your channel, `doctor`, `start` (and the
+non-TTY command table), `version`, `list`, `search`, and `profile show` print
+this line on **stderr**:
+
+```text
+newer version available: v2.15.0 → v2.17.0 (stable) — run `humblskills upgrade`
+```
+
+Homebrew-managed installs get `brew upgrade humblskills` (or
+`brew upgrade humblskills-pre` on beta) instead of the generic curl path.
+`--json` and `--quiet` suppress it; being current is silent. The interactive
+dashboard (`humblskills` / `humblskills start`) shows the same fact as a
+**Newer version available** banner above the tile grid — not only in Profile —
+with current version, latest for the channel, and the update command.
+
+The check reuses `upgrade`'s channel resolution and GitHub endpoints, and
+caches the latest tag under the cache dir (`selfupdate/latest-<channel>.json`,
+12 hours) so frames and back-to-back commands do not hit GitHub again.
+
 If you installed via Homebrew, `upgrade` detects that and delegates: it confirms
 with you, then runs `brew update && brew upgrade <formula>` (`humblskills` or
 `humblskills-pre`) itself, so Homebrew's own bookkeeping stays correct. It falls

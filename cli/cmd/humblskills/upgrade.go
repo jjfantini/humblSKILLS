@@ -42,8 +42,7 @@ var applyPhaseSteps = map[selfupdate.Phase]tui.UpgradeStep{
 }
 
 type upgradeFlags struct {
-	dryRun  bool
-	channel string // one-shot override; empty means use the profile (default stable)
+	dryRun bool
 }
 
 // upgradeResult is both the --json payload and the source of truth the
@@ -84,8 +83,6 @@ func newUpgradeCmd(app *App) *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&f.dryRun, "dry-run", false, "show the version you'd upgrade to without changing anything")
-	cmd.Flags().StringVar(&f.channel, "channel", "", "release channel for this run: stable|beta (default: profile channel, itself stable unless set)")
-	_ = cmd.RegisterFlagCompletionFunc("channel", cobra.FixedCompletions([]string{profile.ChannelStable, profile.ChannelBeta}, cobra.ShellCompDirectiveNoFileComp))
 	return cmd
 }
 
@@ -96,7 +93,7 @@ func runUpgrade(app *App, f upgradeFlags) error {
 		return fmt.Errorf("resolve own executable path: %w", err)
 	}
 
-	channel, err := resolveUpgradeChannel(app, f.channel)
+	channel, err := resolveUpgradeChannel(app)
 	if err != nil {
 		return err
 	}
@@ -144,6 +141,7 @@ func runUpgrade(app *App, f upgradeFlags) error {
 
 	res.Applied = true
 	res.InstalledVersion = installed
+	selfupdate.InvalidateNoticeCache(app.Config.CacheDir)
 	return finishUpgrade(app, res)
 }
 
@@ -190,12 +188,9 @@ func brewFormula(res upgradeResult) string {
 	return selfupdate.FormulaForChannel(res.Channel)
 }
 
-func resolveUpgradeChannel(app *App, flag string) (string, error) {
-	if flag != "" {
-		if flag != profile.ChannelStable && flag != profile.ChannelBeta {
-			return "", fmt.Errorf("invalid --channel %q — valid: stable, beta", flag)
-		}
-		return flag, nil
+func resolveUpgradeChannel(app *App) (string, error) {
+	if app.Config.Channel != "" {
+		return app.Config.Channel, nil
 	}
 	p, err := profile.Load(app.Config.ProfilePath)
 	if err != nil {

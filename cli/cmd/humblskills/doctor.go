@@ -64,6 +64,7 @@ func runDoctor(app *App) error {
 				return err
 			}
 			if !rerun {
+				app.printUpgradeNotice()
 				break
 			}
 			report, err = tui.RunWithLoading(app.UI.Theme(), "rescanning…", func() (doctorReport, error) {
@@ -74,6 +75,7 @@ func runDoctor(app *App) error {
 			}
 		}
 	} else {
+		app.printUpgradeNotice()
 		printDoctorStatic(app, report)
 	}
 
