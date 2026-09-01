@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.52.0-pre.2](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0-pre.1...v2.52.0-pre.2) (2026-09-01)
+
+
+### Features
+
+* **upgrade:** beta channel picks the newer of stable and prerelease ([cd65484](https://github.com/jjfantini/humblSKILLS/commit/cd65484950e199d3303b5075dd1a1cca14522f03))
+
+
+### Bug Fixes
+
+* **upgrade:** beta channel picks highest semver, not latest pre ([733d0f6](https://github.com/jjfantini/humblSKILLS/commit/733d0f6882404e11ba27207a26cb9ab0ee4703a9))
+
 ## [2.52.0](https://github.com/jjfantini/humblSKILLS/compare/v2.51.0...v2.52.0) (2026-09-01)
 
 
