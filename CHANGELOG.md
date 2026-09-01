@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.52.0-pre.1](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0-pre...v2.52.0-pre.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **release:** split manifests so main can graduate pre to stable ([8338d1b](https://github.com/jjfantini/humblSKILLS/commit/8338d1b5d9244fdab0952755f37d1399eb880de9))
+* **release:** track last stable and last pre in separate manifests ([27737de](https://github.com/jjfantini/humblSKILLS/commit/27737dec05f7a0e1ad0b1499837ae978ff047399))
+
 ## [2.52.0-pre](https://github.com/jjfantini/humblSKILLS/compare/v2.51.0...v2.52.0-pre) (2026-09-01)
 
 
