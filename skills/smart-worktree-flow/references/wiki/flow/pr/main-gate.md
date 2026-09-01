@@ -7,7 +7,7 @@ description: "Honor auto-merge versus human review before production branch merg
 tags: pull-request, main, master, auto-merge, hitl
 sources:
   - "references/raw/user-request.md"
-last_ingested: 2026-06-12
+last_ingested: 2026-09-01
 ---
 
 ## Main Gate
@@ -37,6 +37,10 @@ gh pr checks --watch
 Prefer merge commits when release tooling such as release-please needs the
 original conventional commits on the production branch. Avoid squash-merging
 away the `feat:` or `fix:` commit that should drive the version bump.
+
+Merging `develop` into `main` is what promotes the pre-release
+(`vX.Y.Z-pre.N`) to the stable version and updates the Homebrew tap. The
+stable release PR appears after this merge; see `release/release-pr.md`.
 
 ## Sources
 

@@ -85,7 +85,9 @@ newer version waiting.
 humblskills update              # pick which drifted skills to upgrade
 humblskills update --check      # dry run: show what would change
 humblskills update --all --yes  # upgrade everything, no prompts
-humblskills upgrade             # upgrade the humblskills CLI itself
+humblskills upgrade                  # CLI binary; profile channel (stable if unset)
+humblskills upgrade --channel beta   # this run only
+humblskills profile set channel beta # persist; TUI: humblskills → Profile → install channel
 ```
 
 `update` handles skills; `upgrade` handles the binary. Your customizations

@@ -16,9 +16,18 @@ If you use [Homebrew](https://brew.sh), this is the simplest way to install and 
 brew install jjfantini/humbl/humblskills
 ```
 
-Tap and formula live in [`jjfantini/homebrew-humbl`](https://github.com/jjfantini/homebrew-humbl); new releases bump the formula automatically.
+Tap and formulas live in [`jjfantini/homebrew-humbl`](https://github.com/jjfantini/homebrew-humbl). **Stable** releases on `main` bump `Formula/humblskills.rb`. Pre-releases from `develop` (`vX.Y.Z-pre.N`) bump a **second** formula, `humblskills-pre`, and never replace the stable one — `brew upgrade humblskills` stays on the last real version.
 
-Upgrade later with:
+Homebrew rejects `humblskills@beta` (`@` is only legal with a numeric version). The pre formula is therefore `humblskills-pre`.
+
+```sh
+brew install jjfantini/humbl/humblskills-pre   # pre-releases only
+brew upgrade humblskills-pre
+```
+
+The two formulas `conflicts_with` each other. Install one, not both.
+
+Upgrade the stable formula later with:
 
 ```sh
 brew upgrade humblskills
@@ -76,17 +85,38 @@ fix that before installing skills.
 ## Staying up to date
 
 ```sh
-humblskills upgrade              # self-update: download, verify, swap the binary
-humblskills upgrade --dry-run    # just show the version you'd move to
+humblskills upgrade                    # self-update on the profile channel (stable by default)
+humblskills upgrade --channel beta     # this run only; does not write the profile
+humblskills upgrade --dry-run          # just show the version you'd move to
 ```
 
-On a Homebrew-managed install, `upgrade` detects that, asks for confirmation, and
-runs `brew update && brew upgrade humblskills` for you, so Homebrew's own Cellar
-bookkeeping stays correct. It only asks you to run brew yourself if `brew` isn't on
-`PATH`. You can of course still do it directly:
+The install channel is one field in `~/.humblskills/profile.json` (`channel`:
+`stable` or `beta`; unset means stable). Homebrew and `humblskills upgrade`
+both read it — no extra config file.
 
 ```sh
-brew upgrade humblskills
+humblskills profile get channel
+humblskills profile set channel beta     # persist; default / "" / stable all mean stable
+humblskills profile show
+```
+
+Or the same TUI editor that already exists (do not look for a second settings
+app): run `humblskills` and open **Profile**, or `humblskills profile`. The
+**install channel** row shows the current value; enter to switch stable ↔ beta.
+
+| Channel | GitHub | Homebrew formula |
+|---------|--------|------------------|
+| `stable` (default) | `/releases/latest` | `humblskills` |
+| `beta` | latest prerelease (`vX.Y.Z-pre.N`) | `humblskills-pre` |
+
+On a Homebrew-managed install, `upgrade` detects that, asks for confirmation, and
+runs `brew update && brew upgrade <formula>` for the resolved channel, so
+Homebrew's own Cellar bookkeeping stays correct. It only asks you to run brew
+yourself if `brew` isn't on `PATH`. You can of course still do it directly:
+
+```sh
+brew upgrade humblskills       # stable
+brew upgrade humblskills-pre   # beta
 ```
 
 `upgrade` updates the **CLI**; `humblskills update` updates your installed

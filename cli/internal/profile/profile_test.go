@@ -374,6 +374,40 @@ func TestResolvedGroupByCategory(t *testing.T) {
 	}
 }
 
+func TestResolvedChannel(t *testing.T) {
+	cases := []struct {
+		name string
+		p    *profile.Profile
+		want string
+	}{
+		{"nil profile defaults to stable", nil, profile.ChannelStable},
+		{"unset defaults to stable", &profile.Profile{}, profile.ChannelStable},
+		{"explicit stable", &profile.Profile{Channel: profile.ChannelStable}, profile.ChannelStable},
+		{"explicit beta", &profile.Profile{Channel: profile.ChannelBeta}, profile.ChannelBeta},
+	}
+	for _, c := range cases {
+		if got := c.p.ResolvedChannel(); got != c.want {
+			t.Errorf("%s: ResolvedChannel() = %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
+func TestIsValidChannel(t *testing.T) {
+	cases := map[string]bool{
+		"":       true,
+		"stable": true,
+		"beta":   true,
+		"BETA":   false,
+		"pre":    false,
+		" nightly": false,
+	}
+	for in, want := range cases {
+		if got := profile.IsValidChannel(in); got != want {
+			t.Errorf("IsValidChannel(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
+
 func TestResolvedScope(t *testing.T) {
 	cases := []struct {
 		name string

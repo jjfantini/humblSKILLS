@@ -55,7 +55,7 @@ func TestUpgrade_RunsBrewUpdateBeforeUpgrade(t *testing.T) {
 	runner := stubBrewRunner(t, &invocations, true)
 
 	var stdout, stderr bytes.Buffer
-	if err := Upgrade(context.Background(), runner, &stdout, &stderr, nil); err != nil {
+	if err := Upgrade(context.Background(), runner, &stdout, &stderr, nil, ""); err != nil {
 		t.Fatalf("Upgrade: %v", err)
 	}
 
@@ -90,7 +90,7 @@ func TestUpgrade_BrewUpdateFailureDoesNotBlockUpgrade(t *testing.T) {
 	}
 
 	var stdout, stderr bytes.Buffer
-	if err := Upgrade(context.Background(), runner, &stdout, &stderr, nil); err != nil {
+	if err := Upgrade(context.Background(), runner, &stdout, &stderr, nil, ""); err != nil {
 		t.Fatalf("Upgrade should not fail when only brew update fails: %v", err)
 	}
 	if len(invocations) != 2 {
@@ -108,7 +108,7 @@ func TestUpgrade_EmitsBrewUpdatingThenBrewUpgradingPhases(t *testing.T) {
 	var phases []Phase
 	sink := EventSink(func(ev Event) { phases = append(phases, ev.Phase) })
 
-	if err := Upgrade(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, sink); err != nil {
+	if err := Upgrade(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, sink, ""); err != nil {
 		t.Fatalf("Upgrade: %v", err)
 	}
 	if len(phases) != 2 || phases[0] != PhaseBrewUpdating || phases[1] != PhaseBrewUpgrading {
@@ -125,9 +125,40 @@ func TestUpgrade_BrewNotFound(t *testing.T) {
 		return exec.CommandContext(ctx, "definitely-not-a-real-binary-xyz")
 	}
 
-	err := Upgrade(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, nil)
+	err := Upgrade(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, nil, "")
 	if !errors.Is(err, ErrBrewNotFound) {
 		t.Errorf("expected ErrBrewNotFound, got %v", err)
+	}
+}
+
+func TestFormulaForChannel(t *testing.T) {
+	cases := []struct {
+		in, want string
+	}{
+		{"", FormulaStable},
+		{"stable", FormulaStable},
+		{"nightly", FormulaStable},
+		{"beta", FormulaPre},
+	}
+	for _, c := range cases {
+		if got := FormulaForChannel(c.in); got != c.want {
+			t.Errorf("FormulaForChannel(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
+func TestUpgrade_UsesGivenFormula(t *testing.T) {
+	var invocations [][]string
+	runner := stubBrewRunner(t, &invocations, true)
+
+	if err := Upgrade(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, nil, FormulaPre); err != nil {
+		t.Fatalf("Upgrade: %v", err)
+	}
+	if len(invocations) != 2 {
+		t.Fatalf("invocations = %v, want 2 calls", invocations)
+	}
+	if len(invocations[1]) != 2 || invocations[1][0] != "upgrade" || invocations[1][1] != FormulaPre {
+		t.Errorf("second call = %v, want [upgrade %s]", invocations[1], FormulaPre)
 	}
 }
 
@@ -141,7 +172,7 @@ func TestUpgrade_NonZeroExit(t *testing.T) {
 
 	// Both brew update and brew upgrade fail here, so the overall call must
 	// still surface the (second, fatal) failure.
-	err := Upgrade(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, nil)
+	err := Upgrade(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, nil, "")
 	if err == nil {
 		t.Fatal("expected error for non-zero brew exit code")
 	}

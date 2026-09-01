@@ -238,6 +238,11 @@ func (m profileModel) toggleCurrent() profileModel {
 			m.profile.GroupByCategory = groupByCategoryOpts[m.valueIdx].value
 			m.changed = true
 		}
+	case "channel":
+		if m.valueIdx >= 0 && m.valueIdx < len(channelOpts) {
+			m.profile.Channel = channelOpts[m.valueIdx].value
+			m.changed = true
+		}
 	}
 	return m
 }
@@ -277,6 +282,17 @@ var groupByCategoryOpts = []struct {
 }{
 	{"on (default)", nil},
 	{"off", boolPtr(false)},
+}
+
+// channelOpts is the picker for Profile.Channel. Selecting "stable (default)"
+// writes the explicit stable value so the field is first-class on disk;
+// "beta" follows the latest GitHub prerelease and the humblskills-pre formula.
+var channelOpts = []struct {
+	label string
+	value string
+}{
+	{"stable (default) — latest release", profile.ChannelStable},
+	{"beta — latest pre-release", profile.ChannelBeta},
 }
 
 func intPtr(n int) *int    { return &n }
@@ -324,6 +340,11 @@ func (m profileModel) currentSelectionIndex() int {
 			return 0
 		}
 		return 1
+	case "channel":
+		if m.profile.ResolvedChannel() == profile.ChannelBeta {
+			return 1
+		}
+		return 0
 	}
 	return 0
 }
@@ -348,6 +369,8 @@ func (m profileModel) valueCount() int {
 		return len(autoReturnSettingOpts)
 	case "group_by_category":
 		return len(groupByCategoryOpts)
+	case "channel":
+		return len(channelOpts)
 	}
 	return 0
 }
@@ -372,6 +395,7 @@ var profileSettings = []profileSetting{
 	{key: "scope", label: "default scope", kind: settingRadio},
 	{key: "status_auto_return", label: "status auto-return", kind: settingRadio},
 	{key: "group_by_category", label: "group by category", kind: settingRadio},
+	{key: "channel", label: "install channel", kind: settingRadio},
 }
 
 func (m profileModel) View() string {
@@ -502,6 +526,8 @@ func (m profileModel) renderRight(width int) string {
 		body = append(body, m.renderAutoReturnOptions(bar, width)...)
 	case "group_by_category":
 		body = append(body, m.renderGroupByCategoryOptions(bar, width)...)
+	case "channel":
+		body = append(body, m.renderChannelOptions(bar, width)...)
 	}
 	return strings.Join(body, "\n")
 }
@@ -660,6 +686,42 @@ func (m profileModel) renderGroupByCategoryOptions(bar string, width int) []stri
 	return rows
 }
 
+func (m profileModel) renderChannelOptions(bar string, width int) []string {
+	th := m.theme
+	resolved := m.profile.ResolvedChannel()
+	rows := make([]string, 0, len(channelOpts)+4)
+	rows = append(rows, detailLines(th, bar,
+		"Which CLI build upgrade fetches. Stable is GitHub /releases/latest and the "+
+			"humblskills brew formula (the default). Beta is the latest pre-release "+
+			"and the humblskills-pre formula. Same field Homebrew and `humblskills "+
+			"upgrade --channel` use — nothing else to configure.", width)...)
+	rows = append(rows, bar)
+	rows = append(rows, bar+" "+th.SectionTitle.Render("OPTIONS"))
+	for i, opt := range channelOpts {
+		cursorHere := i == m.valueIdx && m.focus == focusValue
+		isCurrent := opt.value == resolved
+		marker := "( )"
+		if isCurrent {
+			marker = "(●)"
+		}
+		var styled string
+		switch {
+		case cursorHere:
+			styled = th.RowSelected.Render(marker + "  " + opt.label)
+		case isCurrent:
+			styled = th.Success.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
+		default:
+			styled = th.RowDim.Render(marker) + "  " + th.RowUnselected.Render(opt.label)
+		}
+		prefix := bar + "   "
+		if cursorHere {
+			prefix = bar + " " + th.Bullet.Render("▸") + " "
+		}
+		rows = append(rows, prefix+styled)
+	}
+	return rows
+}
+
 func (m profileModel) layoutRow(label, badge string, width int) string {
 	lw := lipgloss.Width(label)
 	bw := lipgloss.Width(badge)
@@ -694,8 +756,21 @@ func (m profileModel) settingBadge(key string) string {
 		return formatAutoReturnBadge(m.profile.StatusAutoReturnSeconds)
 	case "group_by_category":
 		return formatGroupByCategoryBadge(m.profile.GroupByCategory)
+	case "channel":
+		return formatChannelBadge(m.profile.Channel)
 	}
 	return ""
+}
+
+func formatChannelBadge(channel string) string {
+	switch channel {
+	case "":
+		return "stable (default)"
+	case profile.ChannelBeta:
+		return profile.ChannelBeta
+	default:
+		return profile.ChannelStable
+	}
 }
 
 func formatGroupByCategoryBadge(flag *bool) string {

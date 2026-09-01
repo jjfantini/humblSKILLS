@@ -261,6 +261,58 @@ func TestProfileModel_GroupByCategory_DefaultsOn(t *testing.T) {
 	}
 }
 
+func TestProfileModel_Channel_DefaultsStable(t *testing.T) {
+	m := newTestProfileModel(profile.Profile{})
+	m.settingIdx = 4 // install channel — last setting so earlier indexes stay stable
+	if got := m.currentSelectionIndex(); got != 0 {
+		t.Errorf("unset channel should select stable (default), got %d", got)
+	}
+	if got := m.settingBadge("channel"); got != "stable (default)" {
+		t.Errorf("badge = %q, want stable (default)", got)
+	}
+	if m.valueCount() != 2 {
+		t.Errorf("valueCount = %d, want 2", m.valueCount())
+	}
+	if profileSettings[m.settingIdx].key != "channel" {
+		t.Errorf("setting 4 key = %q, want channel", profileSettings[m.settingIdx].key)
+	}
+}
+
+func TestProfileModel_Channel_ToggleBeta(t *testing.T) {
+	m := newTestProfileModel(profile.Profile{})
+	m.settingIdx = 4
+	m.focus = focusValue
+	m.valueIdx = 1 // beta
+
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated := out.(profileModel)
+	if updated.profile.Channel != profile.ChannelBeta {
+		t.Errorf("Channel = %q, want %q", updated.profile.Channel, profile.ChannelBeta)
+	}
+	if updated.profile.ResolvedChannel() != profile.ChannelBeta {
+		t.Error("expected ResolvedChannel beta after toggle")
+	}
+	if !updated.changed {
+		t.Error("expected changed=true")
+	}
+	if updated.settingBadge("channel") != profile.ChannelBeta {
+		t.Errorf("badge = %q, want beta", updated.settingBadge("channel"))
+	}
+}
+
+func TestProfileModel_Channel_ToggleStableWritesExplicitValue(t *testing.T) {
+	m := newTestProfileModel(profile.Profile{Channel: profile.ChannelBeta})
+	m.settingIdx = 4
+	m.focus = focusValue
+	m.valueIdx = 0 // stable
+
+	out, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated := out.(profileModel)
+	if updated.profile.Channel != profile.ChannelStable {
+		t.Errorf("Channel = %q, want %q", updated.profile.Channel, profile.ChannelStable)
+	}
+}
+
 func TestProfileModel_GroupByCategory_ToggleOff(t *testing.T) {
 	m := newTestProfileModel(profile.Profile{})
 	m.settingIdx = 3
