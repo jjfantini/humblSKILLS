@@ -131,6 +131,64 @@ func TestResolvePlan_HomebrewDetected(t *testing.T) {
 	if !plan.Homebrew {
 		t.Error("expected Homebrew = true for a Cellar path")
 	}
+	if plan.Channel != ChannelStable {
+		t.Errorf("Channel = %q, want %s", plan.Channel, ChannelStable)
+	}
+	if plan.Formula != FormulaStable {
+		t.Errorf("Formula = %q, want %s", plan.Formula, FormulaStable)
+	}
+}
+
+func TestResolvePlanForChannel_BetaUsesPrereleaseAndPreFormula(t *testing.T) {
+	const pre = "2.52.0-pre.1"
+	assetName, err := CurrentAssetName(pre)
+	if err != nil {
+		t.Fatalf("CurrentAssetName: %v", err)
+	}
+
+	var srv *httptest.Server
+	mux := http.NewServeMux()
+	mux.HandleFunc("/repos/jjfantini/humblSKILLS/releases/latest", func(w http.ResponseWriter, r *http.Request) {
+		t.Error("beta channel must not hit /releases/latest")
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+	mux.HandleFunc("/repos/jjfantini/humblSKILLS/releases", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[
+			{"tag_name": "v` + pre + `", "prerelease": true, "draft": false,
+			 "assets": [
+			   {"name": "` + assetName + `", "browser_download_url": "http://example.invalid/a"},
+			   {"name": "checksums.txt", "browser_download_url": "http://example.invalid/c"}
+			 ]}
+		]`))
+	})
+	srv = httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	prev := GitHubAPIBase
+	GitHubAPIBase = srv.URL
+	t.Cleanup(func() { GitHubAPIBase = prev })
+
+	plan, err := ResolvePlanForChannel(srv.Client(), DefaultRepo, "2.51.0",
+		"/opt/homebrew/Cellar/humblskills-pre/2.51.0/bin/humblskills", ChannelBeta, nil)
+	if err != nil {
+		t.Fatalf("ResolvePlanForChannel: %v", err)
+	}
+	if plan.LatestVersion != "2.52.0-pre.1" {
+		t.Errorf("LatestVersion = %q, want 2.52.0-pre.1", plan.LatestVersion)
+	}
+	if plan.Channel != ChannelBeta {
+		t.Errorf("Channel = %q, want %s", plan.Channel, ChannelBeta)
+	}
+	if !plan.Homebrew {
+		t.Error("expected Homebrew = true")
+	}
+	if plan.Formula != FormulaPre {
+		t.Errorf("Formula = %q, want %s", plan.Formula, FormulaPre)
+	}
+	if !plan.UpgradeAvailable {
+		t.Error("expected UpgradeAvailable from 2.51.0 to 2.52.0-pre.1")
+	}
 }
 
 func TestApply_DownloadsVerifiesAndSwaps(t *testing.T) {

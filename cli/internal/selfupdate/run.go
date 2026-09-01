@@ -55,32 +55,46 @@ type Plan struct {
 	LatestTag        string // as published, e.g. "v2.17.0"
 	UpgradeAvailable bool
 	Homebrew         bool
+	Channel          string
+	Formula          string // brew formula when Homebrew; empty otherwise
 	AssetName        string
 	AssetURL         string
 	ChecksumsURL     string
 }
 
-// ResolvePlan fetches the latest release and decides whether an upgrade is
-// available and how it would be applied, without downloading or changing
-// anything. client/repo default to NewHTTPClient()/DefaultRepo when zero.
+// ResolvePlan fetches the latest *stable* release and decides whether an
+// upgrade is available. Equivalent to ResolvePlanForChannel(..., ChannelStable).
 func ResolvePlan(client *http.Client, repo, currentVersion, exePath string, sink EventSink) (*Plan, error) {
+	return ResolvePlanForChannel(client, repo, currentVersion, exePath, ChannelStable, sink)
+}
+
+// ResolvePlanForChannel is ResolvePlan using channel to pick GitHub
+// /releases/latest (stable) or the newest prerelease (beta), and the
+// matching brew formula.
+func ResolvePlanForChannel(client *http.Client, repo, currentVersion, exePath, channel string, sink EventSink) (*Plan, error) {
 	if repo == "" {
 		repo = DefaultRepo
 	}
+	channel = NormalizeChannel(channel)
 	sink.emit(Event{Phase: PhaseCheckingLatest})
-	rel, err := LatestRelease(client, repo)
+	rel, err := LatestReleaseForChannel(client, repo, channel)
 	if err != nil {
 		sink.emit(Event{Phase: PhaseError, Err: err})
 		return nil, err
 	}
 
 	latest := rel.Version()
+	homebrew := IsHomebrewManaged(exePath)
 	plan := &Plan{
 		CurrentVersion:   currentVersion,
 		LatestVersion:    latest,
 		LatestTag:        rel.TagName,
 		UpgradeAvailable: IsUpgradeAvailable(currentVersion, latest),
-		Homebrew:         IsHomebrewManaged(exePath),
+		Homebrew:         homebrew,
+		Channel:          channel,
+	}
+	if homebrew {
+		plan.Formula = FormulaForChannel(channel)
 	}
 	if !plan.UpgradeAvailable {
 		return plan, nil

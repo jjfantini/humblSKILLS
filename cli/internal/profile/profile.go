@@ -36,6 +36,13 @@ const (
 // auto-returning to the dashboard when StatusAutoReturnSeconds is unset.
 const DefaultStatusAutoReturnSeconds = 5
 
+// CLI upgrade channels stored in Profile.Channel. Empty is treated as
+// ChannelStable so existing profile.json files stay on the real version.
+const (
+	ChannelStable = "stable"
+	ChannelBeta   = "beta"
+)
+
 // Profile is the full on-disk document.
 type Profile struct {
 	SchemaVersion    int      `json:"schema_version"`
@@ -65,6 +72,12 @@ type Profile struct {
 	// recommended default. Explicit false restores the legacy flat
 	// registry→role→skills layout.
 	GroupByCategory *bool `json:"group_by_category,omitempty"`
+
+	// Channel selects which CLI release stream `humblskills upgrade` follows.
+	// Empty (unset) and "stable" both mean GitHub /releases/latest and the
+	// `humblskills` brew formula. "beta" means the latest GitHub prerelease
+	// and the `humblskills-pre` formula. Default MUST stay stable.
+	Channel string `json:"channel,omitempty"`
 }
 
 // NamedRegistry is one entry in the multi-registry set (Profile.Registries).
@@ -304,4 +317,24 @@ func (p *Profile) ResolvedGroupByCategory() bool {
 		return true
 	}
 	return *p.GroupByCategory
+}
+
+// IsValidChannel reports whether s is an accepted channel value. "" is
+// accepted as shorthand for the unset/default state — see ResolvedChannel.
+func IsValidChannel(s string) bool {
+	switch s {
+	case "", ChannelStable, ChannelBeta:
+		return true
+	}
+	return false
+}
+
+// ResolvedChannel returns the profile's effective CLI upgrade channel.
+// Unset/empty means ChannelStable — existing profiles and new installs
+// stay on the real version unless the user opts into beta.
+func (p *Profile) ResolvedChannel() string {
+	if p == nil || p.Channel == "" {
+		return ChannelStable
+	}
+	return p.Channel
 }

@@ -1,9 +1,11 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "go",
-  "skip-github-pull-request": false,
   "include-component-in-tag": false,
-  "last-release-sha": "0572b6c79243d4eb8ed3389078932feb12d39aa2",
+  "prerelease": false,
+  "versioning": "default",
+  "commit-search-depth": 200,
+  "release-search-depth": 50,
   "packages": {
     ".": {
       "package-name": "humblskills"

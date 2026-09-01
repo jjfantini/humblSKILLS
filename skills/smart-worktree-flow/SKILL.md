@@ -2,7 +2,7 @@
 name: smart-worktree-flow
 description: >
   Run a worktree-first development workflow from intent gathering through
-  feature PR, develop merge, main merge, release PR, brew verification, and
+  feature PR, develop merge (pre-release), main merge (stable + brew), and
   cleanup. Use when the user says "worktree flow", "start a feature",
   "ship this feature", "PR into develop", "full dev workflow", or wants a
   feature isolated from parallel agents. Do NOT use for atomic commit authoring
@@ -11,7 +11,7 @@ license: MIT
 compatibility: "Requires git 2.5+, GitHub CLI (`gh`) for PR/check operations, and network access for remote sync, CI, releases, and Homebrew verification."
 metadata:
   author: jjfantini
-  version: "1.1.0"
+  version: "1.2.1"
   previous_names: ["use-worktree-flow"]
   category: development
   tags: [git, worktree, pull-requests, release, workflow, humblskill]
@@ -27,7 +27,8 @@ metadata:
 # Worktree Flow
 
 Use this when shipping code through an isolated worktree: feature branch to
-`develop`, `develop` to `main` or `master`, release PR, local sync, and cleanup.
+`develop` (GitHub pre-release), `develop` to `main` or `master` (stable release
++ Homebrew tap), local sync, and cleanup.
 
 ## Brain Protocol (read BEFORE creating anything)
 
@@ -60,7 +61,10 @@ _Full spec: `references/_brain.md`._
 Before implementation, ask the user the questions in
 `references/wiki/flow/setup/intent-gathering.md`. If they defer, use these
 defaults: Vibe mode, worktree isolation, auto-merge develop to main on green,
-auto-merge release PR on green, and clean stale worktrees and branches.
+auto-merge both release PRs (develop pre-release and main stable) on green,
+`brew upgrade humblskills` as a post-check after the main stable only (testers
+can `brew upgrade humblskills-pre` after a develop pre-release), and clean stale
+worktrees and branches.
 
 Also inspect reality before choosing the path: run `git status`,
 `git worktree list`, check current branch tracking, and look for other active
@@ -75,18 +79,22 @@ the workspace is dirty.
    branch `feat/add-data`.
 3. PR the feature branch into `develop`; merge only after tests, lint,
    verifications, and CI/CD are green.
-4. PR `develop` into `main` or `master`; follow the upfront Vibe or HITL
+4. After `develop` is green, wait for the **pre-release** PR (tag
+   `vX.Y.Z-pre.N`, GitHub pre-release, `humblskills-pre` formula only). Merge it
+   on green if the user chose that path.
+5. PR `develop` into `main` or `master`; follow the upfront Vibe or HITL
    decision. Prefer merge commits when release tooling reads conventional
-   commits from main.
-5. Handle the generated release PR if the repo has release automation. Merge
-   it on green only if the user chose that path.
+   commits. Wait for the **stable** release PR (tag `vX.Y.Z` + Homebrew tap).
 6. Sync local branches with upstream, remove the worktree, and delete stale
    local and remote feature branches unless the user opted out.
 
-**Confirm which branch releases before choosing a base.** Release automation
-watches one branch. Work merged anywhere else is finished, green, and unshipped
-— the quietest failure in this whole flow, because nothing reports an error.
-Check the release workflow's trigger rather than assuming `develop` feeds it.
+**Confirm how each branch releases before choosing a base.** Check
+`.github/workflows/release.yml` rather than assuming. In this repo `develop`
+feeds a GitHub pre-release (`vX.Y.Z-pre.N`) and the `humblskills-pre` formula
+only. `main` feeds the real `vX.Y.Z` and `Formula/humblskills.rb`. Develop
+never rewrites the stable formula — `brew upgrade humblskills` is a post-check
+after the main stable release. Testers who opted into beta use
+`brew upgrade humblskills-pre` or `humblskills upgrade --channel beta`.
 
 A single-commit fix may go straight to the production branch instead of steps
 3-4, if the user says so. Then `develop` must be brought back to it, or the
@@ -112,7 +120,7 @@ Read `references/wiki/flow/pr/develop-gate.md`.
 **Gate develop into main or master:**
 Read `references/wiki/flow/pr/main-gate.md`.
 
-**Handle release automation:**
+**Handle pre-release (develop) and stable release (main):**
 Read `references/wiki/flow/release/release-pr.md`.
 
 **Sync and cleanup after release:**
@@ -129,8 +137,9 @@ Actions:
 1. Apply default choices: Vibe mode, worktree isolation, auto-merge on green,
    release PR auto-merge, cleanup enabled.
 2. Create `feat-add-data` and `feat/add-data` from `origin/develop`.
-3. Implement, verify, PR into `develop`, merge on green, PR `develop` into
-   `main`, handle release PR, verify brew upgrade, cleanup.
+3. Implement, verify, PR into `develop`, merge on green, handle the develop
+   pre-release PR (`humblskills-pre` only), PR `develop` into `main`, handle
+   the stable release PR, post-check with `brew upgrade humblskills`, cleanup.
 
 Result: The feature ships through release with no stale branch or worktree.
 
