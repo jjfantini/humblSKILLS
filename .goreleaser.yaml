@@ -42,9 +42,9 @@ checksum:
   name_template: checksums.txt
 
 brews:
+  # Stable formula. skip_upload: auto = do not touch this file on vX.Y.Z-pre.N.
+  # `brew upgrade humblskills` stays on the last main release.
   - name: humblskills
-    # auto = upload only for stable tags. vX.Y.Z-pre.N must not move the tap;
-    # `brew upgrade humblskills` tracks the last main release.
     skip_upload: auto
     repository:
       owner: jjfantini
@@ -55,10 +55,37 @@ brews:
     homepage: https://github.com/jjfantini/humblSKILLS
     description: Install agentskills.io-format skills into Claude Code, Cursor, and friends.
     license: CC-BY-4.0
+    conflicts:
+      - humblskills-pre
     commit_author:
       name: goreleaserbot
       email: goreleaser@users.noreply.github.com
     commit_msg_template: "humblskills: update to {{ .Tag }}"
+    install: |
+      bin.install "humblskills"
+    test: |
+      system "#{bin}/humblskills", "version"
+
+  # Pre-release formula. Homebrew rejects `name@version` unless the suffix is
+  # numeric (`python@3.12` → class PythonAT312); `humblskills@beta` is illegal.
+  # Inverse of auto: upload only when the tag has a semver prerelease component.
+  - name: humblskills-pre
+    skip_upload: "{{ if .Prerelease }}false{{ else }}true{{ end }}"
+    repository:
+      owner: jjfantini
+      name: homebrew-humbl
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/jjfantini/humblSKILLS
+    description: Pre-release (develop) build of humblskills. Does not replace the stable formula.
+    license: CC-BY-4.0
+    conflicts:
+      - humblskills
+    commit_author:
+      name: goreleaserbot
+      email: goreleaser@users.noreply.github.com
+    commit_msg_template: "humblskills-pre: update to {{ .Tag }}"
     install: |
       bin.install "humblskills"
     test: |
