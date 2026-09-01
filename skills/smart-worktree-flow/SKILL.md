@@ -11,7 +11,7 @@ license: MIT
 compatibility: "Requires git 2.5+, GitHub CLI (`gh`) for PR/check operations, and network access for remote sync, CI, releases, and Homebrew verification."
 metadata:
   author: jjfantini
-  version: "1.2.1"
+  version: "1.2.2"
   previous_names: ["use-worktree-flow"]
   category: development
   tags: [git, worktree, pull-requests, release, workflow, humblskill]
@@ -84,7 +84,8 @@ the workspace is dirty.
    on green if the user chose that path.
 5. PR `develop` into `main` or `master`; follow the upfront Vibe or HITL
    decision. Prefer merge commits when release tooling reads conventional
-   commits. Wait for the **stable** release PR (tag `vX.Y.Z` + Homebrew tap).
+   commits. The promote merge does not tag. Wait for the **stable** release
+   PR (tag `vX.Y.Z` + Homebrew tap) and merge that.
 6. Sync local branches with upstream, remove the worktree, and delete stale
    local and remote feature branches unless the user opted out.
 
@@ -138,8 +139,9 @@ Actions:
    release PR auto-merge, cleanup enabled.
 2. Create `feat-add-data` and `feat/add-data` from `origin/develop`.
 3. Implement, verify, PR into `develop`, merge on green, handle the develop
-   pre-release PR (`humblskills-pre` only), PR `develop` into `main`, handle
-   the stable release PR, post-check with `brew upgrade humblskills`, cleanup.
+   pre-release PR (`humblskills-pre` only), PR `develop` into `main` (promote,
+   no tag), handle the stable release PR, post-check with
+   `brew upgrade humblskills`, cleanup.
 
 Result: The feature ships through release with no stale branch or worktree.
 

@@ -23,12 +23,19 @@ Entry shape:
 - Why: A would make `brew upgrade humblskills` jump to `-pre.N`. B is an illegal Homebrew class (`@` only maps with digits). One profile field is the source of truth Homebrew, `upgrade`, and the existing settings TUI already share — no extra config file, no second TUI.
 - Result: TBD after first `humblskills-pre` tap commit.
 
+### 2026-09-01 | split manifests; do not share last-released version
+- Context: #270 merged develop→main after `v2.52.0-pre` existed. Shared `.release-please-manifest.json` was `{ ".": "2.52.0-pre" }`. release.yml run 33548192550 on main skipped: "No user facing commits found since v2.52.0-pre". No `v2.52.0`, brew still 2.51.0.
+- Options: (A) keep one manifest and rely on `prerelease: false` / `versioning: prerelease` on main to graduate, (B) `last-release-sha` or `Release-As: 2.52.0` on every promote, (C) a job that invents `vX.Y.Z`, (D) two manifests — develop records last pre, main records last stable.
+- Chose: D.
+- Why: release-please matches GitHub releases to the manifest version, then walks commits *after that SHA* (`src/manifest.ts` `expectedVersion === tagName.version`, then `changelogEmpty` in `src/strategies/base.ts`). The official "toggle `prerelease`" pairing never reaches versioning when the latest matching release is the `-pre` tag and the only later commit is `Merge pull request #N` (not a conventional commit). A/B are sticky glue; C is a second source of truth. D deletes the bad assumption that one last-released version can describe both channels.
+- Result: TBD after this reaches main and `release.yml` opens `v2.52.0` from the existing `2.51.0` stable marker.
+
 ### 2026-09-01 | release-please pre channel, not a second goreleaser workflow
 - Context: Jennings wants develop to cut GitHub pre-releases and main to cut the real version + brew. Two honest implementations exist.
 - Options: (A) release-please `prerelease` + `versioning: prerelease` + `prerelease-type: pre` on develop, same goreleaser job, `skip_upload: auto`, (B) a dedicated develop workflow that invents the next `-pre` tag and calls goreleaser itself.
 - Chose: A.
 - Why: release-please already documents pre-release branches that graduate on merge to main. goreleaser already consumes a semver `-pre.N` suffix (`prerelease: auto`, `skip_upload: auto`). B would add a version-computation script and a second source of truth. Tags `vX.Y.Z-pre.N` cannot equal `vX.Y.Z`, GitHub `/releases/latest` and `go install @latest` ignore prereleases, and brew stays on the last main formula. No develop Homebrew channel.
-- Result: TBD after first develop pre-release lands.
+- Result: First develop pre (`v2.52.0-pre`) landed. Graduation on main failed until manifests were split (see 2026-09-01 split-manifests entry).
 
 ### 2026-09-01 | Two-branch release: develop is pre, main is stable + brew
 - Context: The live repo watched only `main` (`release.yml` `on.push.branches: [main]`). The canonical skill described feature→develop→main plus a third release-please PR on main, then `brew upgrade` as a post-check — not GitHub prereleases on develop.

@@ -3,7 +3,7 @@ title: "Gate Develop Into Main Or Master"
 context: flow
 category: pr
 concept: main-gate
-description: "Honor auto-merge versus human review before production branch merges"
+description: "Honor auto-merge versus human review; promote merge is not the stable tag"
 tags: pull-request, main, master, auto-merge, hitl
 sources:
   - "references/raw/user-request.md"
@@ -38,9 +38,12 @@ Prefer merge commits when release tooling such as release-please needs the
 original conventional commits on the production branch. Avoid squash-merging
 away the `feat:` or `fix:` commit that should drive the version bump.
 
-Merging `develop` into `main` is what promotes the pre-release
-(`vX.Y.Z-pre.N`) to the stable version and updates the Homebrew tap. The
-stable release PR appears after this merge; see `release/release-pr.md`.
+Merging `develop` into `main` is the promote step, not the release. It
+brings the feat/fix history onto `main` while main's manifest still records
+the last **stable** (`vX.Y.Z`, never `vX.Y.Z-pre`). release-please then
+opens the stable release PR; merging *that* PR tags `vX.Y.Z` and updates
+the Homebrew tap. See `release/release-pr.md`. Do not treat the promote
+merge as "a release always appears."
 
 ## Sources
 
