@@ -62,7 +62,14 @@ func TestNotice_ChannelFlag_BetaPicksStableWinner(t *testing.T) {
 	s := testutil.NewSandbox(t)
 	withNoticeNetwork(t)
 	startFakeChannelAPI(t, "2.52.0", "2.52.0-pre.1")
-	withFakeExecutable(t, "/opt/homebrew/Cellar/humblskills-pre/2.52.0-pre.1/bin/humblskills")
+	exe := filepath.Join(s.Root, "Cellar", "humblskills-pre", "2.52.0-pre.1", "bin", "humblskills")
+	if err := os.MkdirAll(filepath.Dir(exe), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(exe, []byte("x"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	withFakeExecutable(t, exe)
 
 	res := runCLIWithStdoutCapture(t,
 		"version", "--channel", "beta",
@@ -74,8 +81,16 @@ func TestNotice_ChannelFlag_BetaPicksStableWinner(t *testing.T) {
 	if !strings.Contains(res.Err, "v2.52.0") {
 		t.Errorf("beta notice should pick stable 2.52.0:\n%s", res.Err)
 	}
-	if !strings.Contains(res.Err, "brew uninstall humblskills-pre && brew install humblskills") {
-		t.Errorf("beta notice should document the brew formula switch:\n%s", res.Err)
+	// Homebrew detection looks for "/Cellar/" — filepath.Join uses backslash
+	// on Windows, so that install is a GitHub binary there. Assert the
+	// command the same helper production uses, not a brew string on Windows.
+	want := selfupdate.RecommendedUpgradeCommand(
+		selfupdate.IsHomebrewManaged(exe),
+		selfupdate.InstalledFormula(exe),
+		selfupdate.FormulaForVersion("2.52.0"),
+	)
+	if !strings.Contains(res.Err, want) {
+		t.Errorf("notice missing %q:\n%s", want, res.Err)
 	}
 	if strings.Contains(res.Err, "brew upgrade humblskills-pre") {
 		t.Errorf("must not recommend brew upgrade pre when stable won:\n%s", res.Err)
@@ -146,8 +161,16 @@ func TestTuiVersionNotice_UsesResolver(t *testing.T) {
 	if n.Channel != profile.ChannelBeta {
 		t.Errorf("Channel = %q, want beta", n.Channel)
 	}
-	if n.Command != "brew uninstall humblskills-pre && brew install humblskills" {
-		t.Errorf("Command = %q", n.Command)
+	// filepath.Join(s.Root, "Cellar", ...) is Homebrew on Unix ("/Cellar/")
+	// and a plain GitHub install on Windows ("\Cellar\"). Same helper
+	// upgrade/notices use — don't assert brew commands where brew isn't.
+	want := selfupdate.RecommendedUpgradeCommand(
+		selfupdate.IsHomebrewManaged(exe),
+		selfupdate.InstalledFormula(exe),
+		selfupdate.FormulaForVersion("2.52.0"),
+	)
+	if n.Command != want {
+		t.Errorf("Command = %q, want %q", n.Command, want)
 	}
 }
 
