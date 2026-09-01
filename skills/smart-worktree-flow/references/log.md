@@ -41,3 +41,10 @@ Entry shape:
 [LINT 2026-09-01] 6 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.
 
 [LINT 2026-09-01] 6 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[LINT 2026-09-01] 6 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[QUERY 2026-09-01] First-class beta channel: second brew formula + profile field.
+  - humblskills-pre on pre tags only; stable formula never jumps to -pre.N
+  - Same profile.channel for profile get/set, TUI install channel, upgrade --channel
+  - Skill version 1.2.1

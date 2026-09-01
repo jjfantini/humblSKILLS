@@ -11,7 +11,7 @@ license: MIT
 compatibility: "Requires git 2.5+, GitHub CLI (`gh`) for PR/check operations, and network access for remote sync, CI, releases, and Homebrew verification."
 metadata:
   author: jjfantini
-  version: "1.2.0"
+  version: "1.2.1"
   previous_names: ["use-worktree-flow"]
   category: development
   tags: [git, worktree, pull-requests, release, workflow, humblskill]
@@ -62,7 +62,8 @@ Before implementation, ask the user the questions in
 `references/wiki/flow/setup/intent-gathering.md`. If they defer, use these
 defaults: Vibe mode, worktree isolation, auto-merge develop to main on green,
 auto-merge both release PRs (develop pre-release and main stable) on green,
-`brew upgrade` as a post-check after the main stable only, and clean stale
+`brew upgrade humblskills` as a post-check after the main stable only (testers
+can `brew upgrade humblskills-pre` after a develop pre-release), and clean stale
 worktrees and branches.
 
 Also inspect reality before choosing the path: run `git status`,
@@ -79,8 +80,8 @@ the workspace is dirty.
 3. PR the feature branch into `develop`; merge only after tests, lint,
    verifications, and CI/CD are green.
 4. After `develop` is green, wait for the **pre-release** PR (tag
-   `vX.Y.Z-pre.N`, GitHub pre-release, no brew). Merge it on green if the user
-   chose that path.
+   `vX.Y.Z-pre.N`, GitHub pre-release, `humblskills-pre` formula only). Merge it
+   on green if the user chose that path.
 5. PR `develop` into `main` or `master`; follow the upfront Vibe or HITL
    decision. Prefer merge commits when release tooling reads conventional
    commits. Wait for the **stable** release PR (tag `vX.Y.Z` + Homebrew tap).
@@ -89,9 +90,11 @@ the workspace is dirty.
 
 **Confirm how each branch releases before choosing a base.** Check
 `.github/workflows/release.yml` rather than assuming. In this repo `develop`
-feeds a GitHub pre-release (`vX.Y.Z-pre.N`) only. `main` feeds the real
-`vX.Y.Z` and the Homebrew tap. There is no develop brew channel — `brew
-upgrade` is a post-check after the main stable release, never after develop.
+feeds a GitHub pre-release (`vX.Y.Z-pre.N`) and the `humblskills-pre` formula
+only. `main` feeds the real `vX.Y.Z` and `Formula/humblskills.rb`. Develop
+never rewrites the stable formula — `brew upgrade humblskills` is a post-check
+after the main stable release. Testers who opted into beta use
+`brew upgrade humblskills-pre` or `humblskills upgrade --channel beta`.
 
 A single-commit fix may go straight to the production branch instead of steps
 3-4, if the user says so. Then `develop` must be brought back to it, or the
@@ -135,8 +138,8 @@ Actions:
    release PR auto-merge, cleanup enabled.
 2. Create `feat-add-data` and `feat/add-data` from `origin/develop`.
 3. Implement, verify, PR into `develop`, merge on green, handle the develop
-   pre-release PR (no brew), PR `develop` into `main`, handle the stable
-   release PR, post-check with `brew upgrade humblskills`, cleanup.
+   pre-release PR (`humblskills-pre` only), PR `develop` into `main`, handle
+   the stable release PR, post-check with `brew upgrade humblskills`, cleanup.
 
 Result: The feature ships through release with no stale branch or worktree.
 

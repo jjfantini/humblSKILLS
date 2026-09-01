@@ -113,20 +113,29 @@ old name, so you can update by the name you now know the skill by.
 ## Upgrading the CLI
 
 ```sh
-humblskills upgrade              # download + verify + swap in the latest release
-humblskills upgrade --dry-run    # just report the version you'd move to
+humblskills upgrade                    # profile channel (stable if unset)
+humblskills upgrade --channel beta     # this run only; does not write the profile
+humblskills upgrade --dry-run
+humblskills profile get channel
+humblskills profile set channel beta
 ```
 
-The upgrade checks GitHub releases, verifies the checksum, and replaces the
-running binary in place.
+The upgrade checks GitHub releases (stable → `/releases/latest`; beta → latest
+prerelease), verifies the checksum, and replaces the running binary in place.
 
-If you installed via Homebrew, `upgrade` detects that and delegates: it confirms with
-you, then runs `brew update && brew upgrade humblskills` itself, so Homebrew's own
-bookkeeping stays correct. It falls back to telling you to run brew by hand only when
-`brew` isn't on `PATH`. Doing it directly works too:
+The channel is the same `profile.json` field Homebrew uses. Change it from the
+existing Profile TUI (`humblskills` → Profile → **install channel**) or
+`profile set` — there is no second settings surface.
+
+If you installed via Homebrew, `upgrade` detects that and delegates: it confirms
+with you, then runs `brew update && brew upgrade <formula>` (`humblskills` or
+`humblskills-pre`) itself, so Homebrew's own bookkeeping stays correct. It falls
+back to telling you to run brew by hand only when `brew` isn't on `PATH`. Doing
+it directly works too:
 
 ```sh
 brew upgrade humblskills
+brew upgrade humblskills-pre
 ```
 
 ## Related topics

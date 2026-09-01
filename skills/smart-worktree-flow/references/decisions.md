@@ -16,6 +16,13 @@ Entry shape:
 
 ---
 
+### 2026-09-01 | second brew formula + first-class profile channel
+- Context: Jennings wants a pre-release *install* path, then made the beta vs stable channel first-class in the CLI and the existing TUI — not a hidden profile.json key.
+- Options: (A) mutate `Formula/humblskills.rb` on develop, (B) `humblskills@beta` versioned formula, (C) second formula `humblskills-pre` plus one `channel` field on the existing profile, wired to `profile get`/`set`, `upgrade --channel`, and the Profile TUI.
+- Chose: C.
+- Why: A would make `brew upgrade humblskills` jump to `-pre.N`. B is an illegal Homebrew class (`@` only maps with digits). One profile field is the source of truth Homebrew, `upgrade`, and the existing settings TUI already share — no extra config file, no second TUI.
+- Result: TBD after first `humblskills-pre` tap commit.
+
 ### 2026-09-01 | release-please pre channel, not a second goreleaser workflow
 - Context: Jennings wants develop to cut GitHub pre-releases and main to cut the real version + brew. Two honest implementations exist.
 - Options: (A) release-please `prerelease` + `versioning: prerelease` + `prerelease-type: pre` on develop, same goreleaser job, `skip_upload: auto`, (B) a dedicated develop workflow that invents the next `-pre` tag and calls goreleaser itself.

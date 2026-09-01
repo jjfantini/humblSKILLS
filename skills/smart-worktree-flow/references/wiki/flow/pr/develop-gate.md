@@ -42,7 +42,8 @@ If checks fail, investigate the root cause in the failing logs and fix the
 feature branch. Do not bypass checks or merge a red PR.
 
 A green merge into `develop` is what starts the pre-release (`vX.Y.Z-pre.N`).
-See `release/release-pr.md`. It does not update Homebrew.
+See `release/release-pr.md`. It updates `humblskills-pre` only — not the
+stable `humblskills` formula.
 
 ## Sources
 

@@ -19,6 +19,15 @@ brew install jjfantini/humbl/humblskills
 brew upgrade humblskills
 ```
 
+Pre-releases use a second formula (`humblskills-pre`). Do not use
+`humblskills@beta` — Homebrew only allows `@` + digits. The stable formula is
+never rewritten on a `-pre.N` tag.
+
+```sh
+brew install jjfantini/humbl/humblskills-pre
+brew upgrade humblskills-pre
+```
+
 Tap: [jjfantini/homebrew-humbl](https://github.com/jjfantini/homebrew-humbl).
 
 ### Shell installer (Linux and macOS)
@@ -55,11 +64,20 @@ humblskills doctor
 ### Upgrade the CLI later
 
 ```sh
-humblskills upgrade            # self-update; --dry-run to check only
-brew upgrade humblskills       # equivalent; on brew installs `upgrade` runs this for you
+humblskills upgrade                 # profile channel (stable if unset)
+humblskills upgrade --channel beta  # this run only
+humblskills profile get channel
+humblskills profile set channel beta
+brew upgrade humblskills            # stable formula
+brew upgrade humblskills-pre        # beta formula
 ```
 
+On a brew install, `upgrade` runs `brew upgrade <formula>` for the resolved
+channel. Same `channel` field as `profile.json`. In the TUI: `humblskills` or
+`humblskills profile` → **install channel**.
+
 `upgrade` updates the CLI binary; `update` updates installed skills.
+`humblskills install` installs **skills**, not the CLI.
 
 ## CLI behavior
 

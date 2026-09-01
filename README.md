@@ -31,10 +31,26 @@ If you use [Homebrew](https://brew.sh), install and upgrade with:
 
 ```sh
 brew install jjfantini/humbl/humblskills
+brew upgrade humblskills
 ```
 
+Pre-releases from `develop` (`vX.Y.Z-pre.N`) ship a **second** formula and never
+replace the stable one (`humblskills@beta` is an illegal Homebrew class name):
+
+```sh
+brew install jjfantini/humbl/humblskills-pre
+brew upgrade humblskills-pre
+```
+
+The CLI install channel is one field in `~/.humblskills/profile.json`
+(`channel`: `stable` or `beta`; unset means stable). Read or change it with
+`humblskills profile get channel` / `profile set channel beta`, the existing
+Profile TUI (`humblskills` → Profile → **install channel**), or a one-shot
+`humblskills upgrade --channel beta`. Same field Homebrew and `upgrade` use.
+
 Formulas live in [`jjfantini/homebrew-humbl`](https://github.com/jjfantini/homebrew-humbl)
-and are bumped automatically by the release workflow. Upgrade with `brew upgrade humblskills`.
+and are bumped by GoReleaser: `humblskills` on stable tags, `humblskills-pre`
+on pre tags.
 
 ### Shell installer (Linux/macOS)
 
@@ -461,11 +477,12 @@ Releases follow the two-branch path in
 
 - **`develop`** — release-please opens a pre-release PR. Merging it tags
   `vX.Y.Z-pre.N` and publishes a GitHub **pre-release** (archives + checksums).
-  The Homebrew tap is left alone.
+  GoReleaser updates `Formula/humblskills-pre.rb` only. The stable
+  `humblskills` formula is left alone.
 - **`main`** — merge `develop` with a merge commit (never squash). release-please
   opens a stable PR. Merging it tags `vX.Y.Z`, publishes the GitHub Release, and
-  GoReleaser updates the `jjfantini/homebrew-humbl` formula so
-  `brew upgrade humblskills` gets that version.
+  GoReleaser updates `Formula/humblskills.rb` so `brew upgrade humblskills`
+  gets that version. The pre formula is not rewritten.
 
 Both release PRs auto-merge on green for same-major bumps. A major bump waits
 for a human.

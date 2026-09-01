@@ -23,9 +23,9 @@ Ask these questions before work:
    Cursor agents?
 3. Should the `develop` -> `main` or `master` PR auto-merge on green checks?
 4. Should the generated release PRs auto-merge on green checks? There are two:
-   develop cuts `vX.Y.Z-pre.N` (GitHub pre-release, no brew); main cuts the
-   real `vX.Y.Z` and updates the Homebrew tap. `brew upgrade` is a post-check
-   after the main stable only.
+   develop cuts `vX.Y.Z-pre.N` (GitHub pre-release + `humblskills-pre` formula);
+   main cuts the real `vX.Y.Z` and updates the stable `humblskills` formula.
+   `brew upgrade humblskills` is a post-check after the main stable only.
 5. Should stale worktrees and branches be cleaned up at the end?
 
 If the user defers, use: Vibe mode, worktree isolation, auto-merge on green,
