@@ -125,8 +125,22 @@ the higher semver of latest stable vs latest prerelease), verifies the
 checksum, and replaces the running binary in place. Beta is “always the newest
 version”: `v2.52.0` beats `v2.52.0-pre.1`; `v2.53.0-pre.1` beats `v2.52.0`.
 
-The same resolver feeds the CLI update notice (stderr on `doctor` / `start` /
-`version` / …) and the TUI Dashboard banner.
+The same resolver feeds the CLI update notice and the TUI Dashboard banner.
+When a newer release exists, `doctor`, `start` (and the non-TTY command table),
+`version`, `list`, `search`, and `profile show` print this line on **stderr**:
+
+```text
+newer version available: v2.15.0 → v2.17.0 (stable) — run `humblskills upgrade`
+```
+
+Homebrew-managed installs get `brew upgrade humblskills`,
+`brew upgrade humblskills-pre`, or
+`brew uninstall humblskills-pre && brew install humblskills` when beta’s
+winner is a graduated stable. `--json` and `--quiet` suppress the notice;
+being current is silent. The interactive dashboard (`humblskills` /
+`humblskills start`) shows a **Newer version available** banner above the
+search bar and tile grid — not only in Profile. The latest tag is cached
+under `selfupdate/latest-<channel>.json` (12 hours).
 
 The channel is the same `profile.json` field Homebrew uses. Change it from the
 existing Profile TUI (`humblskills` → Profile → **install channel**) or

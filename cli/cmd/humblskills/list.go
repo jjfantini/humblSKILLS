@@ -42,6 +42,7 @@ func runList(app *App, fromDashboard bool) error {
 		return app.UI.JSON(buildListView(m, avail))
 	}
 	if len(m.Installations) == 0 {
+		app.printUpgradeNotice()
 		app.UI.Info("no skills installed — try 'humblskills install <name>'")
 		return nil
 	}
