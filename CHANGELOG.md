@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.52.0-pre.3](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0-pre.2...v2.52.0-pre.3) (2026-09-01)
+
+
+### Features
+
+* **cli:** channel-aware newer-version notice in CLI and TUI ([a108d52](https://github.com/jjfantini/humblSKILLS/commit/a108d52292207d142ce86e759c4939e3e030cba2))
+
 ## [2.52.0-pre.2](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0-pre.1...v2.52.0-pre.2) (2026-09-01)
 
 
