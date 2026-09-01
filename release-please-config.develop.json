@@ -3,10 +3,12 @@
   "release-type": "go",
   "skip-github-pull-request": false,
   "include-component-in-tag": false,
-  "prerelease": false,
-  "versioning": "default",
+  "prerelease": true,
+  "versioning": "prerelease",
+  "prerelease-type": "pre",
   "commit-search-depth": 200,
   "release-search-depth": 50,
+  "pull-request-header": ":construction: Pre-release from `develop`. Tags `vX.Y.Z-pre.N` and marks the GitHub Release as a pre-release. Does **not** update the Homebrew tap. Promote by merging `develop` into `main` (merge commit, never squash).",
   "packages": {
     ".": {
       "package-name": "humblskills"

@@ -16,6 +16,13 @@ Entry shape:
 
 ---
 
+### 2026-09-01 | Two-branch release: develop is pre, main is stable + brew
+- Context: The repo's release automation previously watched only `main`, so work on `develop` was green and unshipped until a human promoted it, and the skill's "which branch releases?" warning assumed a single release branch.
+- Options: (A) keep documenting a single release-please-on-main path, (B) document develop pre-release (`vX.Y.Z-pre.N`) and main stable + Homebrew as the real path.
+- Chose: B - match `.github/workflows/release.yml` and `release-please-config.develop.json`.
+- Why: Jennings' intended product flow is develop → pre-release, main → real version + `brew upgrade`. The skill must not tell agents to ignore develop or to expect brew after a develop merge.
+- Result: TBD after first develop pre-release lands.
+
 ### 2026-06-12 | Default to worktrees and Vibe mode on deferral
 - Context: The skill needs safe defaults when the user says "I defer to you" but still must avoid clobbering parallel local work.
 - Options: (A) in-place branches by default, (B) worktrees by default, (C) always stop until the user chooses.

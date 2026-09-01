@@ -16,7 +16,7 @@ If you use [Homebrew](https://brew.sh), this is the simplest way to install and 
 brew install jjfantini/humbl/humblskills
 ```
 
-Tap and formula live in [`jjfantini/homebrew-humbl`](https://github.com/jjfantini/homebrew-humbl); new releases bump the formula automatically.
+Tap and formula live in [`jjfantini/homebrew-humbl`](https://github.com/jjfantini/homebrew-humbl); **stable** releases on `main` bump the formula automatically. Pre-releases from `develop` (`vX.Y.Z-pre.N`) do not.
 
 Upgrade later with:
 

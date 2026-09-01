@@ -3,27 +3,36 @@ title: "Handle Generated Release PRs"
 context: flow
 category: release
 concept: release-pr
-description: "Decide whether the agent or user owns the release PR before the main merge"
-tags: release, release-please, version, brew
+description: "Develop cuts a pre-release; main cuts the stable version and updates brew"
+tags: release, release-please, version, brew, prerelease
 sources:
   - "references/raw/user-request.md"
-last_ingested: 2026-06-12
+last_ingested: 2026-09-01
 ---
 
-## Release PR
+## Two release PRs
 
-Some repos generate a release PR after `main` or `master` receives a
-conventional commit. The release PR usually updates changelog and version files;
-merging it cuts the tag and starts artifact publication.
+humblSKILLS release-please runs on both integration branches. Each opens its
+own release PR (changelog + `.release-please-manifest.json`). Merging the PR
+is what creates the tag and starts GoReleaser.
 
-Ask up front whether the user wants the agent to merge this PR on green checks.
-If they choose manual release review, stop after the release PR is ready and
+| Base | Tag | GitHub Release | Homebrew tap |
+|---|---|---|---|
+| `develop` | `vX.Y.Z-pre.N` | pre-release | not updated |
+| `main` | `vX.Y.Z` | latest / stable | `jjfantini/homebrew-humbl` formula bumped |
+
+Ask up front whether the user wants the agent to merge these PRs on green
+checks. If they choose manual release review, stop after each PR is ready and
 report its URL plus check state.
+
+Same-major bumps auto-merge when repo automation is enabled. A major bump
+(`2.x` → `3.0.0` or `3.0.0-pre.1`) is left for a human.
 
 **Incorrect:**
 
 ```bash
-# Main was merged, a release PR appeared, and the agent silently ignores it.
+# develop was merged, a pre-release PR appeared, and the agent silently ignores it.
+# Or: main was merged and brew is claimed updated before the stable release PR landed.
 ```
 
 **Correct:**
@@ -34,8 +43,13 @@ gh pr checks --watch <release-pr-number>
 gh pr merge <release-pr-number> --merge
 ```
 
-After the release PR merges, verify the tag, release workflow, package
-artifacts, and Homebrew tap update before claiming the release is available.
+After the **develop** release PR merges, verify the `vX.Y.Z-pre.N` tag and that
+the GitHub Release is marked pre-release. Do not expect `brew upgrade`.
+
+After the **main** release PR merges, verify the stable tag, release artifacts,
+and that
+[homebrew-humbl](https://github.com/jjfantini/homebrew-humbl) `Formula/humblskills.rb`
+matches that version before claiming the release is available.
 
 ## Sources
 

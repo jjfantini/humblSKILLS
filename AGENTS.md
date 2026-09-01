@@ -43,10 +43,27 @@ so **no backend/database/network services are required** to build, test, or run 
   `~/.venvs/humblskills-docs/bin/mkdocs build --strict` (config: `mkdocs.yml`). `mkdocs serve` for preview.
   Note `mkdocs build` drops a `docs/__pycache__/` (not gitignored) — remove it after building.
 
+### Release path (develop pre-release → main stable + brew)
+`.github/workflows/release.yml` is the only release entry point:
+
+- Push/merge to **`develop`** → release-please (`release-please-config.develop.json`) cuts a
+  GitHub **pre-release** tagged `vX.Y.Z-pre.N`. GoReleaser publishes archives. The Homebrew
+  tap is not touched (`skip_upload: auto`).
+- Merge **`develop` → `main`** (merge commit, never squash) → release-please
+  (`release-please-config.json`) cuts the **stable** `vX.Y.Z` GitHub Release and GoReleaser
+  updates `jjfantini/homebrew-humbl` so `brew upgrade humblskills` gets that version.
+
+Both release PRs auto-merge on green for same-major bumps (`scripts/guard-major-bump.sh`
+blocks majors). Secrets live on the `release` environment: `RELEASE_PLEASE_TOKEN` (repo PAT)
+and `HOMEBREW_TAP_TOKEN` (write to the tap). Do not add extra patch workflows around this
+path; if a release fails, fix the two configs or the one workflow.
+
 ### Commit messages MUST be Conventional Commits (non-negotiable)
-`release-please-config.json` sets `release-type: "go"`, which cuts releases **only** from commits that
-follow [Conventional Commits](https://www.conventionalcommits.org) syntax on `main`. A commit that doesn't
-match is silently invisible to release-please — no changelog entry, no version bump, no release, and
+`release-please-config.json` / `release-please-config.develop.json` set `release-type: "go"`,
+which cut releases **only** from commits that follow
+[Conventional Commits](https://www.conventionalcommits.org) syntax on the branch that
+releases (`develop` for pre, `main` for stable). A commit that doesn't match is silently
+invisible to release-please — no changelog entry, no version bump, no release, and
 `humblskills upgrade` never sees the change. This already happened once (commits like `profile:`,
 `adapters:`, `install:`, `tui:` merged to `main` with zero release effect) and had to be fixed forward with
 an extra empty `feat:` commit — don't repeat it.
@@ -77,7 +94,7 @@ when you need to refer to it in prose.
 ### Merge PRs with `--merge`. Never `--squash`, never `--rebase`.
 Two independent things break on a squash, both silently:
 
-1. **release-please reads the individual commit messages on `main`.** A squash collapses the whole PR into
+1. **release-please reads the individual commit messages on `develop` and `main`.** A squash collapses the whole PR into
    its title, so a branch carrying `fix:` plus two `feat:` commits ships as a patch and loses both feature
    changelog entries. A merge commit preserved all four and correctly produced the 2.43.0 minor bump.
 2. **`registry.json` pins `source.sha` to the commit where skill content last changed, and `install`

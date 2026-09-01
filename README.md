@@ -456,11 +456,19 @@ a completion checklist. Detection is deterministic and automated;
 re-distillation is judgment and is never automated. Both read a source checkout,
 not installed copies.
 
-Releases are cut by release-please from the conventional commits on `main`: it
-opens a release PR, and merging that PR tags `vX.Y.Z` and triggers
-[`.github/workflows/release.yml`](.github/workflows/release.yml), which runs
-GoReleaser, uploads archives + checksums to GitHub Releases, and updates the
-`jjfantini/homebrew-humbl` tap.
+Releases follow the two-branch path in
+[`.github/workflows/release.yml`](.github/workflows/release.yml):
+
+- **`develop`** — release-please opens a pre-release PR. Merging it tags
+  `vX.Y.Z-pre.N` and publishes a GitHub **pre-release** (archives + checksums).
+  The Homebrew tap is left alone.
+- **`main`** — merge `develop` with a merge commit (never squash). release-please
+  opens a stable PR. Merging it tags `vX.Y.Z`, publishes the GitHub Release, and
+  GoReleaser updates the `jjfantini/homebrew-humbl` formula so
+  `brew upgrade humblskills` gets that version.
+
+Both release PRs auto-merge on green for same-major bumps. A major bump waits
+for a human.
 
 The same job also pushes a sibling `cli/vX.Y.Z` tag, which is what `go install`
 resolves against the nested module. Go's semantic import versioning requires the

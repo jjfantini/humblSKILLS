@@ -30,3 +30,8 @@ Entry shape:
 [LINT 2026-08-04] 6 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.
 
 [LINT 2026-08-04] 6 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[QUERY 2026-09-01] Two-branch release path (develop pre, main stable + brew).
+  - Updated SKILL.md steps 4–6, release-pr.md, main-gate.md, version 1.2.0
+
+[LINT 2026-09-01] 6 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.

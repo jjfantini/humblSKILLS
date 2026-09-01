@@ -43,6 +43,9 @@ checksum:
 
 brews:
   - name: humblskills
+    # auto = upload only for stable tags. vX.Y.Z-pre.N must not move the tap;
+    # `brew upgrade humblskills` tracks the last main release.
+    skip_upload: auto
     repository:
       owner: jjfantini
       name: homebrew-humbl

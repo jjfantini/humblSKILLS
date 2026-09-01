@@ -1,87 +1,69 @@
 name: release
 
-# Single entry-point release pipeline.
+# Two-branch path, one workflow:
 #
-# Automated path (push: main):
-#   release-please evaluates conventional commits on main. When a release is
-#   due, it opens a release PR (changelog + manifest bump). Merging that PR
-#   triggers another push to main; release-please then creates the `vX.Y.Z`
-#   tag and GitHub release, and this workflow continues into goreleaser -
-#   publishing binaries and updating the `jjfantini/homebrew-humbl` tap.
+#   develop → GitHub pre-release (tag vX.Y.Z-pre.N, prerelease: true). No brew.
+#   main    → GitHub stable      (tag vX.Y.Z) + Homebrew tap update.
 #
-#   Do not set skip-github-pull-request: true with this layout - it breaks
-#   tagging/releases when using manifest + release PRs (see release-please#937).
+# release-please reads conventional commits on the pushed branch, opens a
+# release PR, and after that PR merges it creates the tag and GitHub Release.
+# GoReleaser publishes archives. Brew uses skip_upload: auto, so only a
+# stable tag updates jjfantini/homebrew-humbl.
 #
-#   Auto-merge: .github/workflows/release-auto-merge.yml enables GitHub
-#   auto-merge on those PRs so they land when CI passes (enable in repo settings).
-#
-# Manual backfill (workflow_dispatch):
-#   Re-run goreleaser against an existing tag. Skips release-please.
+# workflow_dispatch re-runs GoReleaser for an existing tag (backfill).
 
 on:
   push:
     branches:
+      - develop
       - main
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to (re)release, e.g. v0.2.0. Used to backfill binaries + Homebrew formula."
+        description: "Existing tag to (re)release, e.g. v2.51.0 or v2.52.0-pre.1"
         required: true
 
 permissions:
   contents: write
   pull-requests: write
 
-# Serialize releases. Merging a feature PR and merging the release PR it
-# produces land ~40s apart, so without this two release-please runs overlap:
-# the second starts while the first is still tagging, sees no latest release,
-# and rescans history. That is how v3.0.0 happened. Never cancel in progress -
-# a half-finished goreleaser run leaves a tag with no artifacts.
+# Per-branch, never cancel. Two pushes to the same branch ~40s apart (feature
+# merge, then the release PR it opened) must not overlap, and a half-finished
+# goreleaser run must not be killed.
 concurrency:
-  group: release
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   release_please:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    # The `release` environment scopes RELEASE_PLEASE_TOKEN (a PAT). Using a
-    # PAT instead of GITHUB_TOKEN means the release PR is authored by a human
-    # account, so it escapes GitHub's rule that PRs opened via GITHUB_TOKEN
-    # don't trigger downstream `pull_request` workflows (CI, auto-merge). The
-    # environment has no protection rules, so this is pure secret scoping.
+    # RELEASE_PLEASE_TOKEN is a PAT on the `release` environment. A PAT-authored
+    # release PR triggers downstream pull_request workflows (CI, auto-merge);
+    # GITHUB_TOKEN-authored PRs do not.
     environment: release
     outputs:
       release_created: ${{ steps.rp.outputs.release_created }}
       tag_name: ${{ steps.rp.outputs.tag_name }}
     steps:
-      # `last-release-sha` in release-please-config.json bounds the fallback
-      # path. When release-please cannot find the latest release it does not
-      # fail - it logs "No latest release found" and re-derives the version
-      # from every commit it collected. On 2026-07-30 that reached
-      # `feat(cli)!: local-owned preserve list (#34)` from months earlier and
-      # cut a phantom 3.0.0. last-release-sha caps how far back that can go.
-      # Bump it at any release where the history walk gets slow again.
       - uses: googleapis/release-please-action@v4
         id: rp
         with:
-          config-file: release-please-config.json
+          config-file: ${{ github.ref_name == 'develop' && 'release-please-config.develop.json' || 'release-please-config.json' }}
           manifest-file: .release-please-manifest.json
+          target-branch: ${{ github.ref_name }}
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
   goreleaser:
     needs: release_please
-    # `always()` is required so this job still runs when `release_please` is
-    # skipped on the workflow_dispatch path; otherwise a skipped need would
-    # propagate as skipped here too.
     if: |
       always() && (
         (github.event_name == 'push' && needs.release_please.outputs.release_created == 'true') ||
         github.event_name == 'workflow_dispatch'
       )
     runs-on: ubuntu-latest
-    # The `release` environment gates the Homebrew tap PAT. HOMEBREW_TAP_TOKEN
-    # is configured as an environment secret in repo settings.
+    # HOMEBREW_TAP_TOKEN is an environment secret. Unused on pre-release tags
+    # (goreleaser skip_upload: auto) but still required to be present.
     environment: release
     permissions:
       contents: write
@@ -95,25 +77,18 @@ jobs:
             echo "tag=${{ needs.release_please.outputs.tag_name }}" >> "$GITHUB_OUTPUT"
           fi
 
-      # token: RELEASE_PLEASE_TOKEN so the sibling tag push below can touch
-      # commits that include workflow file changes. GITHUB_TOKEN cannot
-      # push refs referencing commits that modify .github/workflows/
-      # without the `workflows` app permission, which it doesn't have.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ steps.resolve.outputs.tag }}
+          # PAT: GITHUB_TOKEN cannot push tags that point at commits touching
+          # .github/workflows/ (needs the `workflows` permission).
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
       - name: Push sibling cli/* tag for go install
-        # Go's nested-module resolution requires `cli/vX.Y.Z` to exist on the
-        # same commit as `vX.Y.Z` so
-        # `go install github.com/jjfantini/humblSKILLS/cli/v2/cmd/humblskills@vX.Y.Z`
-        # works. The `/v2` is load-bearing: for v2+ the module path must carry
-        # the major version, and `cli/go.mod` declares it. Without the suffix
-        # the proxy ignored every cli/v2.* tag and `@latest` served v1.1.0 for
-        # four months. At v3, move the module path and imports to `/v3` or this
-        # silently breaks again.
+        # Nested module: `cli/go.mod` is `github.com/jjfantini/humblSKILLS/cli/v2`,
+        # so `go install .../cli/v2/cmd/humblskills@vX.Y.Z` needs `cli/vX.Y.Z`
+        # on the same commit as `vX.Y.Z`. At v3, move the module path to `/v3`.
         run: |
           set -eu
           ver="${{ steps.resolve.outputs.tag }}"
