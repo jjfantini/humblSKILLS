@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-01T20:11:33Z",
+  "generated_at": "2026-09-01T23:34:14Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "8b96204b571e1d3663408ca5bf80cbcfd5379743"
+    "sha": "87c94ce6c72e98bead5fa2972e2ff4b4c32f7656"
   },
   "skills": [
     {
@@ -738,7 +738,7 @@
     },
     {
       "name": "smart-worktree-flow",
-      "version": "1.2.2",
+      "version": "1.2.3",
       "description": "Run a worktree-first development workflow from intent gathering through feature PR, develop merge (pre-release), main merge (stable + brew), and cleanup. Use when the user says \"worktree flow\", \"start a feature\", \"ship this feature\", \"PR into develop\", \"full dev workflow\", or wants a feature isolated from parallel agents. Do NOT use for atomic commit authoring (use smart-commit) or merge-conflict repair.\n",
       "category": "development",
       "tags": [
@@ -765,7 +765,7 @@
         "use-worktree-flow"
       ],
       "path": "skills/smart-worktree-flow",
-      "dir_sha": "4a14357a242fa40e2aa977ee815dfe9f88248e2eb66f0ac02efc439cabd3c64d"
+      "dir_sha": "bf89844536dbbf937257f3bb5c1c0b1a9217900a64c409d33840500d1f4eabbe"
     }
   ]
 }
