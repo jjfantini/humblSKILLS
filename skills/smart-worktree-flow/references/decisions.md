@@ -16,11 +16,18 @@ Entry shape:
 
 ---
 
+### 2026-09-01 | release-please pre channel, not a second goreleaser workflow
+- Context: Jennings wants develop to cut GitHub pre-releases and main to cut the real version + brew. Two honest implementations exist.
+- Options: (A) release-please `prerelease` + `versioning: prerelease` + `prerelease-type: pre` on develop, same goreleaser job, `skip_upload: auto`, (B) a dedicated develop workflow that invents the next `-pre` tag and calls goreleaser itself.
+- Chose: A.
+- Why: release-please already documents pre-release branches that graduate on merge to main. goreleaser already consumes a semver `-pre.N` suffix (`prerelease: auto`, `skip_upload: auto`). B would add a version-computation script and a second source of truth. Tags `vX.Y.Z-pre.N` cannot equal `vX.Y.Z`, GitHub `/releases/latest` and `go install @latest` ignore prereleases, and brew stays on the last main formula. No develop Homebrew channel.
+- Result: TBD after first develop pre-release lands.
+
 ### 2026-09-01 | Two-branch release: develop is pre, main is stable + brew
-- Context: The repo's release automation previously watched only `main`, so work on `develop` was green and unshipped until a human promoted it, and the skill's "which branch releases?" warning assumed a single release branch.
-- Options: (A) keep documenting a single release-please-on-main path, (B) document develop pre-release (`vX.Y.Z-pre.N`) and main stable + Homebrew as the real path.
+- Context: The live repo watched only `main` (`release.yml` `on.push.branches: [main]`). The canonical skill described feature→develop→main plus a third release-please PR on main, then `brew upgrade` as a post-check — not GitHub prereleases on develop.
+- Options: (A) keep documenting that single-release-branch path, (B) document develop pre-release (`vX.Y.Z-pre.N`) and main stable + Homebrew as the new path, keep brew as a post-check after main only.
 - Chose: B - match `.github/workflows/release.yml` and `release-please-config.develop.json`.
-- Why: Jennings' intended product flow is develop → pre-release, main → real version + `brew upgrade`. The skill must not tell agents to ignore develop or to expect brew after a develop merge.
+- Why: Jennings' new ask is develop → pre-release, main → real version + tap. The skill must not tell agents develop does not release, or that brew follows develop.
 - Result: TBD after first develop pre-release lands.
 
 ### 2026-06-12 | Default to worktrees and Vibe mode on deferral

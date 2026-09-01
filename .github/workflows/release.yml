@@ -1,14 +1,16 @@
 name: release
 
-# Two-branch path, one workflow:
+# Two-branch path, one workflow. Not a second goreleaser entry-point:
+# release-please already knows pre-release branches (prerelease + versioning
+# prerelease). A custom "compute next -pre tag" job would be new glue.
 #
-#   develop → GitHub pre-release (tag vX.Y.Z-pre.N, prerelease: true). No brew.
-#   main    → GitHub stable      (tag vX.Y.Z) + Homebrew tap update.
+#   develop → vX.Y.Z-pre.N GitHub pre-release. No brew.
+#   main    → vX.Y.Z stable + Homebrew tap (jjfantini/homebrew-humbl).
 #
-# release-please reads conventional commits on the pushed branch, opens a
-# release PR, and after that PR merges it creates the tag and GitHub Release.
-# GoReleaser publishes archives. Brew uses skip_upload: auto, so only a
-# stable tag updates jjfantini/homebrew-humbl.
+# Tag rule: the `-pre.N` suffix is semver-prerelease, so it cannot equal a
+# stable `vX.Y.Z` tag. GitHub /releases/latest and `go install @latest`
+# ignore prereleases. goreleaser `prerelease: auto` + `skip_upload: auto`
+# consume the same suffix — no develop Homebrew channel.
 #
 # workflow_dispatch re-runs GoReleaser for an existing tag (backfill).
 

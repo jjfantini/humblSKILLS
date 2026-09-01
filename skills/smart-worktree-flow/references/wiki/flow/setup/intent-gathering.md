@@ -7,7 +7,7 @@ description: "Ask the routing questions once so the agent can execute without gu
 tags: intent, vibe, hitl, defaults
 sources:
   - "references/raw/user-request.md"
-last_ingested: 2026-06-12
+last_ingested: 2026-09-01
 ---
 
 ## Intent Gathering
@@ -22,11 +22,15 @@ Ask these questions before work:
 2. Is parallel work happening in this repo, including other Codex, Claude, or
    Cursor agents?
 3. Should the `develop` -> `main` or `master` PR auto-merge on green checks?
-4. Should the generated release PR auto-merge on green checks?
+4. Should the generated release PRs auto-merge on green checks? There are two:
+   develop cuts `vX.Y.Z-pre.N` (GitHub pre-release, no brew); main cuts the
+   real `vX.Y.Z` and updates the Homebrew tap. `brew upgrade` is a post-check
+   after the main stable only.
 5. Should stale worktrees and branches be cleaned up at the end?
 
 If the user defers, use: Vibe mode, worktree isolation, auto-merge on green,
-release PR auto-merge on green, cleanup enabled.
+both release PRs auto-merge on green, brew post-check after main, cleanup
+enabled.
 
 **Incorrect:**
 
@@ -38,7 +42,8 @@ I'll just start coding and figure out the merge path after CI.
 
 ```markdown
 Defaulting because you deferred: Vibe mode, worktree isolation, auto-merge
-main and release PR on green checks, cleanup enabled.
+develop→main and both release PRs on green checks, brew post-check after
+main only, cleanup enabled.
 ```
 
 Before finalizing the worktree choice, also inspect local reality with

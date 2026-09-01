@@ -61,7 +61,9 @@ _Full spec: `references/_brain.md`._
 Before implementation, ask the user the questions in
 `references/wiki/flow/setup/intent-gathering.md`. If they defer, use these
 defaults: Vibe mode, worktree isolation, auto-merge develop to main on green,
-auto-merge release PR on green, and clean stale worktrees and branches.
+auto-merge both release PRs (develop pre-release and main stable) on green,
+`brew upgrade` as a post-check after the main stable only, and clean stale
+worktrees and branches.
 
 Also inspect reality before choosing the path: run `git status`,
 `git worktree list`, check current branch tracking, and look for other active
@@ -85,10 +87,11 @@ the workspace is dirty.
 6. Sync local branches with upstream, remove the worktree, and delete stale
    local and remote feature branches unless the user opted out.
 
-**Confirm how each branch releases before choosing a base.** In this repo,
-`develop` cuts pre-releases and `main` cuts the real version plus the brew
-formula. Work that never reaches `main` is a pre-release only — `brew upgrade`
-will not see it. Check `.github/workflows/release.yml` rather than assuming.
+**Confirm how each branch releases before choosing a base.** Check
+`.github/workflows/release.yml` rather than assuming. In this repo `develop`
+feeds a GitHub pre-release (`vX.Y.Z-pre.N`) only. `main` feeds the real
+`vX.Y.Z` and the Homebrew tap. There is no develop brew channel — `brew
+upgrade` is a post-check after the main stable release, never after develop.
 
 A single-commit fix may go straight to the production branch instead of steps
 3-4, if the user says so. Then `develop` must be brought back to it, or the
@@ -132,8 +135,8 @@ Actions:
    release PR auto-merge, cleanup enabled.
 2. Create `feat-add-data` and `feat/add-data` from `origin/develop`.
 3. Implement, verify, PR into `develop`, merge on green, handle the develop
-   pre-release PR, PR `develop` into `main`, handle the stable release PR,
-   verify `brew upgrade humblskills`, cleanup.
+   pre-release PR (no brew), PR `develop` into `main`, handle the stable
+   release PR, post-check with `brew upgrade humblskills`, cleanup.
 
 Result: The feature ships through release with no stale branch or worktree.
 

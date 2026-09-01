@@ -34,4 +34,10 @@ Entry shape:
 [QUERY 2026-09-01] Two-branch release path (develop pre, main stable + brew).
   - Updated SKILL.md steps 4–6, release-pr.md, main-gate.md, version 1.2.0
 
+[QUERY 2026-09-01] Ground truth: skill was main-only + brew post-check; Jennings wants develop pre-releases.
+  - Chose release-please pre channel over a second goreleaser workflow
+  - Vibe still auto-merges develop→main and both release PRs; brew post-check after main only
+
+[LINT 2026-09-01] 6 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
 [LINT 2026-09-01] 6 wiki, 1 raw. Hard: 0, Soft: 0. Regenerated _index.md.

@@ -44,10 +44,11 @@ gh pr merge <release-pr-number> --merge
 ```
 
 After the **develop** release PR merges, verify the `vX.Y.Z-pre.N` tag and that
-the GitHub Release is marked pre-release. Do not expect `brew upgrade`.
+the GitHub Release is marked pre-release. Do not run `brew upgrade` — there is
+no develop Homebrew channel.
 
-After the **main** release PR merges, verify the stable tag, release artifacts,
-and that
+After the **main** release PR merges, verify the stable tag and artifacts, then
+run `brew upgrade humblskills` as a **post-check**. Confirm
 [homebrew-humbl](https://github.com/jjfantini/homebrew-humbl) `Formula/humblskills.rb`
 matches that version before claiming the release is available.
 
