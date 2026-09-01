@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.52.0-pre](https://github.com/jjfantini/humblSKILLS/compare/v2.51.0...v2.52.0-pre) (2026-09-01)
+
+
+### Features
+
+* **release:** cut pre-releases from develop and stables from main ([c8eeaf1](https://github.com/jjfantini/humblSKILLS/commit/c8eeaf1976ea4d3d9f0155f32e6412346c2f8699))
+* **release:** develop pre-releases, stable brew, and first-class beta channel ([89c9f6d](https://github.com/jjfantini/humblSKILLS/commit/89c9f6deecc2b13e910d15ccbe708e892fcd4c77))
+* **release:** publish humblskills-pre formula on pre tags only ([e31b8e2](https://github.com/jjfantini/humblSKILLS/commit/e31b8e22703d7fee417aa187f21415336422b406))
+* **upgrade:** first-class profile channel in CLI and TUI ([1c2d3cc](https://github.com/jjfantini/humblSKILLS/commit/1c2d3ccf6188770d2d86f19aa533e06c2fd0290d))
+
 ## [2.51.0](https://github.com/jjfantini/humblSKILLS/compare/v2.50.0...v2.51.0) (2026-08-20)
 
 
