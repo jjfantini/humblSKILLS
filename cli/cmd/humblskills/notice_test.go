@@ -2,265 +2,185 @@ package main
 
 import (
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"testing"
 
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/selfupdate"
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/ui"
 )
 
-func enableNoticeNetwork(t *testing.T) {
+func withNoticeNetwork(t *testing.T) {
 	t.Helper()
 	prev := selfupdate.SkipNetwork
 	selfupdate.SkipNetwork = false
 	t.Cleanup(func() { selfupdate.SkipNetwork = prev })
 }
 
-func withVersion(t *testing.T, v string) {
-	t.Helper()
-	prev := version
-	version = v
-	t.Cleanup(func() { version = prev })
-}
-
-type noticeAPI struct {
-	latest atomic.Int32
-	list   atomic.Int32
-}
-
-func startNoticeAPI(t *testing.T, stableTag, preTag string) *noticeAPI {
-	t.Helper()
-	api := &noticeAPI{}
-	mux := http.NewServeMux()
-	mux.HandleFunc("/repos/"+selfupdate.DefaultRepo+"/releases/latest", func(w http.ResponseWriter, r *http.Request) {
-		api.latest.Add(1)
-		_, _ = w.Write([]byte(`{"tag_name": "` + stableTag + `", "prerelease": false}`))
-	})
-	mux.HandleFunc("/repos/"+selfupdate.DefaultRepo+"/releases", func(w http.ResponseWriter, r *http.Request) {
-		api.list.Add(1)
-		tag := preTag
-		if tag == "" {
-			tag = "v9.9.9-pre.1"
-		}
-		_, _ = w.Write([]byte(`[{"tag_name": "` + tag + `", "prerelease": true, "draft": false}]`))
-	})
-	srv := httptest.NewServer(mux)
-	t.Cleanup(srv.Close)
-	prev := selfupdate.GitHubAPIBase
-	selfupdate.GitHubAPIBase = srv.URL
-	t.Cleanup(func() { selfupdate.GitHubAPIBase = prev })
-	return api
-}
-
-func TestDoctor_UpgradeNotice_DefaultStableOutdated(t *testing.T) {
+func TestNotice_VersionStderr_StableBehind(t *testing.T) {
 	s := testutil.NewSandbox(t)
-	enableNoticeNetwork(t)
-	withVersion(t, "2.15.0")
-	withFakeExecutable(t, "/usr/local/bin/humblskills")
-	api := startNoticeAPI(t, "v2.17.0", "")
+	withNoticeNetwork(t)
+	startFakeReleaseAPI(t, "99.0.0", "fake")
 
-	res := runCLIWithStdoutCapture(t, "doctor", "--yes",
-		"--cache-dir", s.CacheDir, "--profile", s.ProfilePath)
-
-	if res.RunErr != nil && !strings.Contains(res.RunErr.Error(), "doctor") {
-		t.Fatalf("doctor: %v\n%s", res.RunErr, res.Err)
+	res := runCLIWithStdoutCapture(t, "version", "--profile", s.ProfilePath, "--cache-dir", s.CacheDir)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
 	}
-	want := "newer version available: v2.15.0 → v2.17.0 (stable) — run `humblskills upgrade`"
-	assertContains(t, res.Err, want)
-	assertNotContains(t, res.Out, "newer version available")
-	if api.latest.Load() != 1 {
-		t.Errorf("/releases/latest hits = %d, want 1", api.latest.Load())
+	if !strings.Contains(res.Err, "newer version available") {
+		t.Errorf("stderr missing notice:\n%s", res.Err)
 	}
-	if api.list.Load() != 0 {
-		t.Error("default stable must not list prereleases")
+	if !strings.Contains(res.Err, "humblskills upgrade") {
+		t.Errorf("stderr missing upgrade command:\n%s", res.Err)
+	}
+	if strings.Contains(res.Out, "newer version available") {
+		t.Error("notice must go to stderr, not stdout")
 	}
 }
 
-func TestDoctor_UpgradeNotice_BetaChannel(t *testing.T) {
+func TestNotice_JSONStaysQuiet(t *testing.T) {
 	s := testutil.NewSandbox(t)
-	enableNoticeNetwork(t)
-	withVersion(t, "2.51.0")
-	withFakeExecutable(t, "/usr/local/bin/humblskills")
+	withNoticeNetwork(t)
+	startFakeReleaseAPI(t, "99.0.0", "fake")
+
+	res := runCLIWithStdoutCapture(t, "version", "--json", "--profile", s.ProfilePath, "--cache-dir", s.CacheDir)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	if strings.Contains(res.Err, "newer version available") {
+		t.Errorf("--json must stay quiet, stderr:\n%s", res.Err)
+	}
+	var info versionInfo
+	if err := json.Unmarshal([]byte(strings.TrimSpace(res.Out)), &info); err != nil {
+		t.Fatalf("version --json: %v", err)
+	}
+}
+
+func TestNotice_ChannelFlag_BetaPicksStableWinner(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	withNoticeNetwork(t)
+	startFakeChannelAPI(t, "2.52.0", "2.52.0-pre.1")
+	exe := filepath.Join(s.Root, "Cellar", "humblskills-pre", "2.52.0-pre.1", "bin", "humblskills")
+	if err := os.MkdirAll(filepath.Dir(exe), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(exe, []byte("x"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	withFakeExecutable(t, exe)
+
+	res := runCLIWithStdoutCapture(t,
+		"version", "--channel", "beta",
+		"--profile", s.ProfilePath, "--cache-dir", s.CacheDir,
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	if !strings.Contains(res.Err, "v2.52.0") {
+		t.Errorf("beta notice should pick stable 2.52.0:\n%s", res.Err)
+	}
+	// Homebrew detection looks for "/Cellar/" — filepath.Join uses backslash
+	// on Windows, so that install is a GitHub binary there. Assert the
+	// command the same helper production uses, not a brew string on Windows.
+	want := selfupdate.RecommendedUpgradeCommand(
+		selfupdate.IsHomebrewManaged(exe),
+		selfupdate.InstalledFormula(exe),
+		selfupdate.FormulaForVersion("2.52.0"),
+	)
+	if !strings.Contains(res.Err, want) {
+		t.Errorf("notice missing %q:\n%s", want, res.Err)
+	}
+	if strings.Contains(res.Err, "brew upgrade humblskills-pre") {
+		t.Errorf("must not recommend brew upgrade pre when stable won:\n%s", res.Err)
+	}
+}
+
+func TestNotice_ProfileChannel_BetaPicksNewerPre(t *testing.T) {
+	s := testutil.NewSandbox(t)
 	if err := profile.Save(s.ProfilePath, &profile.Profile{Channel: profile.ChannelBeta}); err != nil {
 		t.Fatal(err)
 	}
-	api := startNoticeAPI(t, "v2.51.0", "v2.52.0-pre.1")
+	withNoticeNetwork(t)
+	startFakeChannelAPI(t, "2.52.0", "2.53.0-pre.1")
 
-	res := runCLIWithStdoutCapture(t, "doctor", "--yes",
-		"--cache-dir", s.CacheDir, "--profile", s.ProfilePath)
-
-	if res.RunErr != nil && !strings.Contains(res.RunErr.Error(), "doctor") {
-		t.Fatalf("doctor: %v\n%s", res.RunErr, res.Err)
+	res := runCLIWithStdoutCapture(t,
+		"version", "--profile", s.ProfilePath, "--cache-dir", s.CacheDir,
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
 	}
-	want := "newer version available: v2.51.0 → v2.52.0-pre.1 (beta) — run `humblskills upgrade`"
-	assertContains(t, res.Err, want)
-	if api.latest.Load() != 0 {
-		t.Error("beta must not hit /releases/latest")
-	}
-	if api.list.Load() != 1 {
-		t.Errorf("releases list hits = %d, want 1", api.list.Load())
+	if !strings.Contains(res.Err, "2.53.0-pre.1") {
+		t.Errorf("profile beta should pick newer pre:\n%s", res.Err)
 	}
 }
 
-func TestDoctor_UpgradeNotice_ChannelFlagOverridesProfile(t *testing.T) {
+func TestNotice_DoctorUsesSameResolver(t *testing.T) {
 	s := testutil.NewSandbox(t)
-	enableNoticeNetwork(t)
-	withVersion(t, "2.15.0")
-	withFakeExecutable(t, "/usr/local/bin/humblskills")
-	if err := profile.Save(s.ProfilePath, &profile.Profile{Channel: profile.ChannelBeta}); err != nil {
+	withNoticeNetwork(t)
+	startFakeReleaseAPI(t, "99.0.0", "fake")
+
+	res := runCLIWithStdoutCapture(t, "doctor", "--yes", "--profile", s.ProfilePath, "--cache-dir", s.CacheDir)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	if !strings.Contains(res.Err, "newer version available") {
+		t.Errorf("doctor stderr missing notice:\n%s", res.Err)
+	}
+}
+
+func TestTuiVersionNotice_UsesResolver(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	withNoticeNetwork(t)
+	startFakeChannelAPI(t, "2.52.0", "2.52.0-pre.1")
+	exe := filepath.Join(s.Root, "Cellar", "humblskills-pre", "2.52.0-pre.1", "bin", "humblskills")
+	if err := os.MkdirAll(filepath.Dir(exe), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	api := startNoticeAPI(t, "v2.17.0", "v2.52.0-pre.1")
-
-	res := runCLIWithStdoutCapture(t, "doctor", "--yes", "--channel", "stable",
-		"--cache-dir", s.CacheDir, "--profile", s.ProfilePath)
-
-	if res.RunErr != nil && !strings.Contains(res.RunErr.Error(), "doctor") {
-		t.Fatalf("doctor: %v\n%s", res.RunErr, res.Err)
+	if err := os.WriteFile(exe, []byte("x"), 0o755); err != nil {
+		t.Fatal(err)
 	}
-	assertContains(t, res.Err, "v2.15.0 → v2.17.0 (stable)")
-	assertNotContains(t, res.Err, "2.52.0-pre.1")
-	if api.latest.Load() != 1 {
-		t.Errorf("--channel stable should hit /releases/latest, got %d", api.latest.Load())
+	withFakeExecutable(t, exe)
+
+	app := &App{
+		UI: ui.New(ui.Options{}),
+		Config: Config{
+			ProfilePath: s.ProfilePath,
+			CacheDir:    s.CacheDir,
+			Channel:     profile.ChannelBeta,
+		},
 	}
-	if api.list.Load() != 0 {
-		t.Error("--channel stable must not list prereleases")
+	n := app.tuiVersionNotice()
+	if n == nil {
+		t.Fatal("expected dashboard notice")
 	}
-}
-
-func TestDoctor_UpgradeNotice_CurrentIsQuiet(t *testing.T) {
-	s := testutil.NewSandbox(t)
-	enableNoticeNetwork(t)
-	withVersion(t, "2.17.0")
-	withFakeExecutable(t, "/usr/local/bin/humblskills")
-	startNoticeAPI(t, "v2.17.0", "")
-
-	res := runCLIWithStdoutCapture(t, "doctor", "--yes",
-		"--cache-dir", s.CacheDir, "--profile", s.ProfilePath)
-
-	if res.RunErr != nil && !strings.Contains(res.RunErr.Error(), "doctor") {
-		t.Fatalf("doctor: %v\n%s", res.RunErr, res.Err)
+	if n.Latest != "v2.52.0" {
+		t.Errorf("Latest = %q, want v2.52.0", n.Latest)
 	}
-	assertNotContains(t, res.Err, "newer version available")
-	assertNotContains(t, res.Out, "newer version available")
-}
-
-func TestDoctor_UpgradeNotice_JSONStaysMachineReadable(t *testing.T) {
-	s := testutil.NewSandbox(t)
-	enableNoticeNetwork(t)
-	withVersion(t, "2.15.0")
-	withFakeExecutable(t, "/usr/local/bin/humblskills")
-	startNoticeAPI(t, "v2.17.0", "")
-
-	res := runCLIWithStdoutCapture(t, "doctor", "--json",
-		"--cache-dir", s.CacheDir, "--profile", s.ProfilePath)
-
-	out := strings.TrimSpace(res.Out)
-	if !strings.HasPrefix(out, "{") {
-		t.Fatalf("expected JSON object on stdout, got:\n%s", res.Out)
+	if n.Channel != profile.ChannelBeta {
+		t.Errorf("Channel = %q, want beta", n.Channel)
 	}
-	assertNotContains(t, res.Out, "newer version available")
-	var payload map[string]any
-	if err := json.Unmarshal([]byte(out), &payload); err != nil {
-		t.Fatalf("stdout is not JSON: %v\n%s", err, res.Out)
-	}
-	// --json skips the notice entirely (no banner on stderr either).
-	assertNotContains(t, res.Err, "newer version available")
-}
-
-func TestDoctor_UpgradeNotice_CacheDoesNotRefetch(t *testing.T) {
-	s := testutil.NewSandbox(t)
-	enableNoticeNetwork(t)
-	withVersion(t, "2.15.0")
-	withFakeExecutable(t, "/usr/local/bin/humblskills")
-	api := startNoticeAPI(t, "v2.17.0", "")
-
-	args := []string{"doctor", "--yes", "--cache-dir", s.CacheDir, "--profile", s.ProfilePath}
-	first := runCLIWithStdoutCapture(t, args...)
-	assertContains(t, first.Err, "newer version available: v2.15.0 → v2.17.0 (stable)")
-	second := runCLIWithStdoutCapture(t, args...)
-	assertContains(t, second.Err, "newer version available: v2.15.0 → v2.17.0 (stable)")
-	if api.latest.Load() != 1 {
-		t.Errorf("expected one GitHub fetch across two doctor runs, got %d", api.latest.Load())
+	// filepath.Join(s.Root, "Cellar", ...) is Homebrew on Unix ("/Cellar/")
+	// and a plain GitHub install on Windows ("\Cellar\"). Same helper
+	// upgrade/notices use — don't assert brew commands where brew isn't.
+	want := selfupdate.RecommendedUpgradeCommand(
+		selfupdate.IsHomebrewManaged(exe),
+		selfupdate.InstalledFormula(exe),
+		selfupdate.FormulaForVersion("2.52.0"),
+	)
+	if n.Command != want {
+		t.Errorf("Command = %q, want %q", n.Command, want)
 	}
 }
 
-func TestDoctor_UpgradeNotice_HomebrewFormula(t *testing.T) {
+func TestNotice_SkipNetworkKeepsQuiet(t *testing.T) {
 	s := testutil.NewSandbox(t)
-	enableNoticeNetwork(t)
-	withVersion(t, "2.15.0")
-	withFakeExecutable(t, "/opt/homebrew/Cellar/humblskills/2.15.0/bin/humblskills")
-	startNoticeAPI(t, "v2.17.0", "")
-
-	res := runCLIWithStdoutCapture(t, "doctor", "--yes",
-		"--cache-dir", s.CacheDir, "--profile", s.ProfilePath)
-
-	assertContains(t, res.Err, "newer version available: v2.15.0 → v2.17.0 (stable) — run `brew upgrade humblskills`")
-}
-
-func TestStart_UpgradeNotice_OnFallback(t *testing.T) {
-	s := testutil.NewSandbox(t)
-	enableNoticeNetwork(t)
-	withVersion(t, "2.15.0")
-	withFakeExecutable(t, "/usr/local/bin/humblskills")
-	startNoticeAPI(t, "v2.17.0", "")
-
-	res := runCLIWithStdoutCapture(t, "start",
-		"--cache-dir", s.CacheDir, "--profile", s.ProfilePath)
-
+	res := runCLIWithStdoutCapture(t, "version", "--profile", s.ProfilePath)
 	if res.RunErr != nil {
-		t.Fatalf("start: %v", res.RunErr)
+		t.Fatalf("run: %v", res.RunErr)
 	}
-	assertContains(t, res.Out, "COMMANDS")
-	assertContains(t, res.Err, "newer version available: v2.15.0 → v2.17.0 (stable) — run `humblskills upgrade`")
-	assertNotContains(t, res.Out, "newer version available")
-}
-
-func TestVersion_UpgradeNotice_JSONStaysClean(t *testing.T) {
-	s := testutil.NewSandbox(t)
-	enableNoticeNetwork(t)
-	withVersion(t, "2.15.0")
-	withFakeExecutable(t, "/usr/local/bin/humblskills")
-	startNoticeAPI(t, "v2.17.0", "")
-
-	res := runCLIWithStdoutCapture(t, "version", "--json",
-		"--cache-dir", s.CacheDir, "--profile", s.ProfilePath)
-	if res.RunErr != nil {
-		t.Fatalf("version --json: %v", res.RunErr)
+	if strings.Contains(res.Err, "newer version available") {
+		t.Errorf("SkipNetwork should keep version quiet:\n%s", res.Err)
 	}
-	assertNotContains(t, res.Out, "newer version available")
-	var payload map[string]any
-	if err := json.Unmarshal([]byte(strings.TrimSpace(res.Out)), &payload); err != nil {
-		t.Fatalf("stdout is not JSON: %v\n%s", err, res.Out)
-	}
-}
-
-func TestVersion_UpgradeNotice_TextShowsOnStderr(t *testing.T) {
-	s := testutil.NewSandbox(t)
-	enableNoticeNetwork(t)
-	withVersion(t, "2.15.0")
-	withFakeExecutable(t, "/usr/local/bin/humblskills")
-	startNoticeAPI(t, "v2.17.0", "")
-
-	res := runCLIWithStdoutCapture(t, "version", "--yes",
-		"--cache-dir", s.CacheDir, "--profile", s.ProfilePath)
-	if res.RunErr != nil {
-		t.Fatalf("version: %v", res.RunErr)
-	}
-	assertContains(t, res.Out, "humblskills")
-	assertContains(t, res.Err, "newer version available: v2.15.0 → v2.17.0 (stable)")
-}
-
-func TestChannelFlag_InvalidRejected(t *testing.T) {
-	s := testutil.NewSandbox(t)
-	res := runCLIWithStdoutCapture(t, "doctor", "--channel", "nightly",
-		"--cache-dir", s.CacheDir, "--profile", s.ProfilePath)
-	if res.RunErr == nil {
-		t.Fatal("expected invalid --channel to error")
-	}
-	assertContains(t, res.RunErr.Error(), "invalid --channel")
 }

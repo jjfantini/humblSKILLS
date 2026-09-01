@@ -55,11 +55,26 @@ func TestNotice_CLILine_GitHubAndHomebrew(t *testing.T) {
 		Channel:        ChannelBeta,
 		Homebrew:       true,
 		Formula:        FormulaPre,
+		CurrentFormula: FormulaPre,
 		Available:      true,
 	}
 	wantBeta := "newer version available: v2.51.0 → v2.52.0-pre.1 (beta) — run `brew upgrade humblskills-pre`"
 	if got := brewBeta.CLILine(); got != wantBeta {
 		t.Errorf("brew beta CLILine = %q, want %q", got, wantBeta)
+	}
+
+	switchNotice := Notice{
+		CurrentVersion: "2.52.0-pre.1",
+		LatestVersion:  "2.52.0",
+		Channel:        ChannelBeta,
+		Homebrew:       true,
+		Formula:        FormulaStable,
+		CurrentFormula: FormulaPre,
+		Available:      true,
+	}
+	wantSwitch := "newer version available: v2.52.0-pre.1 → v2.52.0 (beta) — run `brew uninstall humblskills-pre && brew install humblskills`"
+	if got := switchNotice.CLILine(); got != wantSwitch {
+		t.Errorf("brew switch CLILine = %q, want %q", got, wantSwitch)
 	}
 
 	quiet := Notice{CurrentVersion: "2.17.0", LatestVersion: "2.17.0", Available: false}
@@ -72,13 +87,16 @@ func TestNotice_UpdateCommand(t *testing.T) {
 	if got := (Notice{}).UpdateCommand(); got != "humblskills upgrade" {
 		t.Errorf("default UpdateCommand = %q", got)
 	}
-	if got := (Notice{Homebrew: true, Channel: ChannelBeta}).UpdateCommand(); got != "brew upgrade humblskills-pre" {
+	if got := (Notice{Homebrew: true, Formula: FormulaPre, CurrentFormula: FormulaPre}).UpdateCommand(); got != "brew upgrade humblskills-pre" {
 		t.Errorf("beta brew UpdateCommand = %q", got)
+	}
+	if got := (Notice{Homebrew: true, Formula: FormulaStable, CurrentFormula: FormulaPre}).UpdateCommand(); got != "brew uninstall humblskills-pre && brew install humblskills" {
+		t.Errorf("switch UpdateCommand = %q", got)
 	}
 }
 
 func TestCheck_DefaultStableHitsLatest(t *testing.T) {
-	hits := newReleaseCounter(t, "2.17.0", false)
+	hits := newReleaseCounter(t, "2.17.0", "", false)
 	n := Check(CheckOptions{
 		Client:         hits.client,
 		CurrentVersion: "2.15.0",
@@ -108,34 +126,76 @@ func TestCheck_DefaultStableHitsLatest(t *testing.T) {
 	}
 }
 
-func TestCheck_BetaChannelUsesPrerelease(t *testing.T) {
-	hits := newReleaseCounter(t, "2.52.0-pre.1", true)
+func TestCheck_BetaPicksStableWhenNewerThanPre(t *testing.T) {
+	// Jennings dry-run: 2.52.0 > 2.52.0-pre.1, so beta must recommend the
+	// stable and tell a brew-pre user to switch formulas.
+	hits := newChannelReleases(t, "2.52.0", "2.52.0-pre.1")
 	n := Check(CheckOptions{
 		Client:         hits.client,
-		CurrentVersion: "2.51.0",
+		CurrentVersion: "2.52.0-pre",
 		Channel:        ChannelBeta,
-		ExePath:        "/usr/local/bin/humblskills",
+		ExePath:        "/opt/homebrew/Cellar/humblskills-pre/2.52.0-pre/bin/humblskills",
 		CacheDir:       t.TempDir(),
 	})
 	if !n.Available {
 		t.Fatalf("expected available, got %+v", n)
 	}
-	if n.Channel != ChannelBeta {
-		t.Errorf("Channel = %q, want beta", n.Channel)
+	if n.LatestVersion != "2.52.0" {
+		t.Errorf("LatestVersion = %q, want 2.52.0", n.LatestVersion)
 	}
-	if n.LatestVersion != "2.52.0-pre.1" {
-		t.Errorf("LatestVersion = %q", n.LatestVersion)
+	if n.Formula != FormulaStable {
+		t.Errorf("Formula = %q, want %s", n.Formula, FormulaStable)
 	}
-	if hits.latest.Load() != 0 {
-		t.Error("beta must not hit /releases/latest")
+	if n.CurrentFormula != FormulaPre {
+		t.Errorf("CurrentFormula = %q, want %s", n.CurrentFormula, FormulaPre)
 	}
-	if hits.list.Load() != 1 {
-		t.Errorf("releases list hits = %d, want 1", hits.list.Load())
+	want := "newer version available: v2.52.0-pre → v2.52.0 (beta) — run `brew uninstall humblskills-pre && brew install humblskills`"
+	if n.CLILine() != want {
+		t.Errorf("CLILine = %q, want %q", n.CLILine(), want)
+	}
+	if hits.latest.Load() != 1 || hits.list.Load() != 1 {
+		t.Errorf("beta must hit both endpoints, latest=%d list=%d", hits.latest.Load(), hits.list.Load())
+	}
+}
+
+func TestCheck_BetaPicksPreWhenNewerThanStable(t *testing.T) {
+	hits := newChannelReleases(t, "2.52.0", "2.53.0-pre.1")
+	n := Check(CheckOptions{
+		Client:         hits.client,
+		CurrentVersion: "2.52.0",
+		Channel:        ChannelBeta,
+		ExePath:        "/opt/homebrew/Cellar/humblskills-pre/2.52.0/bin/humblskills",
+		CacheDir:       t.TempDir(),
+	})
+	if n.LatestVersion != "2.53.0-pre.1" {
+		t.Errorf("LatestVersion = %q, want 2.53.0-pre.1", n.LatestVersion)
+	}
+	if n.Formula != FormulaPre {
+		t.Errorf("Formula = %q, want %s", n.Formula, FormulaPre)
+	}
+	if n.UpdateCommand() != "brew upgrade humblskills-pre" {
+		t.Errorf("UpdateCommand = %q", n.UpdateCommand())
+	}
+}
+
+func TestCheck_StableNeverPicksPre(t *testing.T) {
+	hits := newChannelReleases(t, "2.52.0", "2.53.0-pre.1")
+	n := Check(CheckOptions{
+		Client:         hits.client,
+		CurrentVersion: "2.51.0",
+		Channel:        ChannelStable,
+		CacheDir:       t.TempDir(),
+	})
+	if n.LatestVersion != "2.52.0" {
+		t.Errorf("LatestVersion = %q, want 2.52.0", n.LatestVersion)
+	}
+	if hits.list.Load() != 0 {
+		t.Errorf("stable must not list releases, got %d", hits.list.Load())
 	}
 }
 
 func TestCheck_CurrentIsQuiet(t *testing.T) {
-	hits := newReleaseCounter(t, "2.17.0", false)
+	hits := newReleaseCounter(t, "2.17.0", "", false)
 	n := Check(CheckOptions{
 		Client:         hits.client,
 		CurrentVersion: "2.17.0",
@@ -153,7 +213,7 @@ func TestCheck_CurrentIsQuiet(t *testing.T) {
 }
 
 func TestCheck_CacheSkipsRefetch(t *testing.T) {
-	hits := newReleaseCounter(t, "2.17.0", false)
+	hits := newReleaseCounter(t, "2.17.0", "", false)
 	dir := t.TempDir()
 	opts := CheckOptions{
 		Client:         hits.client,
@@ -174,7 +234,7 @@ func TestCheck_CacheSkipsRefetch(t *testing.T) {
 }
 
 func TestCheck_DiskCacheSurvivesProcessMemory(t *testing.T) {
-	hits := newReleaseCounter(t, "2.17.0", false)
+	hits := newReleaseCounter(t, "2.17.0", "", false)
 	dir := t.TempDir()
 	opts := CheckOptions{
 		Client:         hits.client,
@@ -185,8 +245,6 @@ func TestCheck_DiskCacheSurvivesProcessMemory(t *testing.T) {
 		t.Fatalf("warm: %+v", n)
 	}
 	InvalidateNoticeCache(dir)
-	// Invalidate clears memory + disk; rewrite disk as if a previous
-	// process left a fresh snapshot, then clear memory only.
 	if n := Check(opts); !n.Available {
 		t.Fatalf("rewarm: %+v", n)
 	}
@@ -205,7 +263,7 @@ func TestCheck_DiskCacheSurvivesProcessMemory(t *testing.T) {
 }
 
 func TestCheck_TTLExpiryRefetches(t *testing.T) {
-	hits := newReleaseCounter(t, "2.17.0", false)
+	hits := newReleaseCounter(t, "2.17.0", "", false)
 	dir := t.TempDir()
 	now := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
 	opts := CheckOptions{
@@ -243,7 +301,7 @@ func TestCheck_FetchFailureStaysQuiet(t *testing.T) {
 }
 
 func TestCheck_HomebrewFormula(t *testing.T) {
-	hits := newReleaseCounter(t, "2.17.0", false)
+	hits := newReleaseCounter(t, "2.17.0", "", false)
 	n := Check(CheckOptions{
 		Client:         hits.client,
 		CurrentVersion: "2.15.0",
@@ -262,7 +320,7 @@ func TestCheck_HomebrewFormula(t *testing.T) {
 }
 
 func TestCheck_UnknownChannelDefaultsStable(t *testing.T) {
-	hits := newReleaseCounter(t, "2.17.0", false)
+	hits := newReleaseCounter(t, "2.17.0", "", false)
 	n := Check(CheckOptions{
 		Client:         hits.client,
 		CurrentVersion: "2.15.0",
@@ -283,7 +341,7 @@ type releaseHits struct {
 	list   atomic.Int32
 }
 
-func newReleaseCounter(t *testing.T, latest string, prerelease bool) *releaseHits {
+func newReleaseCounter(t *testing.T, latest, pre string, prerelease bool) *releaseHits {
 	t.Helper()
 	h := &releaseHits{}
 	mux := http.NewServeMux()
@@ -293,11 +351,52 @@ func newReleaseCounter(t *testing.T, latest string, prerelease bool) *releaseHit
 	})
 	mux.HandleFunc("/repos/jjfantini/humblSKILLS/releases", func(w http.ResponseWriter, r *http.Request) {
 		h.list.Add(1)
+		tag := latest
 		flag := "false"
 		if prerelease {
 			flag = "true"
 		}
-		_, _ = w.Write([]byte(`[{"tag_name": "v` + latest + `", "prerelease": ` + flag + `, "draft": false}]`))
+		if pre != "" {
+			tag = pre
+			flag = "true"
+		}
+		_, _ = w.Write([]byte(`[{"tag_name": "v` + tag + `", "prerelease": ` + flag + `, "draft": false}]`))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	prev := GitHubAPIBase
+	GitHubAPIBase = srv.URL
+	t.Cleanup(func() { GitHubAPIBase = prev })
+	h.client = srv.Client()
+	return h
+}
+
+func newChannelReleases(t *testing.T, stable, pre string) *releaseHits {
+	t.Helper()
+	h := &releaseHits{}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/repos/jjfantini/humblSKILLS/releases/latest", func(w http.ResponseWriter, r *http.Request) {
+		h.latest.Add(1)
+		if stable == "" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		_, _ = w.Write([]byte(`{"tag_name": "v` + stable + `", "prerelease": false}`))
+	})
+	mux.HandleFunc("/repos/jjfantini/humblSKILLS/releases", func(w http.ResponseWriter, r *http.Request) {
+		h.list.Add(1)
+		body := `[`
+		if stable != "" {
+			body += `{"tag_name": "v` + stable + `", "prerelease": false, "draft": false}`
+		}
+		if pre != "" {
+			if stable != "" {
+				body += `,`
+			}
+			body += `{"tag_name": "v` + pre + `", "prerelease": true, "draft": false}`
+		}
+		body += `]`
+		_, _ = w.Write([]byte(body))
 	})
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)

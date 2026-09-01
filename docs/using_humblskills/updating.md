@@ -120,42 +120,44 @@ humblskills profile get channel
 humblskills profile set channel beta
 ```
 
-The upgrade checks GitHub releases (stable → `/releases/latest`; beta → latest
-prerelease), verifies the checksum, and replaces the running binary in place.
+The upgrade checks GitHub releases (stable → `/releases/latest` only; beta →
+the higher semver of latest stable vs latest prerelease), verifies the
+checksum, and replaces the running binary in place. Beta is “always the newest
+version”: `v2.52.0` beats `v2.52.0-pre.1`; `v2.53.0-pre.1` beats `v2.52.0`.
 
-The channel is the same `profile.json` field Homebrew uses. Change it from the
-existing Profile TUI (`humblskills` → Profile → **install channel**) or
-`profile set` — there is no second settings surface.
-
-When a newer release exists on your channel, `doctor`, `start` (and the
-non-TTY command table), `version`, `list`, `search`, and `profile show` print
-this line on **stderr**:
+The same resolver feeds the CLI update notice and the TUI Dashboard banner.
+When a newer release exists, `doctor`, `start` (and the non-TTY command table),
+`version`, `list`, `search`, and `profile show` print this line on **stderr**:
 
 ```text
 newer version available: v2.15.0 → v2.17.0 (stable) — run `humblskills upgrade`
 ```
 
-Homebrew-managed installs get `brew upgrade humblskills` (or
-`brew upgrade humblskills-pre` on beta) instead of the generic curl path.
-`--json` and `--quiet` suppress it; being current is silent. The interactive
-dashboard (`humblskills` / `humblskills start`) shows the same fact as a
-**Newer version available** banner above the tile grid — not only in Profile —
-with current version, latest for the channel, and the update command.
+Homebrew-managed installs get `brew upgrade humblskills`,
+`brew upgrade humblskills-pre`, or
+`brew uninstall humblskills-pre && brew install humblskills` when beta’s
+winner is a graduated stable. `--json` and `--quiet` suppress the notice;
+being current is silent. The interactive dashboard (`humblskills` /
+`humblskills start`) shows a **Newer version available** banner above the
+search bar and tile grid — not only in Profile. The latest tag is cached
+under `selfupdate/latest-<channel>.json` (12 hours).
 
-The check reuses `upgrade`'s channel resolution and GitHub endpoints, and
-caches the latest tag under the cache dir (`selfupdate/latest-<channel>.json`,
-12 hours) so frames and back-to-back commands do not hit GitHub again.
+The channel is the same `profile.json` field Homebrew uses. Change it from the
+existing Profile TUI (`humblskills` → Profile → **install channel**) or
+`profile set` — there is no second settings surface.
 
-If you installed via Homebrew, `upgrade` detects that and delegates: it confirms
-with you, then runs `brew update && brew upgrade <formula>` (`humblskills` or
-`humblskills-pre`) itself, so Homebrew's own bookkeeping stays correct. It falls
-back to telling you to run brew by hand only when `brew` isn't on `PATH`. Doing
-it directly works too:
+If you installed via Homebrew, `upgrade` detects that and delegates. The
+formula follows beta’s winner, not the channel name:
 
 ```sh
-brew upgrade humblskills
-brew upgrade humblskills-pre
+brew upgrade humblskills                                          # stable winner, already on humblskills
+brew upgrade humblskills-pre                                      # beta winner is still a pre
+brew uninstall humblskills-pre && brew install humblskills        # beta winner is a graduated stable
 ```
+
+`upgrade` runs those commands itself after confirming, so Homebrew's own
+bookkeeping stays correct. It falls back to telling you to run brew by hand
+only when `brew` isn't on `PATH`.
 
 ## Related topics
 

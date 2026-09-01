@@ -42,13 +42,15 @@ type DashboardStatus struct {
 }
 
 // VersionNotice is the dashboard "newer version available" banner.
-// Shown on the main launcher (not buried in Profile) when the channel
-// has a newer GitHub release than the running binary.
+// Shown on the main launcher when the channel has a newer GitHub
+// release than the running binary. Command is the same string upgrade
+// --dry-run prints (humblskills upgrade, brew upgrade <formula>, or
+// brew uninstall/install when beta switches formulas).
 type VersionNotice struct {
 	Current string // already display-formatted, e.g. "v2.15.0"
 	Latest  string
 	Channel string // "stable" or "beta"
-	Command string // "humblskills upgrade" or "brew upgrade humblskills[-pre]"
+	Command string
 }
 
 // VersionNoticeHeadline is the TUI banner title.
@@ -564,7 +566,7 @@ const versionNoticeDisplayHeight = 4
 
 // renderVersionNotice draws the dashboard "newer version available" panel.
 // Line 1 is the headline; line 2 is current → latest (channel) and the
-// exact update command (humblskills upgrade, or brew upgrade <formula>).
+// exact update command (including brew formula switch).
 func renderVersionNotice(th *ui.Theme, n VersionNotice, width int) string {
 	if th == nil {
 		th = ui.DefaultTheme()

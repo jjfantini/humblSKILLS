@@ -14,6 +14,9 @@ func TestCompare(t *testing.T) {
 		{"2.18.0", "2.17.0", +1}, // local build ahead of latest release
 		{"dev", "2.17.0", -1},    // unparseable current always upgradable
 		{"", "2.17.0", -1},
+		{"2.52.0-pre.1", "2.52.0", -1}, // graduated stable beats its own pre
+		{"2.52.0", "2.53.0-pre.1", -1}, // newer pre beats last stable
+		{"2.52.0", "2.52.0-pre.1", +1},
 	}
 	for _, c := range cases {
 		got := Compare(c.current, c.latest)

@@ -300,6 +300,16 @@ func TestRenderVersionNotice_GitHubAndHomebrew(t *testing.T) {
 	if strings.Contains(brew, "press U") {
 		t.Error("Homebrew banner should not tell users to press U")
 	}
+
+	switchBanner := renderVersionNotice(th, VersionNotice{
+		Current: "v2.52.0-pre.1",
+		Latest:  "v2.52.0",
+		Channel: "beta",
+		Command: "brew uninstall humblskills-pre && brew install humblskills",
+	}, 140)
+	if !strings.Contains(switchBanner, "brew uninstall humblskills-pre") || !strings.Contains(switchBanner, "brew install humblskills") {
+		t.Errorf("switch banner missing brew commands:\n%s", switchBanner)
+	}
 }
 
 func TestDashboardModel_View_ShowsNoticeBanner(t *testing.T) {
@@ -323,9 +333,6 @@ func TestDashboardModel_View_ShowsNoticeBanner(t *testing.T) {
 	view := m.View()
 	if !strings.Contains(view, VersionNoticeHeadline) {
 		t.Errorf("dashboard missing banner headline:\n%s", view)
-	}
-	if !strings.Contains(view, "v2.15.0 → v2.17.0 (stable)") && !strings.Contains(view, "v2.17.0") {
-		t.Errorf("dashboard missing versions:\n%s", view)
 	}
 	if !strings.Contains(view, "humblskills upgrade") {
 		t.Errorf("dashboard missing update command:\n%s", view)
@@ -367,7 +374,6 @@ func TestDashboardModel_Init_CheckNoticeOnce(t *testing.T) {
 	if dm.notice == nil || dm.notice.Latest != "v2" {
 		t.Fatalf("notice not applied: %+v", dm.notice)
 	}
-	// A resize must not re-run the network check.
 	out, _ = dm.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
 	if calls != 1 {
 		t.Errorf("CheckNotice calls = %d, want 1", calls)

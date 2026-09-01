@@ -26,17 +26,23 @@ func (a *App) checkUpgradeNotice() selfupdate.Notice {
 	})
 }
 
-// resolvedNoticeChannel is flag → profile → stable. Profile load errors
-// fall back to stable so a notice check never fails a command.
+// resolvedNoticeChannel is upgrade --channel → profile → stable. Profile
+// load errors fall back to stable so a notice check never fails a command.
 func (a *App) resolvedNoticeChannel() string {
-	if a.Config.Channel != "" {
-		return a.Config.Channel
+	if flag := a.upgradeChannelFlag(); flag != "" {
+		return flag
 	}
 	p, err := profile.Load(a.Config.ProfilePath)
 	if err != nil || p == nil {
 		return profile.ChannelStable
 	}
 	return p.ResolvedChannel()
+}
+
+// upgradeChannelFlag is the persistent --channel override when present.
+// Empty means "use the profile".
+func (a *App) upgradeChannelFlag() string {
+	return a.Config.Channel
 }
 
 // printUpgradeNotice writes the CLI banner to stderr (via Warn) when a

@@ -22,14 +22,137 @@ const (
 	FormulaPre    = "humblskills-pre"
 )
 
-// FormulaForChannel returns the tap formula `brew upgrade` should run for
-// the given profile channel. Unknown/empty → stable, so users who never
-// set a channel keep today's behaviour.
+// FormulaForChannel is the *default* tap formula for a channel when no
+// release has been resolved yet. Beta's default is the pre formula, but
+// the winning beta release may be a stable — callers that already have a
+// version must use FormulaForVersion so Homebrew users are not told to
+// `brew upgrade humblskills-pre` when that formula cannot reach it.
 func FormulaForChannel(channel string) string {
 	if NormalizeChannel(channel) == ChannelBeta {
 		return FormulaPre
 	}
 	return FormulaStable
+}
+
+// FormulaForVersion returns the tap formula that publishes version.
+// Prerelease tags (`vX.Y.Z-pre.N`) map to humblskills-pre; everything
+// else maps to humblskills. Channel is not consulted — the winning
+// release decides, so beta can land on the stable formula.
+func FormulaForVersion(version string) string {
+	if isPreTag(version) {
+		return FormulaPre
+	}
+	return FormulaStable
+}
+
+// FormulaForRelease is FormulaForVersion using the GitHub prerelease
+// flag or a `-pre` tag.
+func FormulaForRelease(rel *Release) string {
+	if rel == nil {
+		return FormulaStable
+	}
+	if rel.Prerelease || isPreTag(rel.TagName) {
+		return FormulaPre
+	}
+	return FormulaStable
+}
+
+// InstalledFormula returns the Homebrew formula name encoded in a
+// Cellar/Caskroom path, or "" when exePath is not brew-managed.
+// `/opt/homebrew/Cellar/humblskills-pre/2.52.0-pre/bin/humblskills` →
+// `humblskills-pre`.
+func InstalledFormula(exePath string) string {
+	resolved, err := filepath.EvalSymlinks(exePath)
+	if err != nil {
+		resolved = exePath
+	}
+	if f := formulaInPath(resolved, "/Cellar/"); f != "" {
+		return f
+	}
+	return formulaInPath(resolved, "/Caskroom/")
+}
+
+func formulaInPath(path, marker string) string {
+	i := strings.Index(path, marker)
+	if i < 0 {
+		return ""
+	}
+	rest := path[i+len(marker):]
+	formula, _, ok := strings.Cut(rest, "/")
+	if !ok || formula == "" {
+		return ""
+	}
+	return formula
+}
+
+// HomebrewLinkedBinary is the brew prefix `bin/` symlink for a Cellar
+// install (`…/Cellar/humblskills-pre/2.52.0-pre/bin/humblskills` →
+// `…/bin/humblskills`). After a formula switch the old Cellar path is
+// gone; this is the path that still exists.
+func HomebrewLinkedBinary(exePath string) string {
+	resolved, err := filepath.EvalSymlinks(exePath)
+	if err != nil {
+		resolved = exePath
+	}
+	for _, marker := range []string{"/Cellar/", "/Caskroom/"} {
+		i := strings.Index(resolved, marker)
+		if i < 0 {
+			continue
+		}
+		return filepath.Join(resolved[:i], "bin", filepath.Base(resolved))
+	}
+	return ""
+}
+
+// BrewAction is the Homebrew work an upgrade (or a notice) should run.
+// Same-formula: `brew upgrade <target>`. Cross-formula (beta picked a
+// stable while the user is on humblskills-pre, or the reverse):
+// `brew uninstall <replace> && brew install <target>`.
+type BrewAction struct {
+	Target  string
+	Replace string
+}
+
+// NeedsSwitch reports whether the user must change formulas to reach Target.
+func (a BrewAction) NeedsSwitch() bool {
+	return a.Replace != "" && a.Target != "" && a.Replace != a.Target
+}
+
+// Hint is the exact shell the notice / dry-run / confirm prompt prints.
+func (a BrewAction) Hint() string {
+	target := a.Target
+	if target == "" {
+		target = FormulaStable
+	}
+	if a.NeedsSwitch() {
+		return fmt.Sprintf("brew uninstall %s && brew install %s", a.Replace, target)
+	}
+	return "brew upgrade " + target
+}
+
+// PlanBrewAction builds the Homebrew action for a resolved target formula
+// and the formula currently installed (if any).
+func PlanBrewAction(currentFormula, targetFormula string) BrewAction {
+	if targetFormula == "" {
+		targetFormula = FormulaStable
+	}
+	a := BrewAction{Target: targetFormula}
+	if currentFormula != "" && currentFormula != targetFormula {
+		a.Replace = currentFormula
+	}
+	return a
+}
+
+// RecommendedUpgradeCommand is the command notices, the dashboard banner,
+// and upgrade --dry-run all print. One source of truth: GitHub installs
+// get `humblskills upgrade`; brew stays on `brew upgrade <formula>` unless
+// the winning version lives on the other formula, in which case it tells
+// the user to uninstall/install.
+func RecommendedUpgradeCommand(homebrew bool, currentFormula, targetFormula string) string {
+	if !homebrew {
+		return "humblskills upgrade"
+	}
+	return PlanBrewAction(currentFormula, targetFormula).Hint()
 }
 
 // IsHomebrewManaged reports whether exePath resolves (after following
@@ -65,11 +188,18 @@ type Runner func(ctx context.Context, name string, args ...string) *exec.Cmd
 // own post-upgrade version check (VerifyInstalledVersion) is what actually
 // decides whether the upgrade succeeded.
 func Upgrade(ctx context.Context, run Runner, stdout, stderr io.Writer, sink EventSink, formula string) error {
+	return ApplyBrew(ctx, run, stdout, stderr, sink, BrewAction{Target: formula})
+}
+
+// ApplyBrew runs `brew update` then either `brew upgrade <target>` or
+// `brew uninstall <replace> && brew install <target>` when the winning
+// version lives on the other formula.
+func ApplyBrew(ctx context.Context, run Runner, stdout, stderr io.Writer, sink EventSink, action BrewAction) error {
 	if run == nil {
 		run = exec.CommandContext
 	}
-	if formula == "" {
-		formula = FormulaStable
+	if action.Target == "" {
+		action.Target = FormulaStable
 	}
 
 	sink.emit(Event{Phase: PhaseBrewUpdating})
@@ -78,11 +208,29 @@ func Upgrade(ctx context.Context, run Runner, stdout, stderr io.Writer, sink Eve
 			sink.emit(Event{Phase: PhaseError, Err: err})
 			return err
 		}
-		fmt.Fprintf(stderr, "warning: brew update failed, continuing with brew upgrade anyway: %v\n", err)
+		next := "brew upgrade"
+		if action.NeedsSwitch() {
+			next = "the formula switch"
+		}
+		fmt.Fprintf(stderr, "warning: brew update failed, continuing with %s anyway: %v\n", next, err)
+	}
+
+	if action.NeedsSwitch() {
+		sink.emit(Event{Phase: PhaseBrewUninstalling})
+		if err := runBrew(ctx, run, stdout, stderr, "uninstall", action.Replace); err != nil {
+			sink.emit(Event{Phase: PhaseError, Err: err})
+			return err
+		}
+		sink.emit(Event{Phase: PhaseBrewInstalling})
+		if err := runBrew(ctx, run, stdout, stderr, "install", action.Target); err != nil {
+			sink.emit(Event{Phase: PhaseError, Err: err})
+			return err
+		}
+		return nil
 	}
 
 	sink.emit(Event{Phase: PhaseBrewUpgrading})
-	if err := runBrew(ctx, run, stdout, stderr, "upgrade", formula); err != nil {
+	if err := runBrew(ctx, run, stdout, stderr, "upgrade", action.Target); err != nil {
 		sink.emit(Event{Phase: PhaseError, Err: err})
 		return err
 	}

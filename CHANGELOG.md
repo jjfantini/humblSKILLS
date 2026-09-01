@@ -1,5 +1,41 @@
 # Changelog
 
+## [2.52.0-pre.2](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0-pre.1...v2.52.0-pre.2) (2026-09-01)
+
+
+### Features
+
+* **upgrade:** beta channel picks the newer of stable and prerelease ([cd65484](https://github.com/jjfantini/humblSKILLS/commit/cd65484950e199d3303b5075dd1a1cca14522f03))
+
+
+### Bug Fixes
+
+* **upgrade:** beta channel picks highest semver, not latest pre ([733d0f6](https://github.com/jjfantini/humblSKILLS/commit/733d0f6882404e11ba27207a26cb9ab0ee4703a9))
+
+## [2.52.0](https://github.com/jjfantini/humblSKILLS/compare/v2.51.0...v2.52.0) (2026-09-01)
+
+
+### Features
+
+* **release:** cut pre-releases from develop and stables from main ([c8eeaf1](https://github.com/jjfantini/humblSKILLS/commit/c8eeaf1976ea4d3d9f0155f32e6412346c2f8699))
+* **release:** develop pre-releases, stable brew, and first-class beta channel ([89c9f6d](https://github.com/jjfantini/humblSKILLS/commit/89c9f6deecc2b13e910d15ccbe708e892fcd4c77))
+* **release:** publish humblskills-pre formula on pre tags only ([e31b8e2](https://github.com/jjfantini/humblSKILLS/commit/e31b8e22703d7fee417aa187f21415336422b406))
+* **upgrade:** first-class profile channel in CLI and TUI ([1c2d3cc](https://github.com/jjfantini/humblSKILLS/commit/1c2d3ccf6188770d2d86f19aa533e06c2fd0290d))
+
+
+### Bug Fixes
+
+* **release:** split manifests so main can graduate pre to stable ([8338d1b](https://github.com/jjfantini/humblSKILLS/commit/8338d1b5d9244fdab0952755f37d1399eb880de9))
+* **release:** track last stable and last pre in separate manifests ([27737de](https://github.com/jjfantini/humblSKILLS/commit/27737dec05f7a0e1ad0b1499837ae978ff047399))
+
+## [2.52.0-pre.1](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0-pre...v2.52.0-pre.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **release:** split manifests so main can graduate pre to stable ([8338d1b](https://github.com/jjfantini/humblSKILLS/commit/8338d1b5d9244fdab0952755f37d1399eb880de9))
+* **release:** track last stable and last pre in separate manifests ([27737de](https://github.com/jjfantini/humblSKILLS/commit/27737dec05f7a0e1ad0b1499837ae978ff047399))
+
 ## [2.52.0-pre](https://github.com/jjfantini/humblSKILLS/compare/v2.51.0...v2.52.0-pre) (2026-09-01)
 
 

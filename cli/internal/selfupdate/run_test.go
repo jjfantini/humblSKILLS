@@ -149,8 +149,7 @@ func TestResolvePlanForChannel_BetaUsesPrereleaseAndPreFormula(t *testing.T) {
 	var srv *httptest.Server
 	mux := http.NewServeMux()
 	mux.HandleFunc("/repos/jjfantini/humblSKILLS/releases/latest", func(w http.ResponseWriter, r *http.Request) {
-		t.Error("beta channel must not hit /releases/latest")
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusNotFound)
 	})
 	mux.HandleFunc("/repos/jjfantini/humblSKILLS/releases", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -186,8 +185,60 @@ func TestResolvePlanForChannel_BetaUsesPrereleaseAndPreFormula(t *testing.T) {
 	if plan.Formula != FormulaPre {
 		t.Errorf("Formula = %q, want %s", plan.Formula, FormulaPre)
 	}
+	if plan.SwitchFormula {
+		t.Error("same-formula upgrade should not switch")
+	}
+	if plan.BrewHint != "brew upgrade humblskills-pre" {
+		t.Errorf("BrewHint = %q", plan.BrewHint)
+	}
 	if !plan.UpgradeAvailable {
 		t.Error("expected UpgradeAvailable from 2.51.0 to 2.52.0-pre.1")
+	}
+}
+
+func TestResolvePlanForChannel_BetaFormulaFollowsStableWinner(t *testing.T) {
+	const stable = "2.52.0"
+	assetName, err := CurrentAssetName(stable)
+	if err != nil {
+		t.Fatalf("CurrentAssetName: %v", err)
+	}
+	var srv *httptest.Server
+	mux := http.NewServeMux()
+	mux.HandleFunc("/repos/jjfantini/humblSKILLS/releases/latest", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"tag_name": "v` + stable + `", "prerelease": false,
+			"assets": [
+				{"name": "` + assetName + `", "browser_download_url": "http://example.invalid/a"},
+				{"name": "checksums.txt", "browser_download_url": "http://example.invalid/c"}
+			]
+		}`))
+	})
+	mux.HandleFunc("/repos/jjfantini/humblSKILLS/releases", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`[{"tag_name": "v2.52.0-pre.1", "prerelease": true, "draft": false}]`))
+	})
+	srv = httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	prev := GitHubAPIBase
+	GitHubAPIBase = srv.URL
+	t.Cleanup(func() { GitHubAPIBase = prev })
+
+	plan, err := ResolvePlanForChannel(srv.Client(), DefaultRepo, "2.52.0-pre.1",
+		"/opt/homebrew/Cellar/humblskills-pre/2.52.0-pre.1/bin/humblskills", ChannelBeta, nil)
+	if err != nil {
+		t.Fatalf("ResolvePlanForChannel: %v", err)
+	}
+	if plan.LatestVersion != "2.52.0" {
+		t.Errorf("LatestVersion = %q, want 2.52.0", plan.LatestVersion)
+	}
+	if plan.Formula != FormulaStable {
+		t.Errorf("Formula = %q, want %s", plan.Formula, FormulaStable)
+	}
+	if !plan.SwitchFormula {
+		t.Error("expected SwitchFormula when brew-pre user should move to stable")
+	}
+	if plan.BrewHint != "brew uninstall humblskills-pre && brew install humblskills" {
+		t.Errorf("BrewHint = %q", plan.BrewHint)
 	}
 }
 

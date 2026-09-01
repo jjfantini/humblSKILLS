@@ -31,7 +31,7 @@ const (
 
 // Notice is a "newer version available" result built from the same
 // channel resolution upgrade uses (LatestReleaseForChannel +
-// IsUpgradeAvailable + IsHomebrewManaged + FormulaForChannel).
+// IsUpgradeAvailable + FormulaForVersion + RecommendedUpgradeCommand).
 // Available=false means stay quiet — current, failed check, or skipped.
 type Notice struct {
 	CurrentVersion string
@@ -40,21 +40,16 @@ type Notice struct {
 	Channel        string
 	Homebrew       bool
 	Formula        string
+	CurrentFormula string
 	Available      bool
 }
 
 // UpdateCommand is the exact command the notice tells the user to run.
-// Homebrew-managed installs get `brew upgrade <formula>` (humblskills or
-// humblskills-pre); everything else gets `humblskills upgrade`.
+// Same helper upgrade --dry-run uses: brew stays on `brew upgrade
+// <formula>` unless beta's winner lives on the other formula, in which
+// case it is `brew uninstall <old> && brew install <new>`.
 func (n Notice) UpdateCommand() string {
-	if n.Homebrew {
-		formula := n.Formula
-		if formula == "" {
-			formula = FormulaForChannel(n.Channel)
-		}
-		return "brew upgrade " + formula
-	}
-	return "humblskills upgrade"
+	return RecommendedUpgradeCommand(n.Homebrew, n.CurrentFormula, n.Formula)
 }
 
 // CLILine is the user-visible CLI notice. Empty when nothing is available.
@@ -130,7 +125,7 @@ func Check(opts CheckOptions) Notice {
 	if opts.ExePath != "" {
 		n.Homebrew = IsHomebrewManaged(opts.ExePath)
 		if n.Homebrew {
-			n.Formula = FormulaForChannel(channel)
+			n.CurrentFormula = InstalledFormula(opts.ExePath)
 		}
 	}
 
@@ -140,6 +135,7 @@ func Check(opts CheckOptions) Notice {
 	}
 	n.LatestVersion = snap.LatestVersion
 	n.LatestTag = snap.LatestTag
+	n.Formula = FormulaForVersion(snap.LatestVersion)
 	n.Available = IsUpgradeAvailable(opts.CurrentVersion, snap.LatestVersion)
 	return n
 }
