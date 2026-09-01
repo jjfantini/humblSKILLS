@@ -5,14 +5,14 @@ name: release
 #   develop → vX.Y.Z-pre.N GitHub pre-release. No brew.
 #   main    → vX.Y.Z stable + Homebrew tap (jjfantini/homebrew-humbl).
 #
-# Manifests are split on purpose. release-please matches GitHub releases to
-# the version in the manifest, then walks commits *after that tag*. A shared
-# manifest that recorded `2.52.0-pre` made main treat `v2.52.0-pre` as the
-# last release (run 33548192550: "No user facing commits found since
-# v2.52.0-pre"). The feat commits that produced the pre were already behind
-# that tag, and the develop→main merge subject is not a conventional commit.
-# Toggling `prerelease: false` / `versioning: prerelease` does not help: the
-# empty-changelog gate fires first (googleapis/release-please src/strategies/base.ts).
+# Manifests are split on purpose. Run 33548192550 on main:
+#   Found release for path .: v2.52.0-pre sha 375eb41
+#   Then only considered commits after that SHA
+#   5c02a28 "Merge pull request #270 ..." could not be parsed
+#   → "No user facing commits found since 375eb41 - skipping"
+# Same package path `.` last-saw the GitHub pre-release. Feat/fix commits
+# were already behind that tag. The promote merge is not conventional, so
+# it cannot bump or graduate. Main must last-see the last *stable* tag.
 #
 #   develop → .release-please-manifest.develop.json  (last pre)
 #   main    → .release-please-manifest.json          (last stable)

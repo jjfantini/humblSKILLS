@@ -57,7 +57,15 @@ so **no backend/database/network services are required** to build, test, or run 
   `jjfantini/homebrew-humbl` `Formula/humblskills.rb` so `brew upgrade humblskills`
   gets that version. The pre formula is not rewritten on a stable tag.
   Do not put a `-pre` version in the main manifest: release-please will treat
-  `vX.Y.Z-pre` as the last release and skip (run 33548192550).
+  `vX.Y.Z-pre` as the last release and skip (run 33548192550: last-saw
+  `v2.52.0-pre` at `375eb41`; the #270 merge subject is not conventional).
+
+  **Cut the blocked `v2.52.0` (Homebrew still 2.51.0):** do not re-run
+  `release.yml` on current `main`. Merge the split-manifest fix to `develop`,
+  then merge `develop` → `main`. That push is the run that should open
+  `chore(main): release 2.52.0`. Merge that PR. `workflow_dispatch` cannot
+  create the tag. If that run still skips, a real `fix:`/`feat:` commit with
+  footer `Release-As: 2.52.0` is the fallback — not an empty feat.
 
 Both release PRs auto-merge on green for same-major bumps (`scripts/guard-major-bump.sh`
 blocks majors). Secrets live on the `release` environment: `RELEASE_PLEASE_TOKEN` (repo PAT)

@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-01T20:06:45Z",
+  "generated_at": "2026-09-01T20:07:06Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "9afa2574c62cd67e1358b6873dbd0af3f79730d1"
+    "sha": "1050a32b81a9618c17179abf39bc2d1bafb3ed5f"
   },
   "skills": [
     {
@@ -765,7 +765,7 @@
         "use-worktree-flow"
       ],
       "path": "skills/smart-worktree-flow",
-      "dir_sha": "6d2c8c952e368318c98c0998b77457e6819ab38328af590e93fa68ffc9663347"
+      "dir_sha": "4a14357a242fa40e2aa977ee815dfe9f88248e2eb66f0ac02efc439cabd3c64d"
     }
   ]
 }

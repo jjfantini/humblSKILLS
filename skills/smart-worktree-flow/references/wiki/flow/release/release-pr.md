@@ -35,6 +35,24 @@ That file is last **stable** only. After a pre is cut, promote by merging
 `develop` → `main` (merge commit). Then wait for the **stable** release PR
 and merge it. A tag does not appear from the promote merge alone.
 
+## Unstick `v2.52.0` (brew still on 2.51.0)
+
+Do **not** re-run `release.yml` on current `main`. That checkout still
+records `2.52.0-pre`, so it will find `v2.52.0-pre` at `375eb41` and skip
+again. `workflow_dispatch` only backfills an existing tag. Do not hand-tag.
+
+1. Merge the split-manifest fix into `develop` (`--merge`, never squash).
+2. Merge `develop` → `main` (`--merge`). That push **is** the `release.yml`
+   run. Main's manifest is then `2.51.0`, so path `.` last-sees `v2.51.0`
+   and the existing `feat:` commits open `chore(main): release 2.52.0`.
+3. Merge that stable release PR. That creates `v2.52.0`, runs GoReleaser,
+   and updates `Formula/humblskills.rb`. Then `brew upgrade humblskills`.
+
+If step 2's `release.yml` still skips, the fallback is a real commit on
+`main` (config/docs, not an empty `feat:`) with footer `Release-As: 2.52.0`.
+A `chore:` alone is hidden from the changelog gate; the commit must be
+`fix:`/`feat:` or the footer is ignored and it skips again.
+
 Ask up front whether the user wants the agent to merge these PRs on green
 checks. If they choose manual release review, stop after each PR is ready and
 report its URL plus check state.
