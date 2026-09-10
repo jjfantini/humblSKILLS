@@ -11,7 +11,7 @@ files and re-run lint.
 
 Context -> categories. See `## Wiki` below for the concept enumeration.
 
-- **orchestrate** -> `anti-patterns`, `closeout`, `contracts`, `isolation`, `loop`, `roles`, `routing`
+- **orchestrate** -> `anti-patterns`, `closeout`, `contracts`, `isolation`, `loop`, `prompting`, `roles`, `routing`
 
 ## Wiki
 
@@ -19,7 +19,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 #### anti-patterns
 
-- [avoid.md](wiki/orchestrate/anti-patterns/avoid.md) - Eight Orchestration Anti-Patterns and What Each Costs
+- [avoid.md](wiki/orchestrate/anti-patterns/avoid.md) - Eleven Orchestration Anti-Patterns and What Each Costs
 
 #### closeout
 
@@ -38,6 +38,12 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 - [session-loop.md](wiki/orchestrate/loop/session-loop.md) - The Nine-Step Orchestration Session Loop
 
+#### prompting
+
+- [anthropic-fable-5-1.md](wiki/orchestrate/prompting/anthropic-fable-5-1.md) - Prompting Claude Fable 5.1 as an Orchestrator or Worker
+- [brief-prompting-by-vendor.md](wiki/orchestrate/prompting/brief-prompting-by-vendor.md) - Which Vendor Prompt Lines Belong in a Worker Brief
+- [openai-gpt-6-astra.md](wiki/orchestrate/prompting/openai-gpt-6-astra.md) - Prompting GPT-6 Astra as a Director or Worker
+
 #### roles
 
 - [parent-orchestrator.md](wiki/orchestrate/roles/parent-orchestrator.md) - The Parent Orchestrator: Seven Owned Responsibilities
@@ -52,8 +58,12 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 ## Raw Sources
 
-- [cursor-cli-model-sweep-2026-08-13.md](raw/cursor-cli-model-sweep-2026-08-13.md) - cited by: references/wiki/orchestrate/routing/cursor-cli-models.md
-- [orchestrate-SKILL.md](raw/orchestrate-SKILL.md) - cited by: references/wiki/orchestrate/anti-patterns/avoid.md, references/wiki/orchestrate/closeout/commit-and-ship.md, references/wiki/orchestrate/contracts/brief-template.md, references/wiki/orchestrate/contracts/handoff-contract.md, references/wiki/orchestrate/isolation/worktree-first.md, references/wiki/orchestrate/loop/session-loop.md, references/wiki/orchestrate/roles/parent-orchestrator.md, references/wiki/orchestrate/roles/worker-agent.md, references/wiki/orchestrate/routing/model-selection.md
+- [anthropic-claude-prompting-best-practices-2026-09-10.md](raw/anthropic-claude-prompting-best-practices-2026-09-10.md) - cited by: references/wiki/orchestrate/prompting/anthropic-fable-5-1.md
+- [anthropic-prompting-claude-fable-5-1-2026-09-10.md](raw/anthropic-prompting-claude-fable-5-1-2026-09-10.md) - cited by: references/wiki/orchestrate/anti-patterns/avoid.md, references/wiki/orchestrate/contracts/brief-template.md, references/wiki/orchestrate/loop/session-loop.md, references/wiki/orchestrate/prompting/anthropic-fable-5-1.md, references/wiki/orchestrate/prompting/brief-prompting-by-vendor.md, references/wiki/orchestrate/roles/parent-orchestrator.md, references/wiki/orchestrate/routing/model-selection.md
+- [cursor-cli-model-sweep-2026-08-13.md](raw/cursor-cli-model-sweep-2026-08-13.md) - cited by: references/wiki/orchestrate/roles/worker-agent.md, references/wiki/orchestrate/routing/cursor-cli-models.md
+- [openai-gpt-6-astra-latest-model-2026-09-10.md](raw/openai-gpt-6-astra-latest-model-2026-09-10.md) - cited by: references/wiki/orchestrate/anti-patterns/avoid.md, references/wiki/orchestrate/contracts/brief-template.md, references/wiki/orchestrate/prompting/brief-prompting-by-vendor.md, references/wiki/orchestrate/prompting/openai-gpt-6-astra.md
+- [orchestrate-SKILL.md](raw/orchestrate-SKILL.md) - cited by: references/wiki/orchestrate/anti-patterns/avoid.md, references/wiki/orchestrate/closeout/commit-and-ship.md, references/wiki/orchestrate/contracts/brief-template.md, references/wiki/orchestrate/contracts/handoff-contract.md, references/wiki/orchestrate/isolation/worktree-first.md, references/wiki/orchestrate/loop/session-loop.md, references/wiki/orchestrate/prompting/brief-prompting-by-vendor.md, references/wiki/orchestrate/roles/parent-orchestrator.md, references/wiki/orchestrate/roles/worker-agent.md, references/wiki/orchestrate/routing/model-selection.md
+- [orchestrator-model-sweep-2026-09-10.md](raw/orchestrator-model-sweep-2026-09-10.md) - cited by: references/wiki/orchestrate/roles/parent-orchestrator.md, references/wiki/orchestrate/roles/worker-agent.md, references/wiki/orchestrate/routing/cursor-cli-models.md, references/wiki/orchestrate/routing/model-selection.md
 
 ---
 
