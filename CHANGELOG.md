@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.53.0-pre.3](https://github.com/jjfantini/humblSKILLS/compare/v2.53.0-pre.2...v2.53.0-pre.3) (2026-09-10)
+
+
+### Features
+
+* **smart-watch:** native macOS video/audio evidence skill with brief and verify ([26a3d7e](https://github.com/jjfantini/humblSKILLS/commit/26a3d7eb08a9c6b2877be22cc332d7e224c72535))
+
 ## [2.53.0-pre.2](https://github.com/jjfantini/humblSKILLS/compare/v2.53.0-pre.1...v2.53.0-pre.2) (2026-09-10)
 
 
