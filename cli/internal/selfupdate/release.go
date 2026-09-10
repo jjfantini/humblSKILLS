@@ -99,13 +99,39 @@ func LatestRelease(client *http.Client, repo string) (*Release, error) {
 	return fetchRelease(client, fmt.Sprintf("%s/repos/%s/releases/latest", GitHubAPIBase, repo))
 }
 
-// LatestReleaseForChannel returns the latest stable GitHub release, or the
-// latest prerelease when channel is beta.
+// LatestReleaseForChannel is the single source of truth for "what is latest
+// on this channel."
+//
+//   - stable (default): GitHub /releases/latest only — never a prerelease.
+//   - beta: compares the latest stable against the latest prerelease and
+//     returns the higher semver. A graduated stable (v2.52.0) beats its
+//     own pre (v2.52.0-pre.1); a newer pre (v2.53.0-pre.1) beats the last
+//     stable. If only one side exists, that side wins.
 func LatestReleaseForChannel(client *http.Client, repo, channel string) (*Release, error) {
 	if NormalizeChannel(channel) == ChannelBeta {
-		return latestPrerelease(client, repo)
+		return latestBeta(client, repo)
 	}
 	return LatestRelease(client, repo)
+}
+
+// latestBeta picks max(latest stable, latest prerelease) by semver.
+func latestBeta(client *http.Client, repo string) (*Release, error) {
+	stable, stableErr := LatestRelease(client, repo)
+	pre, preErr := latestPrerelease(client, repo)
+	switch {
+	case stableErr != nil && preErr != nil:
+		return nil, fmt.Errorf("beta channel: no usable release (stable: %v; prerelease: %v)", stableErr, preErr)
+	case preErr != nil:
+		return stable, nil
+	case stableErr != nil:
+		return pre, nil
+	}
+	// Equal or stable newer → stable. A graduated tag always beats its
+	// own -pre.N (2.52.0 > 2.52.0-pre.1).
+	if Compare(stable.Version(), pre.Version()) >= 0 {
+		return stable, nil
+	}
+	return pre, nil
 }
 
 func latestPrerelease(client *http.Client, repo string) (*Release, error) {

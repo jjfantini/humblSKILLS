@@ -75,8 +75,10 @@ type Profile struct {
 
 	// Channel selects which CLI release stream `humblskills upgrade` follows.
 	// Empty (unset) and "stable" both mean GitHub /releases/latest and the
-	// `humblskills` brew formula. "beta" means the latest GitHub prerelease
-	// and the `humblskills-pre` formula. Default MUST stay stable.
+	// `humblskills` brew formula. "beta" means the newer of latest stable
+	// vs latest prerelease (always the newest version). The brew formula
+	// follows that winner — a graduated stable switches pre users onto
+	// `humblskills`. Default MUST stay stable.
 	Channel string `json:"channel,omitempty"`
 }
 

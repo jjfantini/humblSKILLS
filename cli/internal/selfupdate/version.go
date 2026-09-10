@@ -11,6 +11,16 @@ func Normalize(v string) string {
 	return "v" + v
 }
 
+// DisplayVersion renders a version for humans: "v2.17.0" for ordinary
+// semver, but the bare string for non-numeric local builds ("dev") so
+// notices don't read as the slightly silly "vdev".
+func DisplayVersion(v string) string {
+	if v != "" && v[0] >= '0' && v[0] <= '9' {
+		return "v" + v
+	}
+	return v
+}
+
 // Compare reports the relative order of current vs. latest: negative when
 // current < latest (an upgrade is available), zero when equal, positive
 // when current is newer (e.g. a pre-release build). semver.Compare already

@@ -11,7 +11,7 @@ license: MIT
 compatibility: "Requires git 2.5+, GitHub CLI (`gh`) for PR/check operations, and network access for remote sync, CI, releases, and Homebrew verification."
 metadata:
   author: jjfantini
-  version: "1.2.2"
+  version: "1.2.3"
   previous_names: ["use-worktree-flow"]
   category: development
   tags: [git, worktree, pull-requests, release, workflow, humblskill]
@@ -85,7 +85,9 @@ the workspace is dirty.
 5. PR `develop` into `main` or `master`; follow the upfront Vibe or HITL
    decision. Prefer merge commits when release tooling reads conventional
    commits. The promote merge does not tag. Wait for the **stable** release
-   PR (tag `vX.Y.Z` + Homebrew tap) and merge that.
+   PR (tag `vX.Y.Z` + Homebrew tap) and merge that. After that stable tag,
+   develop's last-released version must become `X.Y.Z` (not `X.Y.Z-pre.N`)
+   so the next pre is newer than the stable (`2.52.0-pre.3` < `2.52.0`).
 6. Sync local branches with upstream, remove the worktree, and delete stale
    local and remote feature branches unless the user opted out.
 

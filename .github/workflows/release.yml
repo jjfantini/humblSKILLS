@@ -21,10 +21,17 @@ name: release
 # PR for the same X.Y.Z. Do not write a `-pre` version into the main
 # manifest. Do not invent tags in a second job.
 #
+# After a stable graduate, develop must not keep incrementing X.Y.Z-pre.N.
+# `versioning: prerelease` on an already-prerelease last version only bumps
+# the suffix (2.52.0-pre.3 → 2.52.0-pre.4). Semver: that pre is older than
+# the stable, so beta = max(stable, pre) stays on vX.Y.Z. record_stable_on_develop
+# rewrites the develop manifest to X.Y.Z so the next conventional commit
+# opens X.Y.(Z+1)-pre.1 (fix) or X.(Y+1).0-pre.1 (feat). Do not hand-tag.
+#
 # Tag rule: the `-pre.N` suffix is semver-prerelease, so it cannot equal a
 # stable `vX.Y.Z` tag. GitHub /releases/latest and `go install @latest`
 # ignore prereleases. goreleaser `prerelease: auto` + `skip_upload: auto`
-# consume the same suffix — no develop Homebrew channel.
+# consume the same suffix — pre tags update humblskills-pre only.
 #
 # workflow_dispatch re-runs GoReleaser for an existing tag (backfill).
 
@@ -129,3 +136,46 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+  # After vX.Y.Z is tagged on main, develop's last-released version must
+  # become X.Y.Z (not X.Y.Z-pre.N). Otherwise versioning: prerelease keeps
+  # cutting 2.52.0-pre.N, which loses to 2.52.0 for every beta user.
+  # PAT so the push can trigger develop's release.yml (GITHUB_TOKEN cannot).
+  record_stable_on_develop:
+    needs: release_please
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.release_please.outputs.release_created == 'true' &&
+      !contains(needs.release_please.outputs.tag_name, '-pre')
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+      - name: Record graduated stable on develop pre line
+        env:
+          TAG: ${{ needs.release_please.outputs.tag_name }}
+        run: |
+          set -euo pipefail
+          ver="${TAG#v}"
+          git fetch origin develop
+          git checkout -B develop origin/develop
+          if git merge-base --is-ancestor HEAD origin/main; then
+            git merge --ff-only origin/main
+          fi
+          scripts/sync-develop-pre-after-stable.sh --stable "$ver" --write
+          if git diff --quiet -- .release-please-manifest.develop.json; then
+            echo "develop pre line already past ${ver}"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .release-please-manifest.develop.json
+          git commit -m "chore(release): record graduated v${ver} on develop pre line"
+          git push origin HEAD:develop

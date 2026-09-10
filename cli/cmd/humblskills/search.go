@@ -88,6 +88,7 @@ func newSearchCmd(app *App) *cobra.Command {
 				}{query, category, role, hits})
 			}
 			if len(hits) == 0 {
+				app.printUpgradeNotice()
 				app.UI.Warn("no skills matched %q", query)
 				return nil
 			}
@@ -99,6 +100,7 @@ func newSearchCmd(app *App) *cobra.Command {
 				return runSearchTUI(app, hits, false)
 			}
 
+			app.printUpgradeNotice()
 			app.UI.Println(renderSearchResults(app.UI.Theme(), hits, query))
 			return nil
 		},

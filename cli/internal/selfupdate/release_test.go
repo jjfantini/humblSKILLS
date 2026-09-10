@@ -105,49 +105,113 @@ func TestLatestReleaseForChannel_StableHitsLatest(t *testing.T) {
 	}
 }
 
-func TestLatestReleaseForChannel_BetaSkipsStableAndDrafts(t *testing.T) {
+func TestLatestReleaseForChannel_BetaPicksStableWhenNewerThanPre(t *testing.T) {
+	// Jennings dry-run: 2.52.0 > 2.52.0-pre.1, so beta must pick the stable.
 	srv := withFakeGitHubAPI(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/repos/jjfantini/humblSKILLS/releases" {
-			t.Errorf("beta channel should hit /releases, got %s", r.URL.Path)
+		switch r.URL.Path {
+		case "/repos/jjfantini/humblSKILLS/releases/latest":
+			_, _ = w.Write([]byte(`{"tag_name": "v2.52.0", "prerelease": false}`))
+		case "/repos/jjfantini/humblSKILLS/releases":
+			_, _ = w.Write([]byte(`[
+				{"tag_name": "v2.52.0", "prerelease": false, "draft": false},
+				{"tag_name": "v2.52.0-pre.2", "prerelease": true, "draft": true},
+				{"tag_name": "v2.52.0-pre.1", "prerelease": true, "draft": false}
+			]`))
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
 		}
-		_, _ = w.Write([]byte(`[
-			{"tag_name": "v2.52.0", "prerelease": false, "draft": false},
-			{"tag_name": "v2.52.0-pre.2", "prerelease": true, "draft": true},
-			{"tag_name": "v2.52.0-pre.1", "prerelease": true, "draft": false}
-		]`))
 	}))
 	rel, err := LatestReleaseForChannel(srv.Client(), DefaultRepo, ChannelBeta)
 	if err != nil {
 		t.Fatalf("LatestReleaseForChannel: %v", err)
 	}
-	if rel.TagName != "v2.52.0-pre.1" {
-		t.Errorf("TagName = %q, want v2.52.0-pre.1 (skip stable + draft pre)", rel.TagName)
+	if rel.TagName != "v2.52.0" {
+		t.Errorf("TagName = %q, want v2.52.0 (stable > 2.52.0-pre.1)", rel.TagName)
+	}
+}
+
+func TestLatestReleaseForChannel_BetaPicksPreWhenNewerThanStable(t *testing.T) {
+	srv := withFakeGitHubAPI(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/repos/jjfantini/humblSKILLS/releases/latest":
+			_, _ = w.Write([]byte(`{"tag_name": "v2.52.0", "prerelease": false}`))
+		case "/repos/jjfantini/humblSKILLS/releases":
+			_, _ = w.Write([]byte(`[
+				{"tag_name": "v2.53.0-pre.1", "prerelease": true, "draft": false},
+				{"tag_name": "v2.52.0", "prerelease": false, "draft": false}
+			]`))
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	rel, err := LatestReleaseForChannel(srv.Client(), DefaultRepo, ChannelBeta)
+	if err != nil {
+		t.Fatalf("LatestReleaseForChannel: %v", err)
+	}
+	if rel.TagName != "v2.53.0-pre.1" {
+		t.Errorf("TagName = %q, want v2.53.0-pre.1 (pre > 2.52.0)", rel.TagName)
+	}
+}
+
+func TestLatestReleaseForChannel_StableNeverPicksPre(t *testing.T) {
+	srv := withFakeGitHubAPI(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/repos/jjfantini/humblSKILLS/releases/latest" {
+			t.Errorf("stable channel should hit /releases/latest, got %s", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"tag_name": "v2.52.0", "prerelease": false}`))
+	}))
+	rel, err := LatestReleaseForChannel(srv.Client(), DefaultRepo, ChannelStable)
+	if err != nil {
+		t.Fatalf("LatestReleaseForChannel: %v", err)
+	}
+	if rel.TagName != "v2.52.0" {
+		t.Errorf("TagName = %q, want v2.52.0", rel.TagName)
 	}
 }
 
 func TestLatestReleaseForChannel_BetaPicksPreTagWithoutFlag(t *testing.T) {
 	srv := withFakeGitHubAPI(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`[
-			{"tag_name": "v2.51.0", "prerelease": false},
-			{"tag_name": "v2.52.0-pre.1", "prerelease": false}
-		]`))
+		switch r.URL.Path {
+		case "/repos/jjfantini/humblSKILLS/releases/latest":
+			_, _ = w.Write([]byte(`{"tag_name": "v2.51.0", "prerelease": false}`))
+		case "/repos/jjfantini/humblSKILLS/releases":
+			_, _ = w.Write([]byte(`[
+				{"tag_name": "v2.51.0", "prerelease": false},
+				{"tag_name": "v2.52.0-pre.1", "prerelease": false}
+			]`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
 	}))
 	rel, err := LatestReleaseForChannel(srv.Client(), DefaultRepo, "beta")
 	if err != nil {
 		t.Fatalf("LatestReleaseForChannel: %v", err)
 	}
 	if rel.TagName != "v2.52.0-pre.1" {
-		t.Errorf("TagName = %q, want v2.52.0-pre.1 (dash in tag)", rel.TagName)
+		t.Errorf("TagName = %q, want v2.52.0-pre.1 (dash in tag beats 2.51.0)", rel.TagName)
 	}
 }
 
-func TestLatestReleaseForChannel_BetaNoPrerelease(t *testing.T) {
+func TestLatestReleaseForChannel_BetaFallsBackToStableWhenNoPre(t *testing.T) {
 	srv := withFakeGitHubAPI(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`[
-			{"tag_name": "v2.51.0", "prerelease": false, "draft": false}
-		]`))
+		switch r.URL.Path {
+		case "/repos/jjfantini/humblSKILLS/releases/latest":
+			_, _ = w.Write([]byte(`{"tag_name": "v2.51.0", "prerelease": false}`))
+		case "/repos/jjfantini/humblSKILLS/releases":
+			_, _ = w.Write([]byte(`[
+				{"tag_name": "v2.51.0", "prerelease": false, "draft": false}
+			]`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
 	}))
-	if _, err := LatestReleaseForChannel(srv.Client(), DefaultRepo, ChannelBeta); err == nil {
-		t.Error("expected error when no prerelease exists")
+	rel, err := LatestReleaseForChannel(srv.Client(), DefaultRepo, ChannelBeta)
+	if err != nil {
+		t.Fatalf("beta with only a stable should pick it, got %v", err)
+	}
+	if rel.TagName != "v2.51.0" {
+		t.Errorf("TagName = %q, want v2.51.0", rel.TagName)
 	}
 }

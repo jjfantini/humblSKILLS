@@ -1,5 +1,47 @@
 # Changelog
 
+## [2.53.0-pre.1](https://github.com/jjfantini/humblSKILLS/compare/v2.52.1-pre.1...v2.53.0-pre.1) (2026-09-10)
+
+
+### Features
+
+* **smart-orchestrate:** add Fable 5.1 and GPT-6 Astra as orchestrator models ([861ea6e](https://github.com/jjfantini/humblSKILLS/commit/861ea6e5c294a9558e7a21a56eb6c6ce9cddb80b))
+* **smart-orchestrate:** add Fable 5.1 and GPT-6 Astra as orchestrator models ([3b86ca7](https://github.com/jjfantini/humblSKILLS/commit/3b86ca79df9e527fd3fa20b5a0c1bc3583666f54))
+
+## [2.52.1-pre.1](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0...v2.52.1-pre.1) (2026-09-01)
+
+
+### Features
+
+* **cli:** channel-aware newer-version notice in CLI and TUI ([a108d52](https://github.com/jjfantini/humblSKILLS/commit/a108d52292207d142ce86e759c4939e3e030cba2))
+* **upgrade:** beta channel picks the newer of stable and prerelease ([cd65484](https://github.com/jjfantini/humblSKILLS/commit/cd65484950e199d3303b5075dd1a1cca14522f03))
+
+
+### Bug Fixes
+
+* **release:** next develop pre is 2.52.1-pre.1 after stable 2.52.0 ([ebca4a6](https://github.com/jjfantini/humblSKILLS/commit/ebca4a69ac907d803e883abde83ec521759e1788))
+* **release:** start develop pre line at 2.52.1-pre.1 after 2.52.0 ([fda949f](https://github.com/jjfantini/humblSKILLS/commit/fda949fcdad3efc0fa651ed15c1be52a43dc7869))
+* **upgrade:** beta channel picks highest semver, not latest pre ([733d0f6](https://github.com/jjfantini/humblSKILLS/commit/733d0f6882404e11ba27207a26cb9ab0ee4703a9))
+
+## [2.52.0-pre.3](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0-pre.2...v2.52.0-pre.3) (2026-09-01)
+
+
+### Features
+
+* **cli:** channel-aware newer-version notice in CLI and TUI ([a108d52](https://github.com/jjfantini/humblSKILLS/commit/a108d52292207d142ce86e759c4939e3e030cba2))
+
+## [2.52.0-pre.2](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0-pre.1...v2.52.0-pre.2) (2026-09-01)
+
+
+### Features
+
+* **upgrade:** beta channel picks the newer of stable and prerelease ([cd65484](https://github.com/jjfantini/humblSKILLS/commit/cd65484950e199d3303b5075dd1a1cca14522f03))
+
+
+### Bug Fixes
+
+* **upgrade:** beta channel picks highest semver, not latest pre ([733d0f6](https://github.com/jjfantini/humblSKILLS/commit/733d0f6882404e11ba27207a26cb9ab0ee4703a9))
+
 ## [2.52.0](https://github.com/jjfantini/humblSKILLS/compare/v2.51.0...v2.52.0) (2026-09-01)
 
 

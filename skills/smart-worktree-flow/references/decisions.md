@@ -16,6 +16,13 @@ Entry shape:
 
 ---
 
+### 2026-09-01 | after stable graduate, reset develop last-released to that stable
+- Context: main tagged `v2.52.0`. develop kept incrementing `2.52.0-pre.N` (`v2.52.0-pre.3` in #278). Beta = max(stable, pre). Semver: `2.52.0-pre.3` < `2.52.0`, so users on channel=beta already on 2.52.0 never see the update-notice banner. Jennings wants the next pre to be `2.52.1-pre.1` (patch, #271's feat already consumed as pre.3) without hand-tagging or pushing main.
+- Options: (A) change `versioning` from `prerelease` to `default` so every develop commit bumps the base (loses intra-cycle `2.52.1-pre.2`), (B) one-off `Release-As: 2.52.1-pre.1` only, (C) keep `versioning: prerelease` and after each stable rewrite the develop manifest from `X.Y.Z-pre.N` to `X.Y.Z` so the next feat/fix starts a new pre line.
+- Chose: C, plus a one-time `Release-As: 2.52.1-pre.1` because leftover feats on develop since `v2.52.0` would otherwise open `2.53.0-pre.1`.
+- Why: `PrereleasePatchVersionUpdate` on a non-prerelease `2.52.0` yields `2.52.1-pre`. On `2.52.0-pre.3` it yields `2.52.0-pre.4`. The split manifests already made last-stable and last-pre independent; the missing rule was "last-pre base must move past last-stable after a graduate." A/B stay one-off. C is the default: `record_stable_on_develop` in `release.yml` runs `scripts/sync-develop-pre-after-stable.sh` after a non-`-pre` tag. Intra-cycle `2.52.1-pre.2` is unchanged.
+- Result: TBD after `chore(develop): release 2.52.1-pre.1` tags `v2.52.1-pre.1` (prerelease, `humblskills-pre` only).
+
 ### 2026-09-01 | second brew formula + first-class profile channel
 - Context: Jennings wants a pre-release *install* path, then made the beta vs stable channel first-class in the CLI and the existing TUI — not a hidden profile.json key.
 - Options: (A) mutate `Formula/humblskills.rb` on develop, (B) `humblskills@beta` versioned formula, (C) second formula `humblskills-pre` plus one `channel` field on the existing profile, wired to `profile get`/`set`, `upgrade --channel`, and the Profile TUI.

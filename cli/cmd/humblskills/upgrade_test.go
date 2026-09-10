@@ -362,7 +362,6 @@ func startFakePrereleaseAPI(t *testing.T, preVersion, binaryContent string) {
 	var srv *httptest.Server
 	mux := http.NewServeMux()
 	mux.HandleFunc("/repos/"+selfupdate.DefaultRepo+"/releases/latest", func(w http.ResponseWriter, r *http.Request) {
-		t.Error("beta channel must not hit /releases/latest")
 		w.WriteHeader(http.StatusNotFound)
 	})
 	mux.HandleFunc("/repos/"+selfupdate.DefaultRepo+"/releases", func(w http.ResponseWriter, r *http.Request) {
@@ -535,6 +534,183 @@ func TestUpgrade_HomebrewManaged_BetaRunsPreFormula(t *testing.T) {
 	}
 	if got.Formula != selfupdate.FormulaPre {
 		t.Errorf("Formula = %q, want %s", got.Formula, selfupdate.FormulaPre)
+	}
+	if !got.Applied {
+		t.Errorf("expected Applied = true, got %+v", got)
+	}
+}
+
+func startFakeChannelAPI(t *testing.T, stableVersion, preVersion string) {
+	t.Helper()
+	stableAsset, err := selfupdate.CurrentAssetName(stableVersion)
+	if err != nil {
+		t.Fatalf("CurrentAssetName stable: %v", err)
+	}
+	preAsset, err := selfupdate.CurrentAssetName(preVersion)
+	if err != nil {
+		t.Fatalf("CurrentAssetName pre: %v", err)
+	}
+	var srv *httptest.Server
+	mux := http.NewServeMux()
+	mux.HandleFunc("/repos/"+selfupdate.DefaultRepo+"/releases/latest", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"tag_name": "v` + stableVersion + `",
+			"prerelease": false,
+			"assets": [
+				{"name": "` + stableAsset + `", "browser_download_url": "` + srv.URL + `/assets/` + stableAsset + `"},
+				{"name": "checksums.txt", "browser_download_url": "` + srv.URL + `/assets/checksums.txt"}
+			]
+		}`))
+	})
+	mux.HandleFunc("/repos/"+selfupdate.DefaultRepo+"/releases", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[
+			{"tag_name": "v` + stableVersion + `", "prerelease": false, "draft": false,
+			 "assets": [
+			   {"name": "` + stableAsset + `", "browser_download_url": "` + srv.URL + `/assets/` + stableAsset + `"},
+			   {"name": "checksums.txt", "browser_download_url": "` + srv.URL + `/assets/checksums.txt"}
+			 ]},
+			{"tag_name": "v` + preVersion + `", "prerelease": true, "draft": false,
+			 "assets": [
+			   {"name": "` + preAsset + `", "browser_download_url": "` + srv.URL + `/assets/` + preAsset + `"},
+			   {"name": "checksums.txt", "browser_download_url": "` + srv.URL + `/assets/checksums.txt"}
+			 ]}
+		]`))
+	})
+	mux.HandleFunc("/assets/", func(w http.ResponseWriter, r *http.Request) {})
+	srv = httptest.NewServer(mux)
+	prev := selfupdate.GitHubAPIBase
+	selfupdate.GitHubAPIBase = srv.URL
+	t.Cleanup(func() {
+		srv.Close()
+		selfupdate.GitHubAPIBase = prev
+	})
+}
+
+func TestUpgrade_ChannelBeta_PicksStableWhenNewerThanPre(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	startFakeChannelAPI(t, "2.52.0", "2.52.0-pre.1")
+
+	res := runCLIWithStdoutCapture(t,
+		"upgrade", "--dry-run", "--yes", "--json",
+		"--channel", "beta",
+		"--profile", s.ProfilePath,
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	var got upgradeResult
+	if err := json.Unmarshal([]byte(strings.TrimSpace(res.Out)), &got); err != nil {
+		t.Fatalf("unmarshal %q: %v", res.Out, err)
+	}
+	if got.Channel != profile.ChannelBeta {
+		t.Errorf("Channel = %q, want beta", got.Channel)
+	}
+	if got.LatestVersion != "2.52.0" {
+		t.Errorf("LatestVersion = %q, want 2.52.0 (stable > 2.52.0-pre.1)", got.LatestVersion)
+	}
+}
+
+func TestUpgrade_ChannelBeta_PicksPreWhenNewerThanStable(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	startFakeChannelAPI(t, "2.52.0", "2.53.0-pre.1")
+
+	res := runCLIWithStdoutCapture(t,
+		"upgrade", "--dry-run", "--yes", "--json",
+		"--channel", "beta",
+		"--profile", s.ProfilePath,
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	var got upgradeResult
+	if err := json.Unmarshal([]byte(strings.TrimSpace(res.Out)), &got); err != nil {
+		t.Fatalf("unmarshal %q: %v", res.Out, err)
+	}
+	if got.LatestVersion != "2.53.0-pre.1" {
+		t.Errorf("LatestVersion = %q, want 2.53.0-pre.1", got.LatestVersion)
+	}
+}
+
+func TestUpgrade_ChannelStable_IgnoresNewerPre(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	startFakeChannelAPI(t, "2.52.0", "2.53.0-pre.1")
+
+	res := runCLIWithStdoutCapture(t,
+		"upgrade", "--dry-run", "--yes", "--json",
+		"--channel", "stable",
+		"--profile", s.ProfilePath,
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	var got upgradeResult
+	if err := json.Unmarshal([]byte(strings.TrimSpace(res.Out)), &got); err != nil {
+		t.Fatalf("unmarshal %q: %v", res.Out, err)
+	}
+	if got.Channel != profile.ChannelStable {
+		t.Errorf("Channel = %q, want stable", got.Channel)
+	}
+	if got.LatestVersion != "2.52.0" {
+		t.Errorf("LatestVersion = %q, want 2.52.0 (stable ignores pre)", got.LatestVersion)
+	}
+}
+
+func TestUpgrade_HomebrewManaged_BetaSwitchesPreToStable(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	const current = "2.52.0-pre.1"
+	const latest = "2.52.0"
+
+	cellarDir := filepath.Join(s.Root, "Cellar", "humblskills-pre", current, "bin")
+	if err := os.MkdirAll(cellarDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	exePath := filepath.Join(cellarDir, "humblskills")
+	fakeVersionScript(t, exePath, latest)
+	linkedDir := filepath.Join(s.Root, "bin")
+	if err := os.MkdirAll(linkedDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	fakeVersionScript(t, filepath.Join(linkedDir, "humblskills"), latest)
+	withFakeExecutable(t, exePath)
+	startFakeChannelAPI(t, latest, current)
+
+	var invocations [][]string
+	prevRunner := brewRunner
+	brewRunner = func(ctx context.Context, name string, args ...string) *exec.Cmd {
+		invocations = append(invocations, append([]string{}, args...))
+		return exec.CommandContext(ctx, "true")
+	}
+	t.Cleanup(func() { brewRunner = prevRunner })
+
+	res := runCLIWithStdoutCapture(t,
+		"upgrade", "--yes", "--json",
+		"--channel", "beta",
+		"--profile", s.ProfilePath,
+	)
+	if res.RunErr != nil {
+		t.Fatalf("run: %v\nerr: %s", res.RunErr, res.Err)
+	}
+	if len(invocations) != 3 {
+		t.Fatalf("brew invocations = %v, want 3 (update, uninstall, install)", invocations)
+	}
+	if len(invocations[1]) != 2 || invocations[1][0] != "uninstall" || invocations[1][1] != selfupdate.FormulaPre {
+		t.Errorf("second brew call = %v, want [uninstall %s]", invocations[1], selfupdate.FormulaPre)
+	}
+	if len(invocations[2]) != 2 || invocations[2][0] != "install" || invocations[2][1] != selfupdate.FormulaStable {
+		t.Errorf("third brew call = %v, want [install %s]", invocations[2], selfupdate.FormulaStable)
+	}
+
+	var got upgradeResult
+	if err := json.Unmarshal([]byte(strings.TrimSpace(res.Out)), &got); err != nil {
+		t.Fatalf("unmarshal %q: %v", res.Out, err)
+	}
+	if got.Formula != selfupdate.FormulaStable {
+		t.Errorf("Formula = %q, want %s", got.Formula, selfupdate.FormulaStable)
+	}
+	if got.BrewHint != "brew uninstall humblskills-pre && brew install humblskills" {
+		t.Errorf("BrewHint = %q", got.BrewHint)
 	}
 	if !got.Applied {
 		t.Errorf("expected Applied = true, got %+v", got)

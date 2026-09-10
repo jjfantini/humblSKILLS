@@ -67,6 +67,9 @@ func runStart(app *App) error {
 			Version: resolveVersion().Version,
 			Status:  status,
 			Tiles:   tui.DefaultDashboardTiles(),
+			CheckNotice: func() *tui.VersionNotice {
+				return app.tuiVersionNotice()
+			},
 		}
 		res, err := tui.RunDashboard(cfg)
 		if err != nil {
@@ -249,6 +252,7 @@ func (a *App) headerMeta(fallback string) string {
 }
 
 func printStartFallback(app *App) error {
+	app.printUpgradeNotice()
 	th := app.UI.Theme()
 	out := app.UI.Out()
 	fmt.Fprintln(out)

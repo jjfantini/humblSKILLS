@@ -35,6 +35,26 @@ That file is last **stable** only. After a pre is cut, promote by merging
 `develop` → `main` (merge commit). Then wait for the **stable** release PR
 and merge it. A tag does not appear from the promote merge alone.
 
+## After a stable graduate, start a new develop pre line
+
+`versioning: prerelease` on an already-prerelease last version only bumps
+the suffix: `2.52.0-pre.3` → `2.52.0-pre.4`. Semver treats a prerelease as
+older than the matching stable (`2.52.0-pre.3` < `2.52.0`), so beta
+(`max(stable, pre)`) stays on `v2.52.0` and the update-notice banner never
+appears. Do **not** re-cut `v2.52.0-pre.N`. Do **not** hand-tag.
+
+After `vX.Y.Z` is tagged on main, `.release-please-manifest.develop.json`
+must record `X.Y.Z` (no `-pre`). The next conventional commit then opens
+`vX.Y.(Z+1)-pre.1` (fix / this repo's default after a graduate) or
+`vX.(Y+1).0-pre.1` (feat). `record_stable_on_develop` in `release.yml`
+runs `scripts/sync-develop-pre-after-stable.sh` so this is the default,
+not a one-off `Release-As`. If that job has not run and develop is stuck
+on the graduated line, a real `fix:`/`feat:` commit with footer
+`Release-As: X.Y.(Z+1)-pre.1` is the fallback.
+
+The GitHub release for that next tag must be `prerelease: true`. GoReleaser
+updates `humblskills-pre` only.
+
 ## Unstick `v2.52.0` (brew still on 2.51.0)
 
 Do **not** re-run `release.yml` on current `main`. That checkout still

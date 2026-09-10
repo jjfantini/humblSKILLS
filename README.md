@@ -43,10 +43,14 @@ brew upgrade humblskills-pre
 ```
 
 The CLI install channel is one field in `~/.humblskills/profile.json`
-(`channel`: `stable` or `beta`; unset means stable). Read or change it with
-`humblskills profile get channel` / `profile set channel beta`, the existing
-Profile TUI (`humblskills` → Profile → **install channel**), or a one-shot
-`humblskills upgrade --channel beta`. Same field Homebrew and `upgrade` use.
+(`channel`: `stable` or `beta`; unset means stable). **beta** is always the
+newest version (higher of latest stable vs latest prerelease) — not
+prereleases only. After a stable graduates, a Homebrew `humblskills-pre`
+install is switched with `brew uninstall humblskills-pre && brew install
+humblskills`. Read or change the field with `humblskills profile get channel`
+/ `profile set channel beta`, the existing Profile TUI (`humblskills` →
+Profile → **install channel**), or a one-shot `humblskills upgrade --channel
+beta`.
 
 Formulas live in [`jjfantini/homebrew-humbl`](https://github.com/jjfantini/homebrew-humbl)
 and are bumped by GoReleaser: `humblskills` on stable tags, `humblskills-pre`
@@ -479,13 +483,17 @@ Releases follow the two-branch path in
   `.release-please-manifest.develop.json`. Merging it tags `vX.Y.Z-pre.N` and
   publishes a GitHub **pre-release** (archives + checksums). GoReleaser updates
   `Formula/humblskills-pre.rb` only. The stable `humblskills` formula is left
-  alone.
+  alone. After main graduates `vX.Y.Z`, that develop manifest must record
+  `X.Y.Z` (not `X.Y.Z-pre.N`): `2.52.0-pre.3` is older than `2.52.0`, so beta
+  users already on stable would never see the next pre.
 - **`main`** — merge `develop` with a merge commit (never squash). That promote
   does not tag. release-please then opens a stable PR against
   `.release-please-manifest.json` (last stable, never a `-pre`). Merging *that*
   PR tags `vX.Y.Z`, publishes the GitHub Release, and GoReleaser updates
   `Formula/humblskills.rb` so `brew upgrade humblskills` gets that version. The
-  pre formula is not rewritten.
+  pre formula is not rewritten. The same run records the graduated stable on
+  the develop pre line so the next develop tag is `vX.Y.(Z+1)-pre.1` (or a
+  feat minor), not another `vX.Y.Z-pre.N`.
 
 Both release PRs auto-merge on green for same-major bumps. A major bump waits
 for a human.

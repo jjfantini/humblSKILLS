@@ -38,7 +38,9 @@ jobs:
       # The one piece of non-Go logic that can silently ship a wrong release.
       - name: release guard self-test
         if: matrix.os == 'ubuntu-latest'
-        run: bash scripts/guard-major-bump.sh --self-test
+        run: |
+          bash scripts/guard-major-bump.sh --self-test
+          bash scripts/sync-develop-pre-after-stable.sh --self-test
 
       - name: upload coverage
         if: matrix.os == 'ubuntu-latest'

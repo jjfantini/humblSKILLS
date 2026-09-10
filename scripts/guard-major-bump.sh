@@ -86,6 +86,8 @@ self_test() {
   if [ -f .github/workflows/release.yml ]; then
     grep -q ".release-please-manifest.develop.json" .github/workflows/release.yml \
       || { echo "FAIL: release.yml must point develop at the develop manifest"; exit 1; }
+    grep -q "sync-develop-pre-after-stable.sh" .github/workflows/release.yml \
+      || { echo "FAIL: release.yml must reset develop pre line after a stable"; exit 1; }
   fi
   echo "guard-major-bump: all checks passed"
 }

@@ -90,7 +90,13 @@ humblskills upgrade --channel beta   # this run only
 humblskills profile set channel beta # persist; TUI: humblskills → Profile → install channel
 ```
 
-`update` handles skills; `upgrade` handles the binary. Your customizations
+`update` handles skills; `upgrade` handles the binary. If a newer CLI build is
+on your channel, `doctor` / `start` / `version` print
+`newer version available: … — run \`humblskills upgrade\`` (or
+`brew upgrade humblskills` / `humblskills-pre`) on stderr, and the dashboard
+shows a **Newer version available** banner. `--json` stays machine-readable.
+
+Your customizations
 inside a skill survive an update, and renamed skills are followed automatically
 — see [Updating skills](../using_humblskills/updating.md).
 

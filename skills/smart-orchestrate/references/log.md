@@ -138,3 +138,35 @@ Entry shape:
 [LINT 2026-08-19] 10 wiki, 2 raw. Hard: 0, Soft: 0. Regenerated _index.md.
 
 [LINT 2026-08-20] 10 wiki, 2 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[INGEST 2026-09-10] Added Claude Fable 5.1 and GPT-6 Astra as orchestrator/director
+  models, with each vendor's official prompting practice.
+  - Raw: 3 vendor doc snapshots (Anthropic Fable 5.1 prompting guide, Anthropic
+    cross-model prompting best practices, OpenAI "Using GPT-6 Astra") fetched
+    verbatim, plus orchestrator-model-sweep-2026-09-10.md.
+  - New: references/wiki/orchestrate/prompting/ with 3 concepts -
+    anthropic-fable-5-1, openai-gpt-6-astra, brief-prompting-by-vendor.
+  - Measured: gpt-6-astra 4/4 via codex-cli 0.154.0; claude-fable-5-1-* 0/9 on
+    cursor-agent with ActionRequiredError: Model Blocked (account entitlement,
+    family-wide); control gpt-5.3-codex-low-fast 6/6. GPT-6 Astra absent from all
+    227 Cursor IDs. Fifth failure class documented.
+  - Updated 7 concepts: parent-orchestrator (parent table now (model, effort),
+    ZDR + cache-read economics), worker-agent (retired the measured-broken
+    Grok 4.6 / Composer 2.5 recommendation), model-selection (effort as a second
+    routing axis, plus two non-performance vetoes), cursor-cli-models (5 failure
+    classes, 2026-09-10 rows, "listed not yet measured"), brief-template (Model +
+    Effort lines, vendor appendix), session-loop (commit boundary vs blocking
+    boundary), avoid (8 -> 11 anti-patterns).
+  - SKILL.md 1.2.0 -> 1.3.0: 3 new routing pointers, Example 3, 3 troubleshooting
+    entries, description names both models.
+  - Follow-up measurement: claude -p --model claude-fable-5-1 is 4/4 at 6-7s on
+    Claude Code 2.1.267, so availability is per-CLI, not per-model - the Cursor
+    block describes that account, not the model.
+  - Quote audit: every ```text block in the two vendor concepts diffed against
+    its raw snapshot; two abridged Anthropic blocks restored verbatim and the
+    example appendix in brief-prompting-by-vendor marked as abridged.
+  - patterns.md: 1 entry. decisions.md: 4 entries (raw-authoring of vendor docs,
+    single `prompting` category, retiring the Grok/auto advice, gate-boundary
+    reconciliation).
+
+[LINT 2026-09-10] 13 wiki, 6 raw. Hard: 0, Soft: 0. Regenerated _index.md.

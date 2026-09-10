@@ -8,8 +8,17 @@ import (
 	"testing"
 
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/selfupdate"
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/testutil"
 )
+
+// TestMain disables GitHub notice checks for the rest of the command
+// suite. Tests that exercise the notice re-enable the network and point
+// GitHubAPIBase at an httptest server.
+func TestMain(m *testing.M) {
+	selfupdate.SkipNetwork = true
+	os.Exit(m.Run())
+}
 
 // execResult captures stdout/stderr and the error Cobra surfaced.
 type execResult struct {

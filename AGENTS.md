@@ -60,12 +60,16 @@ so **no backend/database/network services are required** to build, test, or run 
   `vX.Y.Z-pre` as the last release and skip (run 33548192550: last-saw
   `v2.52.0-pre` at `375eb41`; the #270 merge subject is not conventional).
 
-  **Cut the blocked `v2.52.0` (Homebrew still 2.51.0):** do not re-run
-  `release.yml` on current `main`. Merge the split-manifest fix to `develop`,
-  then merge `develop` → `main`. That push is the run that should open
-  `chore(main): release 2.52.0`. Merge that PR. `workflow_dispatch` cannot
-  create the tag. If that run still skips, a real `fix:`/`feat:` commit with
-  footer `Release-As: 2.52.0` is the fallback — not an empty feat.
+  **After a stable graduate, rewrite the develop manifest to that stable.**
+  `versioning: prerelease` on `2.52.0-pre.3` only cuts `2.52.0-pre.4`.
+  Semver: `2.52.0-pre.N` < `2.52.0`, so beta (`max(stable, pre)`) stays on
+  stable and never shows the update-notice banner. The `record_stable_on_develop`
+  job in `release.yml` runs `scripts/sync-develop-pre-after-stable.sh` after a
+  non-`-pre` tag and records `X.Y.Z` in `.release-please-manifest.develop.json`.
+  The next conventional commit on develop then opens `X.Y.(Z+1)-pre.1` (fix)
+  or `X.(Y+1).0-pre.1` (feat). Do not hand-tag. Do not re-cut `X.Y.Z-pre.N`.
+  If the job is missing and develop is stuck, a real `fix:`/`feat:` commit
+  with footer `Release-As: X.Y.(Z+1)-pre.1` is the fallback.
 
 Both release PRs auto-merge on green for same-major bumps (`scripts/guard-major-bump.sh`
 blocks majors). Secrets live on the `release` environment: `RELEASE_PLEASE_TOKEN` (repo PAT)

@@ -23,6 +23,8 @@ const (
 	UpgradeStepCheckingLatest    UpgradeStep = "checking_latest"
 	UpgradeStepBrewUpdating      UpgradeStep = "brew_updating"
 	UpgradeStepBrewUpgrading     UpgradeStep = "brew_upgrading"
+	UpgradeStepBrewUninstalling  UpgradeStep = "brew_uninstalling"
+	UpgradeStepBrewInstalling    UpgradeStep = "brew_installing"
 	UpgradeStepDownloading       UpgradeStep = "downloading"
 	UpgradeStepVerifyingChecksum UpgradeStep = "verifying_checksum"
 	UpgradeStepInstalling        UpgradeStep = "installing"
@@ -37,6 +39,8 @@ var upgradeStepLabels = map[UpgradeStep]string{
 	UpgradeStepCheckingLatest:    "checking latest release",
 	UpgradeStepBrewUpdating:      "running brew update",
 	UpgradeStepBrewUpgrading:     "running brew upgrade",
+	UpgradeStepBrewUninstalling:  "running brew uninstall",
+	UpgradeStepBrewInstalling:    "running brew install",
 	UpgradeStepDownloading:       "downloading release archive",
 	UpgradeStepVerifyingChecksum: "verifying checksum",
 	UpgradeStepInstalling:        "installing",
