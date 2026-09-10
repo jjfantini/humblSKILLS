@@ -3,19 +3,22 @@ name: smart-orchestrate
 description: >
   Run a frontier-parent / cost-optimized-worker orchestration pattern across the
   Claude, Codex, and Cursor CLIs: plan on a strong model, isolate in a worktree,
-  dispatch bounded briefs to cheaper worker agents, and verify the whole. Use when
-  the user says "orchestrate this", "farm this out to subagents", "plan then gate
-  execution", "parent orchestrator", "multi-agent this feature", or wants planning
-  split from implementation across model tiers. Do NOT use for a single-file edit,
+  dispatch bounded briefs to cheaper worker agents, and verify the whole. Carries
+  the current frontier orchestrator/director models - Claude Fable 5.1 and GPT-6
+  Astra - with each vendor's official prompting practice for autonomy, delegation,
+  effort and verification. Use when the user says "orchestrate this", "farm this
+  out to subagents", "plan then gate execution", "parent orchestrator", "multi-agent
+  this feature", "which model should the orchestrator be", or wants planning split
+  from implementation across model tiers. Do NOT use for a single-file edit,
   for authoring commits (use smart-commit), or for the worktree/PR mechanics
   themselves (use smart-worktree-flow).
 license: MIT
 compatibility: "Requires git 2.5+ for worktree isolation and at least one agent CLI (claude, codex, or cursor-agent) to dispatch workers to. Network access for model calls."
 metadata:
   author: jjfantini
-  version: "1.2.0"
+  version: "1.3.0"
   category: development
-  tags: [orchestration, multi-agent, subagents, planning, worktree, routing, humblskill]
+  tags: [orchestration, multi-agent, subagents, planning, worktree, routing, prompting, humblskill]
   platforms: [claude-code, cursor, codex]
   preserve:
     - references/raw/
@@ -72,13 +75,15 @@ _Full spec: `references/_brain.md`._
 - Work should be farmed to subagents or to another CLI (Codex, Cursor)
 - Parallel agents need non-colliding file scopes inside an isolated worktree
 - A long-running goal or loop needs a single owner holding context across workers
+- A parent or worker needs the right `(model, effort)` pair and the vendor prompt
+  blocks that stop it stalling, over-testing, or under-delegating
 
 ## How to Use
 
 **Live enumeration of categories and concepts:**
 Read `references/_index.md` after running `bash scripts/lint.sh`.
 
-**What the parent owns and which model tier to run it on:**
+**What the parent owns, and which model and effort to run it on:**
 Read `references/wiki/orchestrate/roles/parent-orchestrator.md`.
 
 **What a worker owns, and the hard limits on worker authority:**
@@ -88,12 +93,29 @@ Read `references/wiki/orchestrate/roles/worker-agent.md`.
 Read `references/wiki/orchestrate/isolation/worktree-first.md`, then follow
 `smart-worktree-flow` to create the paired worktree and branch.
 
-**Pick a model tier for a subtask, or decide to escalate:**
-Read `references/wiki/orchestrate/routing/model-selection.md`.
+**Pick a model *and effort level* for a subtask, or decide to escalate:**
+Read `references/wiki/orchestrate/routing/model-selection.md`. Routing is a
+`(model, effort)` pair — naming the model alone leaves the dominant cost
+variable at the harness default.
 
 **Dispatch to a Cursor CLI worker — which `--model` IDs actually work:**
 Read `references/wiki/orchestrate/routing/cursor-cli-models.md`, then dispatch
 with `scripts/dispatch-cursor-worker.sh`. Never `--model auto` (measured 0/12).
+
+**Run Claude Fable 5.1 as the parent, or as a worker:**
+Read `references/wiki/orchestrate/prompting/anthropic-fable-5-1.md` — effort as
+the cost dial, the four verbatim system-prompt blocks, append-only history, and
+why the lead may keep working while subagents run.
+
+**Run GPT-6 Astra as the director, or as a worker:**
+Read `references/wiki/orchestrate/prompting/openai-gpt-6-astra.md` — it asks
+where earlier models assumed, under-delegates, over-tests, and can be stalled
+silently by an `AGENTS.md` it read and you didn't.
+
+**Write the vendor appendix for a brief:**
+Read `references/wiki/orchestrate/prompting/brief-prompting-by-vendor.md`. The
+two frontier families need *opposite* delegation nudges, so one shared appendix
+is wrong for at least one of them.
 
 **Run the end-to-end orchestration loop:**
 Read `references/wiki/orchestrate/loop/session-loop.md`.
@@ -148,6 +170,27 @@ Actions:
 Result: The gate reopens with a correct brief instead of a cheap worker guessing
 at a shared contract.
 
+### Example 3: Choosing the director model
+
+User says: "Orchestrate the migration — and which model should the orchestrator be?"
+
+Actions:
+1. Read `roles/parent-orchestrator.md` for the parent table, then
+   `routing/model-selection.md` for the `(tier, effort)` pair.
+2. Check the two vetoes before performance: is the repo proprietary under a ZDR
+   policy (rules out Fable 5.1), and is the account entitled to the model at all?
+3. Ping the concrete ID 3x before adopting it. `--list-models` and a vendor docs
+   page are both non-evidence — see `routing/cursor-cli-models.md`.
+4. Read the matching prompting concept — `prompting/anthropic-fable-5-1.md` or
+   `prompting/openai-gpt-6-astra.md` — and paste that vendor's autonomy block
+   into the parent's system prompt, unparaphrased.
+5. Route workers per subtask, and give each brief its vendor appendix from
+   `prompting/brief-prompting-by-vendor.md`.
+
+Result: A director slot chosen on measured reachability and policy, not on a
+model's launch-day reputation, and prompted for the specific default it
+under-delivers on.
+
 ## Troubleshooting
 
 **A worker returns prose instead of the handoff contract**
@@ -166,6 +209,28 @@ Cause: the brief's `Do NOT` line was dropped.
 Fix: parent alone owns commits and ship steps. Reset the worker's commits into the
 working tree and re-run `smart-commit` from the parent.
 
+**A worker stalled and its handoff doesn't say why**
+Cause: on GPT-6 Astra, an instruction file in the repo (`AGENTS.md`, a `SKILL.md`,
+`CLAUDE.md`) can pause work early, and the model won't name it unprompted.
+Fix: add the precedence block and the name-the-skill block from
+`references/wiki/orchestrate/prompting/openai-gpt-6-astra.md` to the brief, then
+re-dispatch. Audit what instruction files the worktree exposes.
+
+**A worker ended its turn describing what it would do next**
+Cause: no autonomy block in the brief. Both frontier families default to an
+interactive user who can reply "go ahead."
+Fix: paste the vendor's autonomy block verbatim — Anthropic's opens with "You are
+operating autonomously. The user is not watching in real time"; OpenAI's with
+"bias towards action and carry the user's intended task to completion." Do not
+paraphrase; both vendors note the opening sentence carries the effect.
+
+**`ActionRequiredError: Model Blocked` on dispatch**
+Cause: the ID is valid but the account isn't entitled to it — measured on all
+three tested `claude-fable-5-1-*` IDs, 0/9, 2026-09-10.
+Fix: not retryable and not a transport failure. Route to a different model, or
+have an admin enable it. See the five failure classes in
+`references/wiki/orchestrate/routing/cursor-cli-models.md`.
+
 **The parent is doing all the implementation itself**
 Cause: no gating — the plan never got split into bounded briefs.
 Fix: stop, write the phase list, and route each phase per
@@ -174,9 +239,10 @@ Fix: stop, write the phase list, and route each phase per
 ## Success Signals
 
 - Every worker ran inside a worktree, never the user's main checkout
-- Every subtask had scope, brief, model tier, done-when, and a return contract
+- Every subtask had scope, brief, **model and effort**, done-when, and a return contract
 - Every worker reply matched the handoff contract, or was rejected and re-dispatched
 - No parallel workers shared a file without a named merge owner
 - Only the parent committed, opened PRs, or merged
+- Every dispatched model ID was measured reachable, not merely listed in a doc or `--list-models`
 - Frontier tokens went to planning, integration, and verification — not mechanical edits
 - `bash scripts/lint.sh` exits 0 and `log.md` gained exactly one entry for the run
