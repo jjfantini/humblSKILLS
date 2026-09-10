@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.53.0-pre.1](https://github.com/jjfantini/humblSKILLS/compare/v2.52.1-pre.1...v2.53.0-pre.1) (2026-09-10)
+
+
+### Features
+
+* **smart-orchestrate:** add Fable 5.1 and GPT-6 Astra as orchestrator models ([861ea6e](https://github.com/jjfantini/humblSKILLS/commit/861ea6e5c294a9558e7a21a56eb6c6ce9cddb80b))
+* **smart-orchestrate:** add Fable 5.1 and GPT-6 Astra as orchestrator models ([3b86ca7](https://github.com/jjfantini/humblSKILLS/commit/3b86ca79df9e527fd3fa20b5a0c1bc3583666f54))
+
 ## [2.52.1-pre.1](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0...v2.52.1-pre.1) (2026-09-01)
 
 
