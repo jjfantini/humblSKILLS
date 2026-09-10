@@ -97,6 +97,19 @@ release:
     name: humblSKILLS
   draft: false
   prerelease: auto
+  # Makes a failed release re-runnable. The default (keep-existing) 422s with
+  # `Code:already_exists` on any asset the release already has, so a run that
+  # dies AFTER uploading archives can never be retried: the rerun aborts on the
+  # first duplicate upload, before `brews`, and the tap is never written.
+  #
+  # That is not hypothetical. On 2026-09-10 an expired HOMEBREW_TAP_TOKEN failed
+  # v2.53.0-pre.1 at the brew step with a 401 — all 7 archives were already up.
+  # After rotating the token the rerun failed again, this time on 7 duplicate
+  # asset uploads, leaving humblskills-pre.rb pinned to the previous release.
+  # Unsticking it would have meant deleting published assets by hand.
+  #
+  # `replace` deletes and re-uploads each asset instead, so a rerun converges.
+  mode: replace
   header: |
     ## humblskills {{ .Version }}
 
