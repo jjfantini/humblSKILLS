@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.53.0-pre.3](https://github.com/jjfantini/humblSKILLS/compare/v2.53.0-pre.2...v2.53.0-pre.3) (2026-09-10)
+
+
+### Features
+
+* **smart-watch:** native macOS video/audio evidence skill with brief and verify ([26a3d7e](https://github.com/jjfantini/humblSKILLS/commit/26a3d7eb08a9c6b2877be22cc332d7e224c72535))
+
+## [2.53.0-pre.2](https://github.com/jjfantini/humblSKILLS/compare/v2.53.0-pre.1...v2.53.0-pre.2) (2026-09-10)
+
+
+### Bug Fixes
+
+* **release:** make a failed goreleaser run re-runnable ([dcca5ed](https://github.com/jjfantini/humblSKILLS/commit/dcca5ed521a29a848d31d9a238c6022efff80f3d))
+* **release:** make a failed goreleaser run re-runnable ([1b800d5](https://github.com/jjfantini/humblSKILLS/commit/1b800d5abcf6dc453feddaaa05d20fbbea0222f9))
+
 ## [2.53.0-pre.1](https://github.com/jjfantini/humblSKILLS/compare/v2.52.1-pre.1...v2.53.0-pre.1) (2026-09-10)
 
 

@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-10T16:44:53Z",
+  "generated_at": "2026-09-10T18:41:20Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "7c2f8034f75fc2470a325b11ab68d933f0df11e5"
+    "sha": "df2ffecf68d89a3800dfbb9e8bd042cb17528dfa"
   },
   "skills": [
     {
@@ -736,6 +736,38 @@
       ],
       "path": "skills/smart-upload-thing",
       "dir_sha": "56f0d82196973fb3f3337ec37a9802f9032f680933e2e7e28d7a7f3f7b990ea5"
+    },
+    {
+      "name": "smart-watch",
+      "version": "0.2.0",
+      "description": "Drop a screen recording, video, or audio file and get a timestamped brief - errors on screen, UI/screen changes, pinned moments, transcript, and a contact sheet - built with native macOS tooling (ffmpeg frames, Vision OCR, on-device SpeechAnalyzer, sqlite FTS5). Then answer \"what happened at 3:12?\" from the index, and prove finished work with a frozen verification contract (file hashes, JSON values, SQL results, HTTP responses, exit codes) that returns VERIFIED/FAILED, not opinion. Use when the user says \"watch this recording\", \"index this video\", \"what happened at\", \"record my screen for N seconds\", \"transcribe this screen recording\", \"find where X appears in the video\", \"verify the work\", \"write a contract for this\", or \"prove it\". Do NOT use for producing or editing video (use create-smart-video-transition), for storing files (use smart-upload-thing), or for live browser interaction (use the Chrome tools).\n",
+      "category": "development",
+      "tags": [
+        "video",
+        "screen-recording",
+        "ocr",
+        "transcription",
+        "evidence",
+        "verification",
+        "ffmpeg",
+        "vision",
+        "speech",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "preserve": [
+        "references/raw/",
+        "references/wiki/",
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/smart-watch",
+      "dir_sha": "fe752375b87abe4d6bd2c6ca0947c5e09307259e07e86b9783100326a7d00109"
     },
     {
       "name": "smart-worktree-flow",
