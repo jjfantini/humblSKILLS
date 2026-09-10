@@ -1,0 +1,11 @@
+{
+  "$comment": "Freeze this BEFORE doing the work; run scripts/verify.sh after. Paths resolve relative to this file.",
+  "checks": [
+    { "id": "bundle-hash", "type": "file_sha256", "path": "dist/app.js", "expect": "<64 hex chars from: shasum -a 256 dist/app.js>" },
+    { "id": "readme",      "type": "file_exists", "path": "README.md" },
+    { "id": "version",     "type": "json_path",   "file": "package.json", "path": ".version", "expect": "1.2.0" },
+    { "id": "users",       "type": "sql",         "db": "app.db", "query": "select count(*) from users", "expect": "3" },
+    { "id": "health",      "type": "http",        "url": "http://localhost:3000/health", "expect_status": 200, "expect_body_contains": "ok" },
+    { "id": "tests",       "type": "command",     "run": "npm test --silent", "expect_exit": 0, "expect_stdout_contains": "passing" }
+  ]
+}
