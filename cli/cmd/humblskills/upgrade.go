@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/jjfantini/humblSKILLS/cli/v2/internal/profile"
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/selfupdate"
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/tui"
 )
@@ -36,8 +37,10 @@ var applyPhaseSteps = map[selfupdate.Phase]tui.UpgradeStep{
 	selfupdate.PhaseDownloading:   tui.UpgradeStepDownloading,
 	selfupdate.PhaseVerifyingSum:  tui.UpgradeStepVerifyingChecksum,
 	selfupdate.PhaseInstalling:    tui.UpgradeStepInstalling,
-	selfupdate.PhaseBrewUpdating:  tui.UpgradeStepBrewUpdating,
-	selfupdate.PhaseBrewUpgrading: tui.UpgradeStepBrewUpgrading,
+	selfupdate.PhaseBrewUpdating:     tui.UpgradeStepBrewUpdating,
+	selfupdate.PhaseBrewUpgrading:    tui.UpgradeStepBrewUpgrading,
+	selfupdate.PhaseBrewUninstalling: tui.UpgradeStepBrewUninstalling,
+	selfupdate.PhaseBrewInstalling:   tui.UpgradeStepBrewInstalling,
 }
 
 type upgradeFlags struct {
@@ -56,6 +59,9 @@ type upgradeResult struct {
 	Applied          bool   `json:"applied"`
 	Skipped          bool   `json:"skipped,omitempty"`
 	InstalledVersion string `json:"installedVersion,omitempty"`
+	Channel          string `json:"channel"`
+	Formula          string `json:"formula,omitempty"`
+	BrewHint         string `json:"brewHint,omitempty"`
 }
 
 func newUpgradeCmd(app *App) *cobra.Command {
@@ -65,10 +71,16 @@ func newUpgradeCmd(app *App) *cobra.Command {
 		Short: "Upgrade the humblskills CLI itself to the latest release",
 		Long: "upgrade checks GitHub releases for a newer humblskills CLI build, " +
 			"downloads it, verifies its checksum, and swaps it onto the running " +
-			"binary's path. Installs managed by Homebrew are upgraded via " +
-			"`brew upgrade humblskills` instead, so Homebrew's own bookkeeping " +
-			"stays correct. --dry-run reports the version you'd upgrade to " +
-			"without changing anything.\n\n" +
+			"binary's path. Installs managed by Homebrew are upgraded via brew " +
+			"instead, so Homebrew's own bookkeeping stays correct. The profile " +
+			"channel (stable by default) picks the GitHub release: stable → " +
+			"/releases/latest only; beta → the higher semver of latest stable " +
+			"vs latest prerelease. The brew formula follows that winner — " +
+			"`brew upgrade humblskills` / `humblskills-pre`, or " +
+			"`brew uninstall humblskills-pre && brew install humblskills` " +
+			"when beta's winner is a graduated stable. --channel overrides " +
+			"the profile for this run only. --dry-run reports the version " +
+			"you'd upgrade to without changing anything.\n\n" +
 			"This upgrades the CLI binary itself. To upgrade installed skills, " +
 			"use `humblskills update`.",
 		Args: cobra.NoArgs,
@@ -87,12 +99,17 @@ func runUpgrade(app *App, f upgradeFlags) error {
 		return fmt.Errorf("resolve own executable path: %w", err)
 	}
 
+	channel, err := resolveUpgradeChannel(app)
+	if err != nil {
+		return err
+	}
+
 	client := selfupdate.NewHTTPClient()
 	th := app.UI.Theme()
 
 	var plan *selfupdate.Plan
 	resolveErr := tui.RunWithSpinner(th, "checking latest release…", func() error {
-		p, err := selfupdate.ResolvePlan(client, selfupdate.DefaultRepo, current, exePath, nil)
+		p, err := selfupdate.ResolvePlanForChannel(client, selfupdate.DefaultRepo, current, exePath, channel, nil)
 		plan = p
 		return err
 	})
@@ -106,6 +123,9 @@ func runUpgrade(app *App, f upgradeFlags) error {
 		UpgradeAvailable: plan.UpgradeAvailable,
 		Homebrew:         plan.Homebrew,
 		DryRun:           f.dryRun,
+		Channel:          plan.Channel,
+		Formula:          plan.Formula,
+		BrewHint:         plan.BrewHint,
 	}
 
 	if !plan.UpgradeAvailable || f.dryRun {
@@ -128,6 +148,7 @@ func runUpgrade(app *App, f upgradeFlags) error {
 
 	res.Applied = true
 	res.InstalledVersion = installed
+	selfupdate.InvalidateNoticeCache(app.Config.CacheDir)
 	return finishUpgrade(app, res)
 }
 
@@ -147,7 +168,7 @@ func finishUpgrade(app *App, res upgradeResult) error {
 	case !res.UpgradeAvailable:
 		app.UI.Success("humblskills is already up to date (%s)", versionTag(res.CurrentVersion))
 	case res.DryRun && res.Homebrew:
-		app.UI.Info("%s → %s available — Homebrew-managed install detected; would run `brew upgrade humblskills`", versionTag(res.CurrentVersion), versionTag(res.LatestVersion))
+		app.UI.Info("%s → %s available — Homebrew-managed install detected; would run `%s`", versionTag(res.CurrentVersion), versionTag(res.LatestVersion), brewHint(res))
 	case res.DryRun:
 		app.UI.Info("%s → %s available — run without --dry-run to upgrade", versionTag(res.CurrentVersion), versionTag(res.LatestVersion))
 	}
@@ -167,10 +188,45 @@ func versionTag(v string) string {
 // applyHomebrewUpgrade defers to `brew upgrade humblskills` instead of
 // self-downloading/swapping, so Homebrew's own Cellar bookkeeping stays
 // correct. Returns the verified installed version on success.
-func applyHomebrewUpgrade(app *App, plan *selfupdate.Plan, exePath string) (string, error) {
-	app.UI.Info("Homebrew-managed install detected — upgrading via `brew upgrade humblskills`")
+func brewFormula(res upgradeResult) string {
+	if res.Formula != "" {
+		return res.Formula
+	}
+	return selfupdate.FormulaForVersion(res.LatestVersion)
+}
 
-	ok, err := app.Prompt.Confirm("Run brew upgrade humblskills now?", true)
+func brewHint(res upgradeResult) string {
+	if res.BrewHint != "" {
+		return res.BrewHint
+	}
+	return selfupdate.RecommendedUpgradeCommand(res.Homebrew, "", brewFormula(res))
+}
+
+func resolveUpgradeChannel(app *App) (string, error) {
+	if app.Config.Channel != "" {
+		return app.Config.Channel, nil
+	}
+	p, err := profile.Load(app.Config.ProfilePath)
+	if err != nil {
+		return "", fmt.Errorf("load profile: %w", err)
+	}
+	return p.ResolvedChannel(), nil
+}
+
+func applyHomebrewUpgrade(app *App, plan *selfupdate.Plan, exePath string) (string, error) {
+	formula := plan.Formula
+	if formula == "" {
+		formula = selfupdate.FormulaForVersion(plan.LatestVersion)
+	}
+	action := selfupdate.PlanBrewAction(plan.CurrentFormula, formula)
+	hint := action.Hint()
+	if plan.SwitchFormula {
+		app.UI.Info("Homebrew-managed install detected — switching %s → %s via `%s`", plan.CurrentFormula, formula, hint)
+	} else {
+		app.UI.Info("Homebrew-managed install detected — upgrading via `%s`", hint)
+	}
+
+	ok, err := app.Prompt.Confirm(fmt.Sprintf("Run `%s` now?", hint), true)
 	if err != nil {
 		return "", err
 	}
@@ -179,6 +235,9 @@ func applyHomebrewUpgrade(app *App, plan *selfupdate.Plan, exePath string) (stri
 	}
 
 	steps := []tui.UpgradeStep{tui.UpgradeStepBrewUpdating, tui.UpgradeStepBrewUpgrading, tui.UpgradeStepVerifyingInstall}
+	if action.NeedsSwitch() {
+		steps = []tui.UpgradeStep{tui.UpgradeStepBrewUpdating, tui.UpgradeStepBrewUninstalling, tui.UpgradeStepBrewInstalling, tui.UpgradeStepVerifyingInstall}
+	}
 	useTUI := tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes)
 
 	var installed string
@@ -193,15 +252,21 @@ func applyHomebrewUpgrade(app *App, plan *selfupdate.Plan, exePath string) (stri
 				sink(tui.UpgradeEvent{Step: step})
 			}
 		}
-		if err := selfupdate.Upgrade(context.Background(), brewRunner, stdout, stderr, brewSink); err != nil {
+		if err := selfupdate.ApplyBrew(context.Background(), brewRunner, stdout, stderr, brewSink, action); err != nil {
 			if errors.Is(err, selfupdate.ErrBrewNotFound) {
-				return fmt.Errorf("brew not found on PATH — run `brew update && brew upgrade humblskills` yourself: %w", err)
+				return fmt.Errorf("brew not found on PATH — run `%s` yourself: %w", hint, err)
 			}
-			return fmt.Errorf("brew upgrade humblskills: %w", err)
+			return fmt.Errorf("%s: %w", hint, err)
 		}
 
 		sink(tui.UpgradeEvent{Step: tui.UpgradeStepVerifyingInstall})
-		v, err := selfupdate.VerifyInstalledVersion(exePath)
+		verifyPath := exePath
+		if action.NeedsSwitch() {
+			if linked := selfupdate.HomebrewLinkedBinary(exePath); linked != "" {
+				verifyPath = linked
+			}
+		}
+		v, err := selfupdate.VerifyInstalledVersion(verifyPath)
 		if err != nil {
 			return fmt.Errorf("verify installed version: %w", err)
 		}

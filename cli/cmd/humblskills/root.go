@@ -57,6 +57,10 @@ type Config struct {
 	Quiet         bool
 	Yes           bool
 	Fullscreen    bool
+	// Channel is the --channel override (stable|beta). Empty means use
+	// the profile field (itself stable when unset) — the same resolution
+	// `upgrade` already uses.
+	Channel string
 }
 
 type globalFlags struct {
@@ -71,6 +75,7 @@ type globalFlags struct {
 	quiet      bool
 	yes        bool
 	fullscreen bool
+	channel    string
 }
 
 func newRootCmd() *cobra.Command {
@@ -107,6 +112,8 @@ func newRootCmd() *cobra.Command {
 	f.BoolVarP(&g.quiet, "quiet", "q", false, "suppress non-error output")
 	f.BoolVarP(&g.yes, "yes", "y", false, "skip confirmation prompts (auto-accept)")
 	f.BoolVar(&g.fullscreen, "fullscreen", false, "open the interactive dashboard in full-screen TUI mode")
+	f.StringVar(&g.channel, "channel", "", "release channel for this run: stable|beta (default: profile channel, itself stable unless set)")
+	_ = cmd.RegisterFlagCompletionFunc("channel", cobra.FixedCompletions([]string{profile.ChannelStable, profile.ChannelBeta}, cobra.ShellCompDirectiveNoFileComp))
 
 	cmd.AddCommand(
 		newStartCmd(app),
@@ -134,6 +141,9 @@ func newRootCmd() *cobra.Command {
 func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 	if g.quiet && g.verbose {
 		return fmt.Errorf("--quiet and --verbose are mutually exclusive")
+	}
+	if g.channel != "" && g.channel != profile.ChannelStable && g.channel != profile.ChannelBeta {
+		return fmt.Errorf("invalid --channel %q — valid: stable, beta", g.channel)
 	}
 
 	level := ui.LevelNormal
@@ -186,6 +196,7 @@ func configureApp(_ *cobra.Command, app *App, g globalFlags) error {
 		Quiet:         g.quiet,
 		Yes:           g.yes,
 		Fullscreen:    g.fullscreen,
+		Channel:       g.channel,
 	}
 
 	cacheDir, err := resolveCacheDir(textutil.FirstNonEmpty(g.cacheDir, os.Getenv("HUMBLSKILLS_CACHE_DIR")))

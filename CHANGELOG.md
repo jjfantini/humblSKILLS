@@ -1,5 +1,81 @@
 # Changelog
 
+## [2.52.1-pre.1](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0...v2.52.1-pre.1) (2026-09-01)
+
+
+### Features
+
+* **cli:** channel-aware newer-version notice in CLI and TUI ([a108d52](https://github.com/jjfantini/humblSKILLS/commit/a108d52292207d142ce86e759c4939e3e030cba2))
+* **upgrade:** beta channel picks the newer of stable and prerelease ([cd65484](https://github.com/jjfantini/humblSKILLS/commit/cd65484950e199d3303b5075dd1a1cca14522f03))
+
+
+### Bug Fixes
+
+* **release:** next develop pre is 2.52.1-pre.1 after stable 2.52.0 ([ebca4a6](https://github.com/jjfantini/humblSKILLS/commit/ebca4a69ac907d803e883abde83ec521759e1788))
+* **release:** start develop pre line at 2.52.1-pre.1 after 2.52.0 ([fda949f](https://github.com/jjfantini/humblSKILLS/commit/fda949fcdad3efc0fa651ed15c1be52a43dc7869))
+* **upgrade:** beta channel picks highest semver, not latest pre ([733d0f6](https://github.com/jjfantini/humblSKILLS/commit/733d0f6882404e11ba27207a26cb9ab0ee4703a9))
+
+## [2.52.0-pre.3](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0-pre.2...v2.52.0-pre.3) (2026-09-01)
+
+
+### Features
+
+* **cli:** channel-aware newer-version notice in CLI and TUI ([a108d52](https://github.com/jjfantini/humblSKILLS/commit/a108d52292207d142ce86e759c4939e3e030cba2))
+
+## [2.52.0-pre.2](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0-pre.1...v2.52.0-pre.2) (2026-09-01)
+
+
+### Features
+
+* **upgrade:** beta channel picks the newer of stable and prerelease ([cd65484](https://github.com/jjfantini/humblSKILLS/commit/cd65484950e199d3303b5075dd1a1cca14522f03))
+
+
+### Bug Fixes
+
+* **upgrade:** beta channel picks highest semver, not latest pre ([733d0f6](https://github.com/jjfantini/humblSKILLS/commit/733d0f6882404e11ba27207a26cb9ab0ee4703a9))
+
+## [2.52.0](https://github.com/jjfantini/humblSKILLS/compare/v2.51.0...v2.52.0) (2026-09-01)
+
+
+### Features
+
+* **release:** cut pre-releases from develop and stables from main ([c8eeaf1](https://github.com/jjfantini/humblSKILLS/commit/c8eeaf1976ea4d3d9f0155f32e6412346c2f8699))
+* **release:** develop pre-releases, stable brew, and first-class beta channel ([89c9f6d](https://github.com/jjfantini/humblSKILLS/commit/89c9f6deecc2b13e910d15ccbe708e892fcd4c77))
+* **release:** publish humblskills-pre formula on pre tags only ([e31b8e2](https://github.com/jjfantini/humblSKILLS/commit/e31b8e22703d7fee417aa187f21415336422b406))
+* **upgrade:** first-class profile channel in CLI and TUI ([1c2d3cc](https://github.com/jjfantini/humblSKILLS/commit/1c2d3ccf6188770d2d86f19aa533e06c2fd0290d))
+
+
+### Bug Fixes
+
+* **release:** split manifests so main can graduate pre to stable ([8338d1b](https://github.com/jjfantini/humblSKILLS/commit/8338d1b5d9244fdab0952755f37d1399eb880de9))
+* **release:** track last stable and last pre in separate manifests ([27737de](https://github.com/jjfantini/humblSKILLS/commit/27737dec05f7a0e1ad0b1499837ae978ff047399))
+
+## [2.52.0-pre.1](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0-pre...v2.52.0-pre.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **release:** split manifests so main can graduate pre to stable ([8338d1b](https://github.com/jjfantini/humblSKILLS/commit/8338d1b5d9244fdab0952755f37d1399eb880de9))
+* **release:** track last stable and last pre in separate manifests ([27737de](https://github.com/jjfantini/humblSKILLS/commit/27737dec05f7a0e1ad0b1499837ae978ff047399))
+
+## [2.52.0-pre](https://github.com/jjfantini/humblSKILLS/compare/v2.51.0...v2.52.0-pre) (2026-09-01)
+
+
+### Features
+
+* **release:** cut pre-releases from develop and stables from main ([c8eeaf1](https://github.com/jjfantini/humblSKILLS/commit/c8eeaf1976ea4d3d9f0155f32e6412346c2f8699))
+* **release:** develop pre-releases, stable brew, and first-class beta channel ([89c9f6d](https://github.com/jjfantini/humblSKILLS/commit/89c9f6deecc2b13e910d15ccbe708e892fcd4c77))
+* **release:** publish humblskills-pre formula on pre tags only ([e31b8e2](https://github.com/jjfantini/humblSKILLS/commit/e31b8e22703d7fee417aa187f21415336422b406))
+* **upgrade:** first-class profile channel in CLI and TUI ([1c2d3cc](https://github.com/jjfantini/humblSKILLS/commit/1c2d3ccf6188770d2d86f19aa533e06c2fd0290d))
+
+## [2.51.0](https://github.com/jjfantini/humblSKILLS/compare/v2.50.0...v2.51.0) (2026-08-20)
+
+
+### Features
+
+* **smart-orchestrate:** make skill model-invocable ([5c7814e](https://github.com/jjfantini/humblSKILLS/commit/5c7814e50f7f1313bf887dcac0077079efa4778e))
+* **smart-skill:** validate decisions.md/patterns.md entry schema in lint.sh ([514502e](https://github.com/jjfantini/humblSKILLS/commit/514502e89cee4a4d04467e784187acbcd0f392c9))
+
 ## [2.50.0](https://github.com/jjfantini/humblSKILLS/compare/v2.49.0...v2.50.0) (2026-08-13)
 
 

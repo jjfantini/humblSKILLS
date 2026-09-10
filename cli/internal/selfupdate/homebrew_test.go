@@ -55,7 +55,7 @@ func TestUpgrade_RunsBrewUpdateBeforeUpgrade(t *testing.T) {
 	runner := stubBrewRunner(t, &invocations, true)
 
 	var stdout, stderr bytes.Buffer
-	if err := Upgrade(context.Background(), runner, &stdout, &stderr, nil); err != nil {
+	if err := Upgrade(context.Background(), runner, &stdout, &stderr, nil, ""); err != nil {
 		t.Fatalf("Upgrade: %v", err)
 	}
 
@@ -90,7 +90,7 @@ func TestUpgrade_BrewUpdateFailureDoesNotBlockUpgrade(t *testing.T) {
 	}
 
 	var stdout, stderr bytes.Buffer
-	if err := Upgrade(context.Background(), runner, &stdout, &stderr, nil); err != nil {
+	if err := Upgrade(context.Background(), runner, &stdout, &stderr, nil, ""); err != nil {
 		t.Fatalf("Upgrade should not fail when only brew update fails: %v", err)
 	}
 	if len(invocations) != 2 {
@@ -108,7 +108,7 @@ func TestUpgrade_EmitsBrewUpdatingThenBrewUpgradingPhases(t *testing.T) {
 	var phases []Phase
 	sink := EventSink(func(ev Event) { phases = append(phases, ev.Phase) })
 
-	if err := Upgrade(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, sink); err != nil {
+	if err := Upgrade(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, sink, ""); err != nil {
 		t.Fatalf("Upgrade: %v", err)
 	}
 	if len(phases) != 2 || phases[0] != PhaseBrewUpdating || phases[1] != PhaseBrewUpgrading {
@@ -125,9 +125,120 @@ func TestUpgrade_BrewNotFound(t *testing.T) {
 		return exec.CommandContext(ctx, "definitely-not-a-real-binary-xyz")
 	}
 
-	err := Upgrade(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, nil)
+	err := Upgrade(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, nil, "")
 	if !errors.Is(err, ErrBrewNotFound) {
 		t.Errorf("expected ErrBrewNotFound, got %v", err)
+	}
+}
+
+func TestFormulaForChannel(t *testing.T) {
+	cases := []struct {
+		in, want string
+	}{
+		{"", FormulaStable},
+		{"stable", FormulaStable},
+		{"nightly", FormulaStable},
+		{"beta", FormulaPre},
+	}
+	for _, c := range cases {
+		if got := FormulaForChannel(c.in); got != c.want {
+			t.Errorf("FormulaForChannel(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
+func TestFormulaForVersion(t *testing.T) {
+	cases := []struct {
+		in, want string
+	}{
+		{"2.52.0", FormulaStable},
+		{"v2.52.0", FormulaStable},
+		{"2.52.0-pre.1", FormulaPre},
+		{"v2.52.0-pre", FormulaPre},
+		{"2.53.0-pre.1", FormulaPre},
+	}
+	for _, c := range cases {
+		if got := FormulaForVersion(c.in); got != c.want {
+			t.Errorf("FormulaForVersion(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
+func TestFormulaForRelease(t *testing.T) {
+	if got := FormulaForRelease(&Release{TagName: "v2.52.0"}); got != FormulaStable {
+		t.Errorf("stable release formula = %q", got)
+	}
+	if got := FormulaForRelease(&Release{TagName: "v2.52.0-pre.1", Prerelease: true}); got != FormulaPre {
+		t.Errorf("pre release formula = %q", got)
+	}
+	if got := FormulaForRelease(nil); got != FormulaStable {
+		t.Errorf("nil release formula = %q", got)
+	}
+}
+
+func TestInstalledFormula(t *testing.T) {
+	cases := []struct {
+		path, want string
+	}{
+		{"/opt/homebrew/Cellar/humblskills-pre/2.52.0-pre/bin/humblskills", FormulaPre},
+		{"/opt/homebrew/Cellar/humblskills/2.52.0/bin/humblskills", FormulaStable},
+		{"/usr/local/bin/humblskills", ""},
+	}
+	for _, c := range cases {
+		if got := InstalledFormula(c.path); got != c.want {
+			t.Errorf("InstalledFormula(%q) = %q, want %q", c.path, got, c.want)
+		}
+	}
+}
+
+func TestRecommendedUpgradeCommand(t *testing.T) {
+	if got := RecommendedUpgradeCommand(false, "", FormulaStable); got != "humblskills upgrade" {
+		t.Errorf("github = %q", got)
+	}
+	if got := RecommendedUpgradeCommand(true, FormulaPre, FormulaPre); got != "brew upgrade humblskills-pre" {
+		t.Errorf("same pre formula = %q", got)
+	}
+	if got := RecommendedUpgradeCommand(true, FormulaPre, FormulaStable); got != "brew uninstall humblskills-pre && brew install humblskills" {
+		t.Errorf("pre → stable = %q", got)
+	}
+	if got := RecommendedUpgradeCommand(true, FormulaStable, FormulaPre); got != "brew uninstall humblskills && brew install humblskills-pre" {
+		t.Errorf("stable → pre = %q", got)
+	}
+}
+
+func TestApplyBrew_SwitchesFormula(t *testing.T) {
+	var invocations [][]string
+	runner := stubBrewRunner(t, &invocations, true)
+	action := PlanBrewAction(FormulaPre, FormulaStable)
+	if err := ApplyBrew(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, nil, action); err != nil {
+		t.Fatalf("ApplyBrew: %v", err)
+	}
+	if len(invocations) != 3 {
+		t.Fatalf("invocations = %v, want 3 (update, uninstall, install)", invocations)
+	}
+	if len(invocations[0]) != 1 || invocations[0][0] != "update" {
+		t.Errorf("first = %v, want [update]", invocations[0])
+	}
+	if len(invocations[1]) != 2 || invocations[1][0] != "uninstall" || invocations[1][1] != FormulaPre {
+		t.Errorf("second = %v, want [uninstall %s]", invocations[1], FormulaPre)
+	}
+	if len(invocations[2]) != 2 || invocations[2][0] != "install" || invocations[2][1] != FormulaStable {
+		t.Errorf("third = %v, want [install %s]", invocations[2], FormulaStable)
+	}
+}
+
+func TestUpgrade_UsesGivenFormula(t *testing.T) {
+	var invocations [][]string
+	runner := stubBrewRunner(t, &invocations, true)
+
+	if err := Upgrade(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, nil, FormulaPre); err != nil {
+		t.Fatalf("Upgrade: %v", err)
+	}
+	if len(invocations) != 2 {
+		t.Fatalf("invocations = %v, want 2 calls", invocations)
+	}
+	if len(invocations[1]) != 2 || invocations[1][0] != "upgrade" || invocations[1][1] != FormulaPre {
+		t.Errorf("second call = %v, want [upgrade %s]", invocations[1], FormulaPre)
 	}
 }
 
@@ -141,7 +252,7 @@ func TestUpgrade_NonZeroExit(t *testing.T) {
 
 	// Both brew update and brew upgrade fail here, so the overall call must
 	// still surface the (second, fatal) failure.
-	err := Upgrade(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, nil)
+	err := Upgrade(context.Background(), runner, &bytes.Buffer{}, &bytes.Buffer{}, nil, "")
 	if err == nil {
 		t.Fatal("expected error for non-zero brew exit code")
 	}

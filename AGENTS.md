@@ -43,10 +43,45 @@ so **no backend/database/network services are required** to build, test, or run 
   `~/.venvs/humblskills-docs/bin/mkdocs build --strict` (config: `mkdocs.yml`). `mkdocs serve` for preview.
   Note `mkdocs build` drops a `docs/__pycache__/` (not gitignored) — remove it after building.
 
+### Release path (develop pre-release → main stable + brew)
+`.github/workflows/release.yml` is the only release entry point:
+
+- Push/merge to **`develop`** → release-please (`release-please-config.develop.json` +
+  `.release-please-manifest.develop.json`) cuts a GitHub **pre-release** tagged
+  `vX.Y.Z-pre.N`. GoReleaser publishes archives and the `humblskills-pre` formula.
+  The stable `humblskills` formula is not touched (`skip_upload: auto`).
+- Merge **`develop` → `main`** (merge commit, never squash) is the promote, not
+  the tag. release-please on main (`release-please-config.json` +
+  `.release-please-manifest.json`, last **stable** only) then opens the stable
+  PR. Merging that PR tags `vX.Y.Z` and GoReleaser updates
+  `jjfantini/homebrew-humbl` `Formula/humblskills.rb` so `brew upgrade humblskills`
+  gets that version. The pre formula is not rewritten on a stable tag.
+  Do not put a `-pre` version in the main manifest: release-please will treat
+  `vX.Y.Z-pre` as the last release and skip (run 33548192550: last-saw
+  `v2.52.0-pre` at `375eb41`; the #270 merge subject is not conventional).
+
+  **After a stable graduate, rewrite the develop manifest to that stable.**
+  `versioning: prerelease` on `2.52.0-pre.3` only cuts `2.52.0-pre.4`.
+  Semver: `2.52.0-pre.N` < `2.52.0`, so beta (`max(stable, pre)`) stays on
+  stable and never shows the update-notice banner. The `record_stable_on_develop`
+  job in `release.yml` runs `scripts/sync-develop-pre-after-stable.sh` after a
+  non-`-pre` tag and records `X.Y.Z` in `.release-please-manifest.develop.json`.
+  The next conventional commit on develop then opens `X.Y.(Z+1)-pre.1` (fix)
+  or `X.(Y+1).0-pre.1` (feat). Do not hand-tag. Do not re-cut `X.Y.Z-pre.N`.
+  If the job is missing and develop is stuck, a real `fix:`/`feat:` commit
+  with footer `Release-As: X.Y.(Z+1)-pre.1` is the fallback.
+
+Both release PRs auto-merge on green for same-major bumps (`scripts/guard-major-bump.sh`
+blocks majors). Secrets live on the `release` environment: `RELEASE_PLEASE_TOKEN` (repo PAT)
+and `HOMEBREW_TAP_TOKEN` (write to the tap). Do not add extra patch workflows around this
+path; if a release fails, fix the two configs or the one workflow.
+
 ### Commit messages MUST be Conventional Commits (non-negotiable)
-`release-please-config.json` sets `release-type: "go"`, which cuts releases **only** from commits that
-follow [Conventional Commits](https://www.conventionalcommits.org) syntax on `main`. A commit that doesn't
-match is silently invisible to release-please — no changelog entry, no version bump, no release, and
+`release-please-config.json` / `release-please-config.develop.json` set `release-type: "go"`,
+which cut releases **only** from commits that follow
+[Conventional Commits](https://www.conventionalcommits.org) syntax on the branch that
+releases (`develop` for pre, `main` for stable). A commit that doesn't match is silently
+invisible to release-please — no changelog entry, no version bump, no release, and
 `humblskills upgrade` never sees the change. This already happened once (commits like `profile:`,
 `adapters:`, `install:`, `tui:` merged to `main` with zero release effect) and had to be fixed forward with
 an extra empty `feat:` commit — don't repeat it.
@@ -77,7 +112,7 @@ when you need to refer to it in prose.
 ### Merge PRs with `--merge`. Never `--squash`, never `--rebase`.
 Two independent things break on a squash, both silently:
 
-1. **release-please reads the individual commit messages on `main`.** A squash collapses the whole PR into
+1. **release-please reads the individual commit messages on `develop` and `main`.** A squash collapses the whole PR into
    its title, so a branch carrying `fix:` plus two `feat:` commits ships as a patch and loses both feature
    changelog entries. A merge commit preserved all four and correctly produced the 2.43.0 minor bump.
 2. **`registry.json` pins `source.sha` to the commit where skill content last changed, and `install`

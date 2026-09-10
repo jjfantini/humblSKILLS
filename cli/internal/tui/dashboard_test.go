@@ -267,6 +267,119 @@ func TestVersionScreenModel_View_EmptyBeforeSize(t *testing.T) {
 	}
 }
 
+func TestRenderVersionNotice_GitHubAndHomebrew(t *testing.T) {
+	th := ui.DefaultTheme()
+	got := renderVersionNotice(th, VersionNotice{
+		Current: "v2.15.0",
+		Latest:  "v2.17.0",
+		Channel: "stable",
+		Command: "humblskills upgrade",
+	}, 80)
+	for _, want := range []string{
+		VersionNoticeHeadline,
+		"v2.15.0",
+		"v2.17.0",
+		"stable",
+		"humblskills upgrade",
+		"press U",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("banner missing %q:\n%s", want, got)
+		}
+	}
+
+	brew := renderVersionNotice(th, VersionNotice{
+		Current: "v2.51.0",
+		Latest:  "v2.52.0-pre.1",
+		Channel: "beta",
+		Command: "brew upgrade humblskills-pre",
+	}, 80)
+	if !strings.Contains(brew, "brew upgrade humblskills-pre") {
+		t.Errorf("brew banner missing formula:\n%s", brew)
+	}
+	if strings.Contains(brew, "press U") {
+		t.Error("Homebrew banner should not tell users to press U")
+	}
+
+	switchBanner := renderVersionNotice(th, VersionNotice{
+		Current: "v2.52.0-pre.1",
+		Latest:  "v2.52.0",
+		Channel: "beta",
+		Command: "brew uninstall humblskills-pre && brew install humblskills",
+	}, 140)
+	if !strings.Contains(switchBanner, "brew uninstall humblskills-pre") || !strings.Contains(switchBanner, "brew install humblskills") {
+		t.Errorf("switch banner missing brew commands:\n%s", switchBanner)
+	}
+}
+
+func TestDashboardModel_View_ShowsNoticeBanner(t *testing.T) {
+	m := dashboardModel{
+		cfg: DashboardConfig{
+			Theme:   ui.DefaultTheme(),
+			Version: "2.15.0",
+			Tiles:   DefaultDashboardTiles(),
+		},
+		notice: &VersionNotice{
+			Current: "v2.15.0",
+			Latest:  "v2.17.0",
+			Channel: "stable",
+			Command: "humblskills upgrade",
+		},
+		width:  100,
+		height: 30,
+	}
+	m.rebuildVisible()
+	m = m.resizeViewport()
+	view := m.View()
+	if !strings.Contains(view, VersionNoticeHeadline) {
+		t.Errorf("dashboard missing banner headline:\n%s", view)
+	}
+	if !strings.Contains(view, "humblskills upgrade") {
+		t.Errorf("dashboard missing update command:\n%s", view)
+	}
+}
+
+func TestDashboardModel_View_QuietWithoutNotice(t *testing.T) {
+	m := dashboardModel{
+		cfg:    DashboardConfig{Theme: ui.DefaultTheme(), Tiles: DefaultDashboardTiles()},
+		width:  100,
+		height: 30,
+	}
+	m.rebuildVisible()
+	m = m.resizeViewport()
+	if strings.Contains(m.View(), VersionNoticeHeadline) {
+		t.Error("current dashboard should not show a version banner")
+	}
+}
+
+func TestDashboardModel_Init_CheckNoticeOnce(t *testing.T) {
+	var calls int
+	m := dashboardModel{
+		cfg: DashboardConfig{
+			Theme: ui.DefaultTheme(),
+			Tiles: DefaultDashboardTiles(),
+			CheckNotice: func() *VersionNotice {
+				calls++
+				return &VersionNotice{Current: "v1", Latest: "v2", Channel: "stable", Command: "humblskills upgrade"}
+			},
+		},
+	}
+	cmd := m.Init()
+	if cmd == nil {
+		t.Fatal("Init should return a check cmd")
+	}
+	msg := cmd()
+	out, _ := m.Update(msg)
+	dm := out.(dashboardModel)
+	if dm.notice == nil || dm.notice.Latest != "v2" {
+		t.Fatalf("notice not applied: %+v", dm.notice)
+	}
+	out, _ = dm.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	if calls != 1 {
+		t.Errorf("CheckNotice calls = %d, want 1", calls)
+	}
+}
+
 func TestPadRight(t *testing.T) {
 	if padRight("abc", 6) != "abc   " {
 		t.Errorf("got %q", padRight("abc", 6))

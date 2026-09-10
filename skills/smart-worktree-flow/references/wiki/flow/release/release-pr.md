@@ -3,27 +3,89 @@ title: "Handle Generated Release PRs"
 context: flow
 category: release
 concept: release-pr
-description: "Decide whether the agent or user owns the release PR before the main merge"
-tags: release, release-please, version, brew
+description: "Develop cuts a pre-release; main opens a stable PR from the last stable, not the -pre tag"
+tags: release, release-please, version, brew, prerelease
 sources:
   - "references/raw/user-request.md"
-last_ingested: 2026-06-12
+last_ingested: 2026-09-01
 ---
 
-## Release PR
+## Two release PRs
 
-Some repos generate a release PR after `main` or `master` receives a
-conventional commit. The release PR usually updates changelog and version files;
-merging it cuts the tag and starts artifact publication.
+humblSKILLS release-please runs on both integration branches. Each opens its
+own release PR (changelog + that branch's manifest). Merging the PR is what
+creates the tag and starts GoReleaser. Merging `develop` into `main` is **not**
+the tag: it is the commit that lets main's release-please open the stable PR.
 
-Ask up front whether the user wants the agent to merge this PR on green checks.
-If they choose manual release review, stop after the release PR is ready and
+| Base | Manifest | Tag | GitHub Release | Homebrew tap |
+|---|---|---|---|---|
+| `develop` | `.release-please-manifest.develop.json` | `vX.Y.Z-pre.N` | pre-release | `humblskills-pre` only |
+| `main` | `.release-please-manifest.json` | `vX.Y.Z` | latest / stable | `humblskills` (stable formula) |
+
+The manifests are split because release-please matches GitHub releases to the
+version in the manifest, then considers only commits **after that tag**. If
+main records `2.52.0-pre`, it treats `v2.52.0-pre` as already released and
+skips with "No user facing commits found" — even though the feat commits that
+produced the pre are on `main`. The develop→main merge subject is not a
+conventional commit, so it does not count either. Toggling `prerelease:
+false` does not bypass that empty-changelog gate.
+
+So: **do not write a `-pre` version into `.release-please-manifest.json`.**
+That file is last **stable** only. After a pre is cut, promote by merging
+`develop` → `main` (merge commit). Then wait for the **stable** release PR
+and merge it. A tag does not appear from the promote merge alone.
+
+## After a stable graduate, start a new develop pre line
+
+`versioning: prerelease` on an already-prerelease last version only bumps
+the suffix: `2.52.0-pre.3` → `2.52.0-pre.4`. Semver treats a prerelease as
+older than the matching stable (`2.52.0-pre.3` < `2.52.0`), so beta
+(`max(stable, pre)`) stays on `v2.52.0` and the update-notice banner never
+appears. Do **not** re-cut `v2.52.0-pre.N`. Do **not** hand-tag.
+
+After `vX.Y.Z` is tagged on main, `.release-please-manifest.develop.json`
+must record `X.Y.Z` (no `-pre`). The next conventional commit then opens
+`vX.Y.(Z+1)-pre.1` (fix / this repo's default after a graduate) or
+`vX.(Y+1).0-pre.1` (feat). `record_stable_on_develop` in `release.yml`
+runs `scripts/sync-develop-pre-after-stable.sh` so this is the default,
+not a one-off `Release-As`. If that job has not run and develop is stuck
+on the graduated line, a real `fix:`/`feat:` commit with footer
+`Release-As: X.Y.(Z+1)-pre.1` is the fallback.
+
+The GitHub release for that next tag must be `prerelease: true`. GoReleaser
+updates `humblskills-pre` only.
+
+## Unstick `v2.52.0` (brew still on 2.51.0)
+
+Do **not** re-run `release.yml` on current `main`. That checkout still
+records `2.52.0-pre`, so it will find `v2.52.0-pre` at `375eb41` and skip
+again. `workflow_dispatch` only backfills an existing tag. Do not hand-tag.
+
+1. Merge the split-manifest fix into `develop` (`--merge`, never squash).
+2. Merge `develop` → `main` (`--merge`). That push **is** the `release.yml`
+   run. Main's manifest is then `2.51.0`, so path `.` last-sees `v2.51.0`
+   and the existing `feat:` commits open `chore(main): release 2.52.0`.
+3. Merge that stable release PR. That creates `v2.52.0`, runs GoReleaser,
+   and updates `Formula/humblskills.rb`. Then `brew upgrade humblskills`.
+
+If step 2's `release.yml` still skips, the fallback is a real commit on
+`main` (config/docs, not an empty `feat:`) with footer `Release-As: 2.52.0`.
+A `chore:` alone is hidden from the changelog gate; the commit must be
+`fix:`/`feat:` or the footer is ignored and it skips again.
+
+Ask up front whether the user wants the agent to merge these PRs on green
+checks. If they choose manual release review, stop after each PR is ready and
 report its URL plus check state.
+
+Same-major bumps auto-merge when repo automation is enabled. A major bump
+(`2.x` → `3.0.0` or `3.0.0-pre.1`) is left for a human.
 
 **Incorrect:**
 
 ```bash
-# Main was merged, a release PR appeared, and the agent silently ignores it.
+# develop was merged, a pre-release PR appeared, and the agent silently ignores it.
+# Or: develop was merged to main and brew is claimed updated because "a release
+# always appears." The stable release PR is what cuts vX.Y.Z and brew.
 ```
 
 **Correct:**
@@ -34,8 +96,22 @@ gh pr checks --watch <release-pr-number>
 gh pr merge <release-pr-number> --merge
 ```
 
-After the release PR merges, verify the tag, release workflow, package
-artifacts, and Homebrew tap update before claiming the release is available.
+After the **develop** release PR merges, verify the `vX.Y.Z-pre.N` tag and that
+the GitHub Release is marked pre-release. Optional tester check:
+`brew upgrade humblskills-pre` (or `humblskills upgrade --channel beta`). Do
+**not** run `brew upgrade humblskills` — that formula must stay on the last
+stable.
+
+After `develop` is merged to `main`, wait for the **main** release PR. After
+*that* PR merges, verify the stable tag and artifacts, then run
+`brew upgrade humblskills` as a **post-check**. Confirm
+[homebrew-humbl](https://github.com/jjfantini/homebrew-humbl) `Formula/humblskills.rb`
+matches that version before claiming the release is available.
+
+Users switch channels with the same profile field Homebrew and `upgrade` read:
+`humblskills profile set channel beta`, `profile get channel`, or the existing
+Profile TUI (`humblskills` → Profile → **install channel**). Unset means
+stable.
 
 ## Sources
 

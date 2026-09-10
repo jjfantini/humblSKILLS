@@ -7,7 +7,7 @@ description: "Merge feature work into develop only after local verification and 
 tags: pull-request, develop, ci, verification
 sources:
   - "references/raw/user-request.md"
-last_ingested: 2026-06-12
+last_ingested: 2026-09-01
 ---
 
 ## Develop Gate
@@ -40,6 +40,10 @@ gh pr merge --merge
 
 If checks fail, investigate the root cause in the failing logs and fix the
 feature branch. Do not bypass checks or merge a red PR.
+
+A green merge into `develop` is what starts the pre-release (`vX.Y.Z-pre.N`).
+See `release/release-pr.md`. It updates `humblskills-pre` only — not the
+stable `humblskills` formula.
 
 ## Sources
 

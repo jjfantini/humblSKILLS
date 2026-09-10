@@ -1,18 +1,11 @@
-# Enables GitHub auto-merge on release-please PRs so they land on main as soon as
-# required checks pass, without a manual merge click. That push then lets the
-# release workflow create the tag, GitHub Release, and GoReleaser artifacts.
+# Enable GitHub auto-merge on release-please PRs targeting develop or main.
+# Merging the PR is what makes release-please tag the release and run
+# GoReleaser. A major bump on either branch is left for a human.
 #
-# Prerequisites (repo Settings):
+# Repo settings:
 #   - General → Pull Requests → Allow auto-merge: ON
-#   - Branch protection on main: if "Require approvals" is ON, auto-merge will
-#     wait forever unless you add a bypass (bot review, ruleset exception, or
-#     relax reviews for maintainers). Required *status checks* alone work well.
-#
-# This only targets branches created by release-please (head ref contains
-# release-please--). The branch prefix is unique to release-please, so we don't
-# additionally pin on PR author — release-please switched to a PAT-authored
-# identity to escape the GITHUB_TOKEN workflow-trigger suppression, so pinning
-# to github-actions[bot] would lock this workflow out.
+#   - Use a PAT (RELEASE_PLEASE_TOKEN) so the merge commit triggers the
+#     `release` workflow. A GITHUB_TOKEN merge does not.
 
 name: Auto-merge release-please PR
 
@@ -31,18 +24,12 @@ concurrency:
 jobs:
   enable-auto-merge:
     if: |
-      github.base_ref == 'main' &&
+      (github.base_ref == 'main' || github.base_ref == 'develop') &&
       contains(github.head_ref, 'release-please--') &&
       github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    # RELEASE_PLEASE_TOKEN is an environment secret on `release`. Without
-    # this declaration, secrets.RELEASE_PLEASE_TOKEN resolves to empty
-    # and gh errors out with "GH_TOKEN ... not set".
     environment: release
     steps:
-      # A major bump is never auto-merged. See scripts/guard-major-bump.sh for
-      # why. This step failing is the intended outcome, not a broken pipeline:
-      # the PR stays open for a human to merge.
       - uses: actions/checkout@v4
         with:
           sparse-checkout: scripts/guard-major-bump.sh
@@ -53,18 +40,10 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
         run: |
           bash scripts/guard-major-bump.sh \
-            "${{ github.repository }}" "${{ github.event.pull_request.head.sha }}"
+            "${{ github.repository }}" \
+            "${{ github.event.pull_request.head.sha }}" \
+            "${{ github.base_ref }}"
 
-      # Use the release-please PAT, not GITHUB_TOKEN. When auto-merge fires
-      # with GITHUB_TOKEN, the resulting merge commit is authored by
-      # github-actions[bot] and GitHub suppresses downstream workflow
-      # triggers — so the `release` workflow never runs, no v tag, no
-      # GoReleaser artifacts. A PAT-authored merge cascades normally.
-      #
-      # -R names the repo explicitly instead of letting `gh pr merge` shell out
-      # to `git` to discover it. The guard step above now checks out the repo
-      # (sparsely), so the lookup would succeed either way — but -R keeps this
-      # step working if that checkout is ever dropped.
       - name: Enable auto-merge (merge commit)
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}

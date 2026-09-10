@@ -336,6 +336,95 @@ func TestFormatPlatforms(t *testing.T) {
 	}
 }
 
+func TestProfileSet_Channel(t *testing.T) {
+	s := testutil.NewSandbox(t)
+
+	res := runCLIWithStdoutCapture(t,
+		"profile", "set", "channel", "beta",
+		"--profile", s.ProfilePath,
+		"--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("set beta: %v\n%s", res.RunErr, res.Err)
+	}
+	p, err := profile.Load(s.ProfilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Channel != profile.ChannelBeta {
+		t.Errorf("Channel = %q, want beta", p.Channel)
+	}
+
+	res = runCLIWithStdoutCapture(t,
+		"profile", "get", "channel",
+		"--profile", s.ProfilePath,
+	)
+	if res.RunErr != nil {
+		t.Fatalf("get: %v", res.RunErr)
+	}
+	if got := strings.TrimSpace(res.Out); got != profile.ChannelBeta {
+		t.Errorf("get channel = %q, want beta", got)
+	}
+
+	res = runCLIWithStdoutCapture(t,
+		"profile", "set", "channel", "default",
+		"--profile", s.ProfilePath,
+		"--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("set default: %v", res.RunErr)
+	}
+	p, err = profile.Load(s.ProfilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Channel != "" {
+		t.Errorf("Channel = %q, want empty after default", p.Channel)
+	}
+	if p.ResolvedChannel() != profile.ChannelStable {
+		t.Errorf("ResolvedChannel = %q, want stable", p.ResolvedChannel())
+	}
+}
+
+func TestProfileGet_ChannelDefaultStable(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	res := runCLIWithStdoutCapture(t,
+		"profile", "get", "channel",
+		"--profile", s.ProfilePath,
+	)
+	if res.RunErr != nil {
+		t.Fatalf("get: %v", res.RunErr)
+	}
+	if got := strings.TrimSpace(res.Out); got != profile.ChannelStable {
+		t.Errorf("unset get channel = %q, want stable", got)
+	}
+}
+
+func TestProfileSet_ChannelInvalid(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	res := runCLIWithStdoutCapture(t,
+		"profile", "set", "channel", "nightly",
+		"--profile", s.ProfilePath,
+	)
+	if res.RunErr == nil {
+		t.Fatal("expected error for invalid channel")
+	}
+}
+
+func TestProfileShow_IncludesChannel(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	res := runCLIWithStdoutCapture(t,
+		"profile", "show",
+		"--profile", s.ProfilePath,
+	)
+	if res.RunErr != nil {
+		t.Fatalf("show: %v", res.RunErr)
+	}
+	if !strings.Contains(res.Out, "channel") || !strings.Contains(res.Out, "stable") {
+		t.Errorf("show should print channel (stable default), got:\n%s", res.Out)
+	}
+}
+
 func TestFormatScope(t *testing.T) {
 	if got := formatScope(""); got != "global humblskills (default)" {
 		t.Errorf("got %q", got)

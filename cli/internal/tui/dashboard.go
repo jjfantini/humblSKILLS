@@ -41,12 +41,32 @@ type DashboardStatus struct {
 	Skills    int // installed skills (unique)
 }
 
+// VersionNotice is the dashboard "newer version available" banner.
+// Shown on the main launcher when the channel has a newer GitHub
+// release than the running binary. Command is the same string upgrade
+// --dry-run prints (humblskills upgrade, brew upgrade <formula>, or
+// brew uninstall/install when beta switches formulas).
+type VersionNotice struct {
+	Current string // already display-formatted, e.g. "v2.15.0"
+	Latest  string
+	Channel string // "stable" or "beta"
+	Command string
+}
+
+// VersionNoticeHeadline is the TUI banner title.
+const VersionNoticeHeadline = "Newer version available"
+
 // DashboardConfig bundles everything RunDashboard needs.
 type DashboardConfig struct {
 	Theme   *ui.Theme
 	Version string
 	Status  DashboardStatus
 	Tiles   []DashboardTile
+	// Notice, when non-nil, is shown immediately. CheckNotice runs once
+	// from Init in the background so a slow GitHub lookup never blocks
+	// the first frame.
+	Notice      *VersionNotice
+	CheckNotice func() *VersionNotice
 }
 
 // RunDashboard opens the full-screen launcher (bubbletea alt-screen) and
@@ -57,6 +77,7 @@ func RunDashboard(cfg DashboardConfig) (DashboardResult, error) {
 	}
 	m := dashboardModel{
 		cfg:      cfg,
+		notice:   cfg.Notice,
 		cursor:   0,
 		searchOn: false,
 	}
@@ -106,12 +127,30 @@ type dashboardModel struct {
 	width, height int
 	done          bool
 	result        DashboardResult
+
+	notice *VersionNotice
 }
 
-func (m dashboardModel) Init() tea.Cmd { return nil }
+type versionNoticeMsg struct {
+	notice *VersionNotice
+}
+
+func (m dashboardModel) Init() tea.Cmd {
+	if m.notice != nil || m.cfg.CheckNotice == nil {
+		return nil
+	}
+	check := m.cfg.CheckNotice
+	return func() tea.Msg {
+		return versionNoticeMsg{notice: check()}
+	}
+}
 
 func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case versionNoticeMsg:
+		m.notice = msg.notice
+		m = m.resizeViewport()
+		return m, nil
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		m = m.resizeViewport()
@@ -304,13 +343,21 @@ func (m dashboardModel) cols() int {
 
 // gridHeight is the number of rows available to the scrollable grid view.
 // Total vertical budget = height. Non-grid lines: header(2) + blank(1) +
-// search(3) + blank(1) + footer(2) = 9. So grid gets whatever is left.
+// search(3) + blank(1) + footer(2) = 9, plus the notice banner when present.
 func (m dashboardModel) gridHeight() int {
-	h := m.height - 9
+	h := m.height - 9 - m.bannerHeight()
 	if h < 3 {
 		h = 3
 	}
 	return h
+}
+
+// bannerHeight is the notice panel plus the blank line under it, or 0.
+func (m dashboardModel) bannerHeight() int {
+	if m.notice == nil {
+		return 0
+	}
+	return versionNoticeDisplayHeight + 1
 }
 
 // syncViewport rebuilds the grid content, resizes if needed, and scrolls so
@@ -373,6 +420,10 @@ func (m dashboardModel) View() string {
 	footer := Footer(th, m.hints(), right, m.width)
 
 	search := indentBlock(m.renderSearchBar(), 2)
+	banner := ""
+	if m.notice != nil {
+		banner = indentBlock(renderVersionNotice(th, *m.notice, m.bodyWidth()), 2) + "\n"
+	}
 
 	gridView := ""
 	if m.ready {
@@ -389,7 +440,7 @@ func (m dashboardModel) View() string {
 	// clamp as well as pad or that one extra row scrolls the header away.
 	gridView = fitToHeight(gridView, m.gridHeight())
 
-	return header + "\n\n" + search + "\n\n" + gridView + "\n" + footer
+	return header + "\n\n" + banner + search + "\n\n" + gridView + "\n" + footer
 }
 
 func (m dashboardModel) focusedLabel() string {
@@ -507,6 +558,37 @@ func (m dashboardModel) renderSearchBar() string {
 		Padding(0, 1).
 		Width(inner).
 		Render(line)
+}
+
+// versionNoticeDisplayHeight is the boxed banner: border(2) + title(1) +
+// versions+command(1) = 4.
+const versionNoticeDisplayHeight = 4
+
+// renderVersionNotice draws the dashboard "newer version available" panel.
+// Line 1 is the headline; line 2 is current → latest (channel) and the
+// exact update command (including brew formula switch).
+func renderVersionNotice(th *ui.Theme, n VersionNotice, width int) string {
+	if th == nil {
+		th = ui.DefaultTheme()
+	}
+	inner := width - 4
+	if inner < 20 {
+		inner = 20
+	}
+	title := th.Warn.Render(VersionNoticeHeadline)
+	versions := fmt.Sprintf("%s → %s (%s)", n.Current, n.Latest, n.Channel)
+	action := "run `" + n.Command + "`"
+	if n.Command == "humblskills upgrade" {
+		action += "  ·  press U"
+	}
+	line2 := th.Name.Render(versions) + th.Crumb.Render("  ·  ") + th.Detail.Render(action)
+	body := title + "\n" + truncateDisplay(line2, inner)
+	return lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(th.Palette.Yellow).
+		Padding(0, 1).
+		Width(width - 2).
+		Render(body)
 }
 
 // tileDisplayHeight is the fixed rendered height of every tile, in lines:

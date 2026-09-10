@@ -42,6 +42,7 @@ func runList(app *App, fromDashboard bool) error {
 		return app.UI.JSON(buildListView(m, avail))
 	}
 	if len(m.Installations) == 0 {
+		app.printUpgradeNotice()
 		app.UI.Info("no skills installed — try 'humblskills install <name>'")
 		return nil
 	}
@@ -59,6 +60,7 @@ func runList(app *App, fromDashboard bool) error {
 	if tui.ShouldUseTUI(app.Config.JSON, app.Config.Quiet, app.Config.Yes) {
 		return runListTUI(app, m, fromDashboard)
 	}
+	app.printUpgradeNotice()
 	renderListTable(app, installs, avail)
 	return nil
 }
