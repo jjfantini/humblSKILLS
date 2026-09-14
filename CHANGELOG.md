@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.53.0-pre.4](https://github.com/jjfantini/humblSKILLS/compare/v2.53.0-pre.3...v2.53.0-pre.4) (2026-09-14)
+
+
+### Features
+
+* **adapters:** add pi adapter ([096f4e0](https://github.com/jjfantini/humblSKILLS/commit/096f4e0ec04f3ac22c79766b9e582d25e61913d7))
+* **adapters:** add pi adapter ([e544f19](https://github.com/jjfantini/humblSKILLS/commit/e544f19b10f8f53722cc47f57201ea50956317b1))
+
 ## [2.53.0-pre.3](https://github.com/jjfantini/humblSKILLS/compare/v2.53.0-pre.2...v2.53.0-pre.3) (2026-09-10)
 
 
