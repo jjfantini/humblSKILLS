@@ -11,11 +11,12 @@ most "where did my skill go?" questions.
 | `claude-code` | Symlink | `~/.claude/skills/<skill-id>` |
 | `cursor` | Symlink | `~/.cursor/skills/<skill-id>` |
 | `codex` | Symlink | `~/.agents/skills/<skill-id>` |
+| `pi` | Symlink | `~/.pi/agent/skills/<skill-id>` |
 | `claude-desktop` | **Zip you upload** (see below) | `~/.humblskills/desktop/<skill-id>.zip` |
 
 By default the CLI installs to every platform it **detects** on your machine
-(it looks for `~/.claude`, `~/.cursor`, `~/.codex` / `~/.agents`, and Claude
-Desktop's data directory). Restrict that with `--platform`:
+(it looks for `~/.claude`, `~/.cursor`, `~/.codex` / `~/.agents`, `~/.pi`, and
+Claude Desktop's data directory). Restrict that with `--platform`:
 
 ```sh
 humblskills install smart-commit --platform claude-code
