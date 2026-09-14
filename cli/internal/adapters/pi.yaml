@@ -1,0 +1,10 @@
+name: pi
+detect:
+  any_of:
+    - path_exists: ~/.pi
+    - path_exists: .pi
+install_targets:
+  user: ~/.pi/agent/skills
+  project: .pi/skills
+default_scope: user
+transform: passthrough
