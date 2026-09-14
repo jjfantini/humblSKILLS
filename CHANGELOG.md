@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.53.0](https://github.com/jjfantini/humblSKILLS/compare/v2.52.0...v2.53.0) (2026-09-14)
+
+
+### Features
+
+* **adapters:** add pi adapter ([096f4e0](https://github.com/jjfantini/humblSKILLS/commit/096f4e0ec04f3ac22c79766b9e582d25e61913d7))
+* **adapters:** add pi adapter ([e544f19](https://github.com/jjfantini/humblSKILLS/commit/e544f19b10f8f53722cc47f57201ea50956317b1))
+* **cli:** channel-aware newer-version notice in CLI and TUI ([a108d52](https://github.com/jjfantini/humblSKILLS/commit/a108d52292207d142ce86e759c4939e3e030cba2))
+* **smart-orchestrate:** add Fable 5.1 and GPT-6 Astra as orchestrator models ([861ea6e](https://github.com/jjfantini/humblSKILLS/commit/861ea6e5c294a9558e7a21a56eb6c6ce9cddb80b))
+* **smart-orchestrate:** add Fable 5.1 and GPT-6 Astra as orchestrator models ([3b86ca7](https://github.com/jjfantini/humblSKILLS/commit/3b86ca79df9e527fd3fa20b5a0c1bc3583666f54))
+* **smart-watch:** native macOS video/audio evidence skill with brief and verify ([26a3d7e](https://github.com/jjfantini/humblSKILLS/commit/26a3d7eb08a9c6b2877be22cc332d7e224c72535))
+* **upgrade:** beta channel picks the newer of stable and prerelease ([cd65484](https://github.com/jjfantini/humblSKILLS/commit/cd65484950e199d3303b5075dd1a1cca14522f03))
+
+
+### Bug Fixes
+
+* **release:** make a failed goreleaser run re-runnable ([dcca5ed](https://github.com/jjfantini/humblSKILLS/commit/dcca5ed521a29a848d31d9a238c6022efff80f3d))
+* **release:** make a failed goreleaser run re-runnable ([1b800d5](https://github.com/jjfantini/humblSKILLS/commit/1b800d5abcf6dc453feddaaa05d20fbbea0222f9))
+* **release:** next develop pre is 2.52.1-pre.1 after stable 2.52.0 ([ebca4a6](https://github.com/jjfantini/humblSKILLS/commit/ebca4a69ac907d803e883abde83ec521759e1788))
+* **release:** start develop pre line at 2.52.1-pre.1 after 2.52.0 ([fda949f](https://github.com/jjfantini/humblSKILLS/commit/fda949fcdad3efc0fa651ed15c1be52a43dc7869))
+* **upgrade:** beta channel picks highest semver, not latest pre ([733d0f6](https://github.com/jjfantini/humblSKILLS/commit/733d0f6882404e11ba27207a26cb9ab0ee4703a9))
+
+
+### Miscellaneous Chores
+
+* **release:** promote develop to stable 2.53.0 ([820e135](https://github.com/jjfantini/humblSKILLS/commit/820e13525fe431174364faa110f26de3d6d7f4e0))
+
 ## [2.53.0-pre.4](https://github.com/jjfantini/humblSKILLS/compare/v2.53.0-pre.3...v2.53.0-pre.4) (2026-09-14)
 
 
