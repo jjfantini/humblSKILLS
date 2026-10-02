@@ -54,9 +54,9 @@ skill-name/
       <anything-the-human-dropped>.<ext>
       .gitkeep                            # tracks empty dir
 
-  scripts/                                # optional
-    scaffold.sh                           # create a new Smart Skill
-    lint.sh                               # health-check + regenerate index
+  scripts/
+    lint.sh                               # health-check + regenerate index (every skill ships one)
+    <command>.sh                          # optional deterministic commands
 
   assets/                                 # optional, static files
 ```

@@ -151,6 +151,7 @@ metadata:
   author: TODO
   version: "1.0.0"
   category: TODO  # required, one of: development, design, writing, meta
+  role: TODO  # who it serves: fde, ds, or sdr - delete only for a general-purpose public skill
   tags: [TODO]
   platforms: [claude-code, cursor, codex]
   preserve:
@@ -357,7 +358,8 @@ echo ""
 echo "Done. Next steps:"
 echo "  1. Edit $TARGET/SKILL.md - resolve every <!-- TODO --> block:"
 echo "       - frontmatter description (WHAT + WHEN + negative trigger)"
-echo "       - metadata.author, metadata.tags, compatibility, allowed-tools"
+echo "       - metadata.author, compatibility, allowed-tools"
+echo "       - metadata.category, metadata.role, metadata.tags (how the CLI files it)"
 echo "       - When to Use, How to Use routing"
 echo "       - Examples (REQUIRED - 2 minimum)"
 echo "       - Troubleshooting (optional - delete if N/A)"
@@ -368,3 +370,7 @@ echo "  4. Run bash $TARGET/scripts/lint.sh to populate references/_index.md"
 echo "  5. See $SKILL_ROOT/references/_template.md for wiki concept shape"
 echo "  6. See $SKILL_ROOT/references/_brain.md for the brain protocol"
 echo "  7. See $SKILL_ROOT/references/wiki/anthropic/ for best-practice concepts"
+echo "  8. When it works, ask the user whether to promote it - humblSKILLS (public)"
+echo "     or happySKILLS (HappyRobot-specific) - then follow"
+echo "     $SKILL_ROOT/references/wiki/smart/promote/workflow.md:"
+echo "       bash $SKILL_ROOT/scripts/promote.sh $SKILL_NAME --to humblskills|happyskills --check"

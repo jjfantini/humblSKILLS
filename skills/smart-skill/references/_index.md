@@ -14,7 +14,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 - **anthropic** -> `description`, `frontmatter`, `patterns`, `structure`, `testing`, `troubleshooting`
 - **brain** -> `ingest`, `linking`, `lint`, `patterns`, `protocol`
 - **eval** -> `design`, `metrics`, `runner`
-- **smart** -> `create`, `migrate`, `spec`, `structure`
+- **smart** -> `create`, `migrate`, `promote`, `spec`, `structure`
 
 ## Wiki
 
@@ -95,6 +95,13 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 - [from-flat.md](wiki/smart/migrate/from-flat.md) - Convert Flat references/*.md to Nested Wiki Concepts
 - [workflow.md](wiki/smart/migrate/workflow.md) - Migrate a Flat Skill to the Smart Skill Pattern
 
+#### promote
+
+- [quality-gate.md](wiki/smart/promote/quality-gate.md) - What the Promotion Gate Checks and How to Fix It
+- [targets.md](wiki/smart/promote/targets.md) - Choose humblSKILLS or happySKILLS
+- [taxonomy.md](wiki/smart/promote/taxonomy.md) - Fill Category, Role, and Tags So the CLI Can File the Skill
+- [workflow.md](wiki/smart/promote/workflow.md) - Promote a Finished Skill as a Pull Request
+
 #### spec
 
 - [skill-frontmatter.md](wiki/smart/spec/skill-frontmatter.md) - SKILL.md Frontmatter Fields (Agent Skills Spec)
@@ -107,14 +114,16 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 ## Raw Sources
 
-- [agentskills-spec.md](raw/agentskills-spec.md) - cited by: references/wiki/smart/spec/skill-frontmatter.md
-- [anthropic-skill-building-guide.pdf](raw/anthropic-skill-building-guide.pdf) - cited by: references/wiki/anthropic/description/trigger-design.md, references/wiki/anthropic/frontmatter/requirements.md, references/wiki/anthropic/frontmatter/security.md, references/wiki/anthropic/patterns/five-patterns.md, references/wiki/anthropic/structure/file-layout.md, references/wiki/anthropic/structure/progressive-disclosure.md, references/wiki/anthropic/testing/three-layer-approach.md, references/wiki/anthropic/troubleshooting/common-failures.md
+- [agentskills-spec.md](raw/agentskills-spec.md) - cited by: references/wiki/smart/promote/quality-gate.md, references/wiki/smart/spec/skill-frontmatter.md
+- [anthropic-skill-building-guide.pdf](raw/anthropic-skill-building-guide.pdf) - cited by: references/wiki/anthropic/description/trigger-design.md, references/wiki/anthropic/frontmatter/requirements.md, references/wiki/anthropic/frontmatter/security.md, references/wiki/anthropic/patterns/five-patterns.md, references/wiki/anthropic/structure/file-layout.md, references/wiki/anthropic/structure/progressive-disclosure.md, references/wiki/anthropic/testing/three-layer-approach.md, references/wiki/anthropic/troubleshooting/common-failures.md, references/wiki/smart/promote/quality-gate.md
+- [user-request-promote.md](raw/user-request-promote.md) - cited by: references/wiki/smart/create/validation-checklist.md, references/wiki/smart/create/workflow.md, references/wiki/smart/promote/quality-gate.md, references/wiki/smart/promote/targets.md, references/wiki/smart/promote/taxonomy.md, references/wiki/smart/promote/workflow.md
 
 ---
 
 ## Scripts
 
 - [scripts/lint.sh](../scripts/lint.sh)
+- [scripts/promote.sh](../scripts/promote.sh)
 - [scripts/scaffold.sh](../scripts/scaffold.sh)
 
 <!-- GENERATED:END -->
