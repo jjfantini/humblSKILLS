@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-10T18:41:20Z",
+  "generated_at": "2026-09-14T21:16:10Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "df2ffecf68d89a3800dfbb9e8bd042cb17528dfa"
+    "sha": "24b379568040191d26cc510fbbef59c0c37bc17e"
   },
   "skills": [
     {
@@ -678,14 +678,15 @@
     },
     {
       "name": "smart-skill",
-      "version": "1.2.0",
-      "description": "Scaffold production-grade humblSKILLS with progressive disclosure, self-learning memory (patterns/decisions/session log), and lint tooling. Use when creating a new humblSKILL (also known as a smart skill), scaffolding a SKILL.md, migrating a flat skill to a smart skill, refactoring a skill that exceeds ~300 lines, or adding memory/patterns tracking to an existing skill. Do NOT use for editing skill content after scaffold - use the skill directly. Uses CCCCC layering internally (Core/Context/Category/Concept/Command).\n",
+      "version": "1.3.0",
+      "description": "Scaffold production-grade humblSKILLS with progressive disclosure, self-learning memory (patterns/decisions/session log), and lint tooling, then promote finished ones as a pull request to humblSKILLS (public) or happySKILLS (HappyRobot-specific). Use when creating a new humblSKILL (also known as a smart skill), scaffolding a SKILL.md, migrating a flat skill to a smart skill, refactoring a skill that exceeds ~300 lines, adding memory/patterns tracking to an existing skill, or when the user says \"promote this skill\", \"publish my skill\", \"open a PR for my skill\", or \"add it to humblSKILLS\". Do NOT use for editing skill content after scaffold - use the skill directly - or for changing a skill a registry already publishes. Uses CCCCC layering internally (Core/Context/Category/Concept/Command).\n",
       "category": "meta",
       "tags": [
         "meta",
         "skill-authoring",
         "smart-skill",
         "scaffolding",
+        "promotion",
         "humblskill"
       ],
       "platforms": [
@@ -704,7 +705,7 @@
         "use-smart-skill"
       ],
       "path": "skills/smart-skill",
-      "dir_sha": "b95a2bfe03b8c8028c1dba6d6851552cadc879d4db68ac070adfe6178a2e385d"
+      "dir_sha": "e1869a4411ec70ee94bc04d158d646a4514a3889ba2a098c7736ef56e5b5b825"
     },
     {
       "name": "smart-upload-thing",
