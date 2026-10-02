@@ -23,6 +23,10 @@ so **no backend/database/network services are required** to build, test, or run 
   replaced the old pre-merge check, so nothing in CI runs `--check` today. "Stale" means *anything a rebuild
   would change* — drifted content, or a `source.sha` whose skill tree ids disagree with HEAD (skill missing
   or serving an older revision; see below).
+- smart-skill scripts: `bash skills/smart-skill/tests/run.sh` - hermetic suite for `promote.sh` and
+ `scaffold.sh` (fake GitHub of bare repos + a `gh` stub; no network). CI also runs it under macOS's
+ `/bin/bash` 3.2. `cli/cmd/build-registry/promote_sync_test.go` fails if a category, role, or adapter
+ changes without updating `skills/smart-skill/scripts/lib/promote.py`.
 - Eval (no external deps): `make eval-mock` runs the eval harness with the deterministic `mock` runner,
   writing artifacts to `.eval-workspace/` (gitignored). Real eval runners (`claudecode`, `cursor-agent`,
   `codex`, `anthropic-api`, `openai-api`) are optional and need their respective agent CLI or
@@ -169,6 +173,13 @@ a tree id is a sha1 over git's own serialization. The two are never equal and
 comparing them is meaningless. Tree ids are only useful *between commits*,
 which is exactly how `sourceSHAVerdict` uses them: same id at two commits means
 identical bytes, so whatever `dir_sha` one produces the other produces too.
+
+### Skill promotion PRs (`feat/add-<skill>`)
+Contributors (mostly FDEs) open net-new skill PRs with `skills/smart-skill/scripts/promote.sh`, into
+`develop`, often from forks. Their diff is exactly `skills/<skill>/`: they deliberately leave
+`registry.json` to the Registry workflow after merge, so don't "fix" that by committing it to the PR.
+Re-runs add `chore(skills): sync <skill> ...` commits on the same branch. The flow is documented in
+`CONTRIBUTING.md`; changing an existing skill is out of its scope.
 
 ### A conflicted PR gets no CI at all
 GitHub cannot build the merge ref for a PR with conflicts, so it dispatches **no** `pull_request` workflows.

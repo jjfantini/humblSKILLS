@@ -66,8 +66,10 @@ humblskills search --role=fde
 
 A skill with no `role` is unscoped and shows up regardless. No first-party
 humblSKILLS skill sets a role today — the taxonomy exists so registries that
-need it can use it. Adding a role, like adding a category, is a taxonomy change
-that ships in a CLI release.
+need it can use it. Skills promoted with `smart-skill`'s `promote.sh` settle it
+explicitly, and the HappyRobot-internal happySKILLS registry requires one.
+Adding a role, like adding a category, is a taxonomy change that ships in a CLI
+release.
 
 ### Provenance for mirrored skills (`upstream:`)
 
