@@ -14,7 +14,7 @@ Arguments:
   skill-name    Name of the skill (lowercase, hyphens, e.g. my-new-skill)
 
 Options:
-  --scripts     Create scripts/ directory
+  --scripts     Kept for compatibility: scripts/ is always created (it holds lint.sh)
   --assets      Create assets/ directory
   --location    personal (default) or project
                   personal: ~/.cursor/skills/
@@ -29,7 +29,7 @@ Creates:
       _index.md  patterns.md  decisions.md  log.md
       wiki/
       raw/.gitkeep
-    scripts/   (if --scripts)
+    scripts/lint.sh
     assets/    (if --assets)
 
 Migrating an existing flat skill? See:
@@ -50,13 +50,12 @@ fi
 SKILL_NAME="$1"
 shift
 
-INCLUDE_SCRIPTS=false
 INCLUDE_ASSETS=false
 LOCATION="personal"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --scripts) INCLUDE_SCRIPTS=true; shift ;;
+    --scripts) shift ;;
     --assets)  INCLUDE_ASSETS=true; shift ;;
     --location)
       LOCATION="${2:-personal}"
@@ -102,6 +101,22 @@ copy_template() {
   fi
 }
 
+# Seed a brain file with smart-skill's header and entry shape only. Copying the
+# whole file would hand every new skill smart-skill's own history.
+copy_header() {
+  local src="$1"
+  local dest="$2"
+  if [[ -f "$dest" ]]; then
+    echo "  skip: $dest (exists)"
+  elif [[ -f "$src" ]]; then
+    awk '{ print } /^---$/ { exit }' "$src" > "$dest"
+    printf '\n(no entries yet)\n' >> "$dest"
+    echo "  created: $dest (header from template)"
+  else
+    echo "  warn: template not found at $src, skipping"
+  fi
+}
+
 echo "Scaffolding Smart Skill: $SKILL_NAME"
 echo "  location: $TARGET"
 echo ""
@@ -112,10 +127,10 @@ echo "  created: $TARGET/references/"
 echo "  created: $TARGET/references/wiki/"
 echo "  created: $TARGET/references/raw/"
 
-if [[ "$INCLUDE_SCRIPTS" == true ]]; then
-  mkdir -p "$TARGET/scripts"
-  echo "  created: $TARGET/scripts/"
-fi
+# The generated SKILL.md tells agents to run scripts/lint.sh, so every skill
+# ships its own copy; --scripts is accepted but no longer changes anything.
+mkdir -p "$TARGET/scripts"
+echo "  created: $TARGET/scripts/"
 
 if [[ "$INCLUDE_ASSETS" == true ]]; then
   mkdir -p "$TARGET/assets"
@@ -137,8 +152,10 @@ metadata:
   version: "1.0.0"
   category: TODO  # required, one of: development, design, writing, meta
   tags: [TODO]
-  platforms: [claude-code, cursor]
+  platforms: [claude-code, cursor, codex]
   preserve:
+    - references/raw/
+    - references/wiki/
     - references/decisions.md
     - references/log.md
     - references/patterns.md
@@ -293,10 +310,11 @@ create_file "$TARGET/SKILL.md" "$SKILL_MD_CONTENT"
 
 copy_template "$SKILL_ROOT/references/_template.md" "$TARGET/references/_template.md"
 copy_template "$SKILL_ROOT/references/_brain.md"    "$TARGET/references/_brain.md"
-copy_template "$SKILL_ROOT/references/patterns.md"  "$TARGET/references/patterns.md"
-copy_template "$SKILL_ROOT/references/decisions.md" "$TARGET/references/decisions.md"
+copy_header   "$SKILL_ROOT/references/patterns.md"  "$TARGET/references/patterns.md"
+copy_header   "$SKILL_ROOT/references/decisions.md" "$TARGET/references/decisions.md"
 
 create_file "$TARGET/references/_index.md" "$INDEX_MD_CONTENT"
+copy_template "$SKILL_ROOT/scripts/lint.sh" "$TARGET/scripts/lint.sh"
 
 TODAY="$(date +%Y-%m-%d)"
 LOG_MD_CONTENT='# Log
@@ -346,7 +364,7 @@ echo "       - Troubleshooting (optional - delete if N/A)"
 echo "       - Success Signals (quantify where possible)"
 echo "  2. Create references/wiki/<context>/<category>/<concept>.md files"
 echo "  3. Drop any source material into references/raw/ (keep original filenames)"
-echo "  4. Run scripts/lint.sh to populate references/_index.md"
+echo "  4. Run bash $TARGET/scripts/lint.sh to populate references/_index.md"
 echo "  5. See $SKILL_ROOT/references/_template.md for wiki concept shape"
 echo "  6. See $SKILL_ROOT/references/_brain.md for the brain protocol"
 echo "  7. See $SKILL_ROOT/references/wiki/anthropic/ for best-practice concepts"
