@@ -25,6 +25,10 @@ vendor/
 # goreleaser
 /dist/
 
+# Python bytecode (skill scripts; never part of a skill's content hash)
+__pycache__/
+*.py[co]
+
 # Editors
 .vscode/
 .idea/

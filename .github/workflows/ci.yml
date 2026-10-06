@@ -42,6 +42,12 @@ jobs:
           bash scripts/guard-major-bump.sh --self-test
           bash scripts/sync-develop-pre-after-stable.sh --self-test
 
+      # promote.sh runs on contributors' machines, mostly macOS, whose
+      # /bin/bash is 3.2 - so that is the shell it is tested under there.
+      - name: smart-skill promote tests
+        if: matrix.os != 'windows-latest'
+        run: /bin/bash skills/smart-skill/tests/run.sh
+
       - name: upload coverage
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4

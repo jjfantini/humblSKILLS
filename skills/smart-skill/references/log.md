@@ -94,3 +94,14 @@ Entry shape:
   - metadata.version 1.1.3 -> 1.2.0
 
 [LINT 2026-08-20] 23 wiki, 2 raw. Hard: 0, Soft: 16. Regenerated _index.md.
+
+[INGEST 2026-10-02] Net-new skill promotion: scripts/promote.sh + scripts/lib/promote.py.
+  - Raw: references/raw/user-request-promote.md (promote from smart-skill; ask humblSKILLS vs happySKILLS after create; enforce category/role/tags)
+  - New category smart/promote: workflow, targets, taxonomy, quality-gate
+  - create/workflow.md step 8 asks the promote question; validation-checklist gains taxonomy, preserve, and gate items
+  - scaffold.sh: role placeholder, all five brain paths preserved, ships scripts/lint.sh, seeds decisions.md/patterns.md headers only (it used to copy this skill's own decisions into every new skill)
+  - tests/run.sh: 135 hermetic cases (fake GitHub, gh stub), also green under bash 3.2.57
+  - decisions.md: 3 entries (promote.sh over a CLI command, no registry.json in promotion PRs, fail public promotions on HappyRobot mentions); patterns.md: gate calibration
+  - metadata.version 1.2.0 -> 1.3.0
+
+[LINT 2026-10-02] 27 wiki, 3 raw. Hard: 0, Soft: 15. Regenerated _index.md.

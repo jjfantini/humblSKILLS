@@ -52,3 +52,24 @@ Entry shape:
 - Chose: C - structural hard-fail, quality soft-warn, no expressiveness gate.
 - Why: the point of validation is to keep the schema (the labels) intact, not to police how much an agent writes under each label - a terse but complete entry is valid, a well-written entry missing a label is not. (B) would punish brevity; (A) already proved insufficient (this exact gap). Distinguishing missing-field (hard) from empty-field (soft) also means a field the agent intentionally left blank fails loud enough to notice but doesn't block a session that has real content elsewhere.
 - Result: added to `scripts/lint.sh` (canonical here, propagated to smart-orchestrate's copy), `_brain.md`, `wiki/brain/lint/checks.md`, `SKILL.md`'s Brain Operations table, and `docs/smart_skills.md`. Verified against this skill's own 4 decisions (clean) and against a synthetic broken entry (5 hard fails: 1 malformed heading + 4 missing fields). Version 1.1.3 -> 1.2.0.
+
+### 2026-10-02 | Promotion ships inside smart-skill as promote.sh, not as a CLI command
+- Context: FDEs create smart skills locally and need a reviewed path into humblSKILLS or happySKILLS (`raw/user-request-promote.md`). The maintainer asked for a `promote.sh` in this skill, a target question after create, and enforced category/role/tags.
+- Options: (A) a `humblskills promote` Go subcommand, (B) `scripts/promote.sh` plus a stdlib-only Python engine (`scripts/lib/promote.py`) shipped in this skill, (C) a prose workflow the agent runs by hand with git and gh.
+- Chose: B - promote.sh + engine, with the CLI's validator kept authoritative.
+- Why: the agent that just created the skill already has this skill loaded, so the question and the tool sit where the work happens, and they update with the skill instead of waiting for a CLI release. (C) leaves the quality bar to memory. To keep (B) honest, promote.sh runs the real `build-registry` when Go 1.23+ is present, and a Go test pins the closed sets the engine duplicates (categories, roles, platforms).
+- Result: 135-case hermetic suite passes under bash 5.2 and bash 3.2.57 (macOS default); a real `--dry-run` against jjfantini/humblSKILLS develop validated a new skill with build-registry in 9s.
+
+### 2026-10-02 | Promotion PRs never carry registry.json
+- Context: registry.json changes with every skill edit and every Registry-workflow run, and a conflicted PR gets no CI at all.
+- Options: (A) regenerate and commit registry.json in the promotion PR, as hand-made skill PRs do, (B) leave it out, validate locally by building into a temp file, and let the Registry workflow regenerate it after merge.
+- Chose: B.
+- Why: a PR that only touches `skills/<name>/` cannot conflict on the repo's hottest file. The Registry workflow already repins `source.sha` on develop after the merge, and fork PRs could not run it anyway (it needs the release environment).
+- Result: every promotion diff is exactly `skills/<name>/`; the test suite asserts registry.json is untouched on the branch.
+
+### 2026-10-02 | Public promotions fail on HappyRobot mentions
+- Context: a branch pushed to a public repo is public before anyone reviews it, so review cannot catch an internal leak in time.
+- Options: (A) warn and rely on review, (B) fail, with `--allow-internal` for deliberate public-safe mentions, (C) fail with no override.
+- Chose: B.
+- Why: (A) warns after the damage is possible; (C) blocks legitimate mentions such as this skill naming happySKILLS as a target. An explicit flag records intent in the run without a code change.
+- Result: calibration flagged smart-orchestrate (a raw sweep cites an @happyrobot.ai account) and this skill (by design); no other published skill trips it.
