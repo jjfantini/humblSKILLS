@@ -82,6 +82,7 @@ The [eval harness](eval/index.md) runs smart skills in ordered sessions so brain
 | If you want to… | Read |
 |-----------------|------|
 | Author a smart skill | install the [`smart-skill`](https://github.com/jjfantini/humblSKILLS/tree/main/skills/smart-skill) skill — it scaffolds the layout, brain, and lint |
+| Share a finished skill | [Contributing a skill](https://github.com/jjfantini/humblSKILLS/blob/main/CONTRIBUTING.md#adding-a-new-skill) — `smart-skill`'s `promote.sh` opens the PR |
 | Read the full protocol spec | [`references/_brain.md`](https://github.com/jjfantini/humblSKILLS/blob/main/skills/smart-skill/references/_brain.md) inside `smart-skill` |
 | Keep the brain across updates | [Preserving user content](using_humblskills/preserving_user_content.md) |
 | Prove a skill compounds | [Eval overview](eval/index.md) · [published reports](eval/reports/index.md) |

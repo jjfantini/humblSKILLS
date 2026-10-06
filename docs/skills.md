@@ -37,3 +37,9 @@ humblskills install smart-skill
 
 Then see [Registry & skill format](using_humblskills/registry_and_format.md) for
 the frontmatter humblSKILLS understands.
+
+When a skill is ready to share, `smart-skill` promotes it: its `promote.sh`
+checks the skill against the registry's quality bar, fills in its category,
+role, and tags, and opens a pull request into this registry (or the
+HappyRobot-internal happySKILLS). See
+[Contributing a skill](https://github.com/jjfantini/humblSKILLS/blob/main/CONTRIBUTING.md#adding-a-new-skill).

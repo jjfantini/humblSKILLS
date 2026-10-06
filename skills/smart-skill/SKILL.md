@@ -2,22 +2,26 @@
 name: smart-skill
 description: >
   Scaffold production-grade humblSKILLS with progressive disclosure,
-  self-learning memory (patterns/decisions/session log), and lint tooling.
-  Use when creating a new humblSKILL (also known as a smart skill),
-  scaffolding a SKILL.md, migrating a flat skill to a smart skill,
-  refactoring a skill that exceeds ~300 lines, or adding memory/patterns
-  tracking to an existing skill. Do NOT use for editing skill content
-  after scaffold - use the skill directly. Uses CCCCC layering internally
+  self-learning memory (patterns/decisions/session log), and lint tooling,
+  then promote finished ones as a pull request to humblSKILLS (public) or
+  happySKILLS (HappyRobot-specific). Use when creating a new humblSKILL
+  (also known as a smart skill), scaffolding a SKILL.md, migrating a flat
+  skill to a smart skill, refactoring a skill that exceeds ~300 lines,
+  adding memory/patterns tracking to an existing skill, or when the user
+  says "promote this skill", "publish my skill", "open a PR for my skill",
+  or "add it to humblSKILLS". Do NOT use for editing skill content after
+  scaffold - use the skill directly - or for changing a skill a registry
+  already publishes. Uses CCCCC layering internally
   (Core/Context/Category/Concept/Command).
 license: MIT
-compatibility: Requires bash, POSIX utilities (awk, sed, find, grep), python3, writable filesystem at the skill target path.
+compatibility: Requires bash, POSIX utilities (awk, sed, find, grep), python3, writable filesystem at the skill target path. Promoting also needs git and the GitHub CLI (gh); Go 1.23+ adds registry validation.
 allowed-tools: "Bash(bash:*) Bash(sh:*) Read Write Edit Glob Grep"
 metadata:
   author: jjfantini
-  version: 1.2.0
+  version: 1.3.0
   previous_names: ["use-smart-skill"]
   category: meta
-  tags: [meta, skill-authoring, smart-skill, scaffolding, humblskill]
+  tags: [meta, skill-authoring, smart-skill, scaffolding, promotion, humblskill]
   platforms: [claude-code, cursor, codex]
   preserve:
     - references/raw/
@@ -32,8 +36,8 @@ metadata:
 A humblSKILL (smart skill) is a thin SKILL.md router + human-owned `raw/`
 sources + LLM-maintained `wiki/<context>/<category>/<concept>.md` +
 operational memory (index, patterns, decisions, log) + optional `scripts/`
-commands. This skill scaffolds new humblSKILLS and migrates flat skills to
-the same pattern.
+commands. This skill scaffolds new humblSKILLS, migrates flat skills to
+the same pattern, and promotes finished ones into a registry as a PR.
 
 ## Brain Protocol (read BEFORE creating anything)
 
@@ -83,6 +87,7 @@ _Full spec (territories, linking, ingest/lint/patterns worked examples, command 
 - Migrating an existing flat/monolithic skill to the humblSKILL pattern
 - A SKILL.md exceeds ~300 lines and needs progressive disclosure
 - Adding self-learning memory (patterns, decisions, session log) to an existing skill
+- Promoting a finished, net-new skill to humblSKILLS or happySKILLS as a pull request
 
 ## How to Use
 
@@ -99,6 +104,11 @@ Read `references/wiki/smart/create/workflow.md`, then run `scripts/scaffold.sh`.
 Read `references/wiki/smart/migrate/workflow.md` and
 `references/wiki/smart/migrate/from-flat.md`.
 
+**Promoting a finished skill (ask after every create):**
+Read `references/wiki/smart/promote/workflow.md`; pick the registry with
+`smart/promote/targets.md` and category/role/tags with `smart/promote/taxonomy.md`,
+then run `scripts/promote.sh`. Gate findings: `smart/promote/quality-gate.md`.
+
 **Brain protocol, naming conventions, writing principles, linking contract, ingest workflow, lint checks, `patterns.md` entry shape:**
 Read `references/_brain.md`.
 
@@ -114,12 +124,13 @@ User says: "Create a skill for drafting PR descriptions"
 Actions:
 1. Read `references/wiki/smart/create/workflow.md`
 2. Read `references/wiki/anthropic/description/trigger-design.md` to design the `description:` field
-3. Run `scripts/scaffold.sh pr-description-drafter --scripts`
-4. Fill every `<!-- TODO -->` block in the generated SKILL.md (description, examples, when-to-use, success signals)
+3. Run `scripts/scaffold.sh smart-pr-description`
+4. Fill every `<!-- TODO -->` block in the generated SKILL.md (description, taxonomy, examples, when-to-use, success signals)
 5. Seed 1-2 wiki concepts under `references/wiki/<context>/<category>/`
 6. Run `bash scripts/lint.sh` from the new skill root
+7. Ask: "Promote it to humblSKILLS (public), to happySKILLS (HappyRobot-specific), or keep it local?" - with a recommendation
 
-Result: A ready-to-ship humblSKILL with brain initialized, lint passing, and Anthropic-compliant frontmatter.
+Result: A ready-to-ship humblSKILL with brain initialized, lint passing, Anthropic-compliant frontmatter, and a promotion decision.
 
 ### Example 2: Migrating a 400-line flat skill
 
@@ -133,6 +144,18 @@ Actions:
 5. Run `bash scripts/lint.sh` to regenerate `_index.md` and verify frontmatter triples
 
 Result: SKILL.md under 200 lines, content discoverable on demand, progressive disclosure restored.
+
+### Example 3: Promoting to happySKILLS
+
+User says: "Ship my load-matching skill to the team"
+
+Actions:
+1. Read `references/wiki/smart/promote/targets.md`: it cites customer lanes, so recommend happySKILLS
+2. Propose `--category development --role fde --tags freight,load-matching,dispatch`; confirm
+3. Run `bash scripts/promote.sh smart-load-matching --to happyskills --check <taxonomy flags>`; fix every FAIL
+4. Run it again without `--check`; give the user the PR URL
+
+Result: A review-ready PR into happySKILLS, filed under development › fde.
 
 ## Troubleshooting
 
@@ -152,6 +175,14 @@ Fix: verify both markers exist in `references/_index.md`, then `bash scripts/lin
 Cause: the `description:` field lacks user-facing trigger phrases.
 Fix: ask Claude "When would you use the smart-skill skill?" - it will quote the description back. Adjust until the phrases match what a user would actually type. See `references/wiki/anthropic/description/trigger-design.md`.
 
+**`scripts/promote.sh` exits 1 at the gate**
+Cause: a FAIL line - placeholder taxonomy, missing brain path in `metadata.preserve`, a credential, or similar.
+Fix: each line names the fix; `references/wiki/smart/promote/quality-gate.md` explains why it blocks. Re-run with `--check`.
+
+**`already exists in humblSKILLS@develop`**
+Cause: the registry publishes that name; promote.sh only adds net-new skills.
+Fix: rename it if it is a different skill. Changing a published skill is a normal PR, not a promotion.
+
 ## Success Signals
 
 - `scripts/lint.sh` exits 0 after scaffold and after every ingest
@@ -160,3 +191,5 @@ Fix: ask Claude "When would you use the smart-skill skill?" - it will quote the 
 - `log.md` grows by exactly one entry per session
 - `_index.md` generated block matches filesystem taxonomy (no hand-edits)
 - Scaffolded skills open with frontmatter where humblSKILLS fields live under `metadata:` and top level stays Anthropic-compliant
+- Every create ends with the promote question; every promoted skill has a category, a role (or a deliberate none on humblSKILLS), and 3+ tags
+- `scripts/promote.sh --check` reports 0 failures before any PR exists

@@ -4,9 +4,10 @@ context: smart
 category: create
 concept: workflow
 description: "Consistent skill structure from day one, zero rework later"
-tags: create, scaffold, new-skill, smart, brain
-sources: []
-last_ingested: 2026-04-16
+tags: create, scaffold, new-skill, smart, brain, promote
+sources:
+  - "references/raw/user-request-promote.md"
+last_ingested: 2026-10-02
 command: scripts/scaffold.sh
 ---
 
@@ -46,7 +47,7 @@ bash scripts/scaffold.sh <skill-name> [--scripts] [--assets] [--location persona
 
 | Flag         | Effect                                      |
 |--------------|---------------------------------------------|
-| `--scripts`  | Creates `scripts/` directory                |
+| `--scripts`  | Kept for compatibility; `scripts/` is always created |
 | `--assets`   | Creates `assets/` directory                 |
 | `--location` | `personal` (default) or `project`           |
 
@@ -54,9 +55,10 @@ The scaffold generates:
 - `SKILL.md` with Brain Protocol block pre-injected (name pre-filled)
 - `references/_template.md`, `_brain.md`
 - `references/_index.md` (seeded with sentinel markers)
-- `references/patterns.md`, `decisions.md`, `log.md`
+- `references/patterns.md`, `decisions.md` (headers only), `log.md`
 - `references/wiki/` (empty)
 - `references/raw/.gitkeep`
+- `scripts/lint.sh` (the skill's own copy; its Brain Protocol runs it)
 
 Idempotent - skips files that already exist.
 
@@ -66,6 +68,8 @@ Fill in:
 - `description` - include WHAT the skill does and WHEN to trigger it
 - `compatibility` - only if the skill requires specific env (bash, git, docker, specific runtime, network). Delete the scaffold's TODO line if not needed. See `references/wiki/smart/spec/skill-frontmatter.md`.
 - `metadata.author`, `metadata.version`
+- `metadata.category`, `metadata.role`, `metadata.tags` - how the CLI files
+  and finds the skill (`smart/promote/taxonomy.md`)
 - When-to-Use bullets
 - How-to-Use section pointing to your wiki concepts
 
@@ -106,9 +110,21 @@ bash scripts/lint.sh
 
 See `references/wiki/smart/create/validation-checklist.md` before shipping.
 
+### 8. Ask whether to promote
+
+Once the skill works, ask the user whether to promote it, and recommend one:
+
+- **humblSKILLS** - public, for skills anyone could use
+- **happySKILLS** - HappyRobot-specific skills
+- **keep it local** - nothing leaves the machine
+
+On a yes, follow `references/wiki/smart/promote/workflow.md`; it ends with
+`scripts/promote.sh` opening the pull request.
+
 ## Sources
 
-- (none) - authored from the Smart Skill architecture.
+- Steps 1-7 are authored from the Smart Skill architecture.
+- `references/raw/user-request-promote.md` - step 8, the promote question.
 
 ## Command
 

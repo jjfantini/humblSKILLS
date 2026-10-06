@@ -248,6 +248,23 @@ unreachable registry degrades to per-skill "not found" warnings.
 Every command accepts `--json` for machine-readable output and `--yes` to
 skip confirmation prompts.
 
+## Contributing a skill
+
+Built a smart skill other people should have? `smart-skill` promotes it. After
+you create a skill, your agent asks whether it belongs in **humblSKILLS**
+(public) or **happySKILLS** (HappyRobot-specific), settles its category, role,
+and tags, runs the quality gate, and opens a pull request into `develop` for
+review.
+
+```sh
+humblskills install smart-skill    # once; then tell your agent "promote my-skill", or:
+bash ~/.humblskills/skills/smart-skill/scripts/promote.sh my-skill --to humblskills --check
+bash ~/.humblskills/skills/smart-skill/scripts/promote.sh my-skill --to humblskills
+```
+
+Net-new skills only. The full flow and the quality bar are in
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Benchmarking skills: `humblskills eval`
 
 `eval` runs an up-to-four-arm benchmark of any skill — `no_skill` vs
