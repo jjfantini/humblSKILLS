@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.54.0](https://github.com/jjfantini/humblSKILLS/compare/v2.53.0...v2.54.0) (2026-10-06)
+
+
+### Features
+
+* **smart-skill:** promote net-new skills to humblSKILLS or happySKILLS ([5637776](https://github.com/jjfantini/humblSKILLS/commit/56377768028a9d3a59846d09fc50d6e7d889b59b))
+* **smart-skill:** promote net-new skills to humblSKILLS or happySKILLS ([0aa0ff4](https://github.com/jjfantini/humblSKILLS/commit/0aa0ff4f74d6a08b122d1c42f38f0a78bbae90e4))
+
+
+### Bug Fixes
+
+* **smart-skill:** scaffold ships lint.sh, preserves every brain path, starts brain files empty ([47c6864](https://github.com/jjfantini/humblSKILLS/commit/47c6864e2f740f1193a12478c3a8f6ea1b589458))
+
 ## [2.54.0-pre](https://github.com/jjfantini/humblSKILLS/compare/v2.53.0...v2.54.0-pre) (2026-10-06)
 
 
