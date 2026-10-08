@@ -18,7 +18,7 @@ license: MIT
 compatibility: "Requires git 2.5+ for worktree isolation and at least one agent CLI (claude, codex, or cursor-agent) to dispatch workers to. Network access for model calls."
 metadata:
   author: jjfantini
-  version: "1.4.0"
+  version: "1.4.1"
   category: development
   tags: [orchestration, multi-agent, subagents, planning, worktree, routing, prompting, humblskill]
   platforms: [claude-code, cursor, codex]
@@ -248,7 +248,7 @@ three tested `claude-fable-5-1-*` IDs, 0/9, 2026-09-10. For Fable, Cursor fails
 requests until an admin approves the data-retention policy.
 Fix: not retryable and not a transport failure. Have an admin approve it under
 the Cursor dashboard's `restricted_models` page, or route to a different model.
-See the five failure classes in
+See the six failure classes in
 `references/wiki/orchestrate/routing/cursor-cli-models.md`.
 
 **An unattended Opus 5.5 parent stopped mid-run after a progress update**
@@ -266,10 +266,14 @@ passed as the positional argument; cause not isolated.
 Fix: send the brief on stdin — `printf '%s' "$BRIEF" | codex exec ... -`. Use
 `--sandbox workspace-write` for workers that edit; the default is read-only.
 
-**A Cursor `gpt-*` worker suddenly fails after mid-November 2026**
-Cause: OpenAI's proposed 2026-11-12 cutoff of Cursor's model access.
-Fix: route GPT work through `codex exec`, and point `CURSOR_WORKER_MODEL` at a
-non-OpenAI ID you have measured — see `routing/cursor-cli-models.md`.
+**A Cursor `gpt-*` worker fails after mid-November 2026**
+Cause: OpenAI's proposed 2026-11-12 Cursor cutoff. Fix: route GPT work through
+`codex exec`; the dispatch script already defaults to a Claude worker.
+
+**A Cursor Opus 5.5 worker fails with `[resource_exhausted]`**
+Cause: capacity throttling - on 2026-10-08 it passed pings and failed briefs.
+Fix: the script retries with backoff (minutes, not seconds); route hard briefs
+to `claude-opus-5-thinking-high` until a re-test clears Opus 5.5.
 
 **A worker on `haiku` behaves like an older model**
 Cause: Claude Code aliases depend on the provider — on Bedrock and Google Cloud

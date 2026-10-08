@@ -15,6 +15,7 @@ sources:
   - "references/raw/anthropic-claude-code-sub-agents-2026-10-08.md"
   - "references/raw/anthropic-claude-code-model-config-2026-10-08.md"
   - "references/raw/cursor-forum-openai-models-after-nov-12-2026-10-08.md"
+  - "references/raw/cursor-cli-model-sweep-2026-10-08.md"
 last_ingested: 2026-10-08
 ---
 
@@ -30,8 +31,10 @@ cleanly. Every row below is a measured ID, not a plausible one:
 | Mid-tier, Claude Code | `claude-sonnet-5-5` | `medium`; `high` for harder briefs | 6/6 ping, 9/9 real brief |
 | Demanding, Codex | `gpt-6.1-sol` | `medium` | 6/6 ping, 9/9 real brief. "Start here for demanding agents" |
 | Hard brief, high blast radius | `claude-opus-5-5` | `low` or `medium` | 6/6. Or keep the subtask on the parent |
-| Cursor, cheapest reliable | `gpt-5.3-codex-low-fast` | n/a | 21/21 across all sweeps - **but every Cursor `gpt-*` ID is expected to disappear at OpenAI's proposed 2026-11-12 cutoff** |
-| Cursor, hard brief | `claude-opus-5-thinking-high` | n/a | 3/3, 9s (2026-08-13 build) |
+| Cursor, cheap | `claude-haiku-5-5-thinking-medium` | n/a (in the ID) | 6/6 ping, 9/9 real brief, 15s (CLI 2026.10.01). The flat `claude-haiku-5-5-medium` runs with thinking off |
+| Cursor, mid-tier | `claude-sonnet-5-5-medium` | n/a | 6/6 ping, 9/9 real brief, 18s |
+| Cursor, hard brief | `claude-opus-5-thinking-high` | n/a | 3/3 ping, 9/9 real brief, 24s (re-checked 2026-10-08). Opus 5.5 on Cursor was capacity-throttled on briefs |
+| Cursor, OpenAI until the cutoff | `gpt-5.3-codex-low-fast` | n/a | 27/27 across all sweeps - **expected to disappear at OpenAI's proposed 2026-11-12 Cursor cutoff** |
 
 **Never put a worker at `ultra`.** On Codex it makes the worker spawn its own
 subagents, which breaks parent-owned dispatch and disjoint file scopes - see
@@ -125,6 +128,7 @@ by hand, which cancels the cost saving that motivated delegation.
   behaviour, model resolution order, provider-dependent aliases.
 - `references/raw/cursor-forum-openai-models-after-nov-12-2026-10-08.md` — the
   proposed OpenAI-on-Cursor cutoff.
+- `references/raw/cursor-cli-model-sweep-2026-10-08.md` — the Cursor worker rows.
 - `references/raw/cursor-cli-model-sweep-2026-08-13.md` — the Grok and Composer
   scores that retire the old recommendation.
 - `references/raw/orchestrator-model-sweep-2026-09-10.md` — the earlier GPT-6
