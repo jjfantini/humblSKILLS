@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.55.0](https://github.com/jjfantini/humblSKILLS/compare/v2.54.0...v2.55.0) (2026-10-08)
+
+
+### Features
+
+* **smart-orchestrate:** route on Claude 5.5 and GPT-6.1 models ([187fbee](https://github.com/jjfantini/humblSKILLS/commit/187fbee49aa779a93b8e1deebdf8d22beca45b16))
+* **smart-orchestrate:** route on Claude 5.5 and GPT-6.1 models ([a698c10](https://github.com/jjfantini/humblSKILLS/commit/a698c10f29e7a5040e4a99302fc9dcc45e72e9ce))
+
+
+### Bug Fixes
+
+* **smart-orchestrate:** flag reasoning_extraction declines on Fable 5.1 ([c6ae458](https://github.com/jjfantini/humblSKILLS/commit/c6ae4586e2c3cdea648b0bab1c88f8703f218ad9))
+
 ## [2.55.0-pre](https://github.com/jjfantini/humblSKILLS/compare/v2.54.0...v2.55.0-pre) (2026-10-08)
 
 
