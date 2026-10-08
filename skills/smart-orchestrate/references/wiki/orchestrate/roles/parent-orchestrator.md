@@ -16,6 +16,7 @@ sources:
   - "references/raw/anthropic-api-and-data-retention-2026-10-08.md"
   - "references/raw/openai-codex-models-2026-10-08.md"
   - "references/raw/cursor-model-claude-opus-5-5-2026-10-08.md"
+  - "references/raw/cursor-cli-model-sweep-2026-10-08.md"
 last_ingested: 2026-10-08
 ---
 
@@ -81,7 +82,7 @@ cost/latency trade-off - see
 | Claude | **Fable 5.1** (`claude-fable-5-1`) for "demanding reasoning and long-horizon agentic work, or when your evals on Claude Opus 5.5 at higher effort still fall short." 2.5x Opus 5.5's per-token price; 30-day retention, no ZDR. | Start `high`; `medium` where evals hold |
 | Codex  | **GPT-6.1 Sol** (`gpt-6.1-sol`) is the default - OpenAI's Codex recommendation "for complex coding and agentic workflows." 6/6 on `codex-cli` 0.160.0. | `medium` (its default); `high` for the plan |
 | Codex  | **GPT-6 Astra** (`gpt-6-astra`) for the hardest, most ambiguous plans - "the strongest capability across steps and tools," at 5x 6.1 Sol's per-token price. 9/9 as the sweep control. | Codex's stated start is `low`; raise for the plan |
-| Cursor | `claude-opus-5-thinking-high` remains the strongest *measured* Cursor ID. Opus 5.5 is documented on Cursor (ZDR-compatible, recommended as "a coordinator for subagents") but was **not measured** - auth expired on 2026-10-08. | n/a (baked into the ID) |
+| Cursor | `claude-opus-5-thinking-high` - re-measured 2026-10-08 on CLI 2026.10.01: 3/3, real brief in 24s. `claude-opus-5-5-high` passed 7/7 pings but was capacity-throttled (`resource_exhausted`) on real briefs that afternoon; Cursor recommends Opus 5.5 as "a coordinator for subagents", so re-test before promoting it. | n/a (baked into the ID) |
 
 Three things not to carry over from older guidance:
 
@@ -136,7 +137,8 @@ the invariant; authorship is not.
 
 - `references/raw/orchestrate-SKILL.md` — the seven responsibilities.
 - `references/raw/orchestrator-model-sweep-2026-10-08.md` — Opus 5.5, GPT-6.1
-  Sol and GPT-6 Astra reachability; Cursor not re-measured.
+  Sol and GPT-6 Astra reachability.
+- `references/raw/cursor-cli-model-sweep-2026-10-08.md` — the Cursor parent row.
 - `references/raw/orchestrator-model-sweep-2026-09-10.md` — the earlier Astra
   and Fable 5.1 numbers.
 - `references/raw/anthropic-models-overview-2026-10-08.md` — "start with Claude
