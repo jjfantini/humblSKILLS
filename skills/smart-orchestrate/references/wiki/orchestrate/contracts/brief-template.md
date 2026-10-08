@@ -53,7 +53,7 @@ to undo.
 ```text
 Goal: Add a per-API-key rate limit to the /v1 request path.
 Worktree path: /Users/dev/proj-worktrees/feat-rate-limit
-Model: gpt-5.3-codex-low-fast
+Model: claude-haiku-5-5-thinking-medium
 Effort: n/a (baked into the Cursor ID)
 Scope (files / surfaces): internal/middleware/ratelimit.go, internal/middleware/chain.go
 Out of scope: router setup, config loading, auth middleware, any test file

@@ -201,3 +201,16 @@ Entry shape:
 [LINT 2026-10-08] 14 wiki, 30 raw. Hard: 0, Soft: 0. Regenerated _index.md.
 
 [LINT 2026-10-08] 14 wiki, 31 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[INGEST 2026-10-08] Measured the Cursor CLI after re-auth and update to 2026.10.01.
+  - Raw: cursor-cli-model-sweep-2026-10-08.md (init-event models, 6th failure
+    class, real briefs, new control).
+  - Updated: cursor-cli-models (measured table replaces the
+    documented-not-measured section, 6 failure classes), worker-agent and
+    parent-orchestrator (Cursor rows), brief-template (example ID),
+    dispatch-cursor-worker.sh (default -> claude-haiku-5-5-thinking-medium,
+    resource_exhausted retry with backoff).
+  - SKILL.md 1.4.0 -> 1.4.1: two Cursor troubleshooting entries.
+  - patterns.md: 1 entry. decisions.md: 1 entry.
+
+[LINT 2026-10-08] 14 wiki, 32 raw. Hard: 0, Soft: 0. Regenerated _index.md.

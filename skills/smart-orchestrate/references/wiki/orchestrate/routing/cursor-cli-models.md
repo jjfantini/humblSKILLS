@@ -3,12 +3,14 @@ title: "Which Cursor CLI Model IDs Are Actually Reachable"
 context: orchestrate
 category: routing
 concept: cursor-cli-models
-description: "Reliability is per-model-ID, never auto, --list-models advertises both invalid and blocked IDs - and every gpt-* row expires at OpenAI's proposed 2026-11-12 Cursor cutoff"
+description: "Reliability is per-model-ID, never auto, flat IDs run the 300K variant, a ping is not a brief - and every gpt-* row expires at OpenAI's proposed 2026-11-12 Cursor cutoff"
 tags: cursor, cursor-agent, model-selection, reliability, worker, backend, cli
 sources:
   - "references/raw/cursor-cli-model-sweep-2026-08-13.md"
   - "references/raw/orchestrator-model-sweep-2026-09-10.md"
   - "references/raw/orchestrator-model-sweep-2026-10-08.md"
+  - "references/raw/cursor-cli-model-sweep-2026-10-08.md"
+  - "references/raw/anthropic-prompting-claude-haiku-5-5-2026-10-08.md"
   - "references/raw/cursor-forum-openai-models-after-nov-12-2026-10-08.md"
   - "references/raw/cursor-cli-changelog-2026-10-08.md"
   - "references/raw/cursor-forum-cli-bracket-overrides-172338-2026-10-08.md"
@@ -29,43 +31,70 @@ Measured 2026-08-13 (`cursor-agent` 2026.08.11-e8db854, macOS arm64), 3 trials
 per arm, with `gpt-5.3-codex-low-fast` repeated as a control throughout — every
 control instance returned 3/3, so no vendor incident is confounding the numbers.
 
-## Read This First: Three Changes Since the Last Measurement (2026-10-08)
+## Read This First: Measured 2026-10-08 on CLI 2026.10.01
 
-Nothing below was re-measured on 2026-10-08 - the CLI's auth had expired - so
-the score tables are dated evidence, and these three facts bound how far to
-trust them.
+Measured after `cursor-agent update` (2026.08.25 -> 2026.10.01-e373342) with
+every dispatch's init-event `model` recorded - see
+`references/raw/cursor-cli-model-sweep-2026-10-08.md`. Controls
+`gpt-5.3-codex-low-fast` 6/6 and `gemini-3-flash` 13/13 at both ends.
 
-**1. Every `gpt-*` row has an expiry date.** OpenAI announced it will end
+| Model ID | Pings | Real brief | What ran (init event) | Verdict |
+|---|---|---|---|---|
+| `claude-haiku-5-5-thinking-medium` | 6/6, 5-6s | 9/9, 15s | Claude Haiku 5.5 300K Medium | **Cheapest reliable worker** |
+| `claude-sonnet-5-5-medium` | 6/6, 5-8s | 9/9, 18s | Claude Sonnet 5.5 300K Medium | **Mid-tier worker** |
+| `claude-opus-5-thinking-high` | 3/3, 20-28s | 9/9, 24s | Claude Opus 5 300K High | **Hard briefs** (still) |
+| `claude-opus-5-5-high` | 7/7, 7-23s | 0/2 plain; with capacity retry 1/2, 272s | Claude Opus 5.5 300K High | Throttled on real briefs - re-test |
+| `claude-opus-5-5-medium-fast` | 4/6 | - | Claude Opus 5.5 300K Medium Fast | `resource_exhausted` |
+| `claude-opus-5-5-medium` | 1/6 | - | Claude Opus 5.5 300K Medium | `resource_exhausted` |
+| `claude-haiku-5-5-medium` | 3/3 | - | ... Medium **No Thinking** | Thinking off - prefer the `-thinking-` ID |
+| `claude-haiku-5-5-xhigh` | 2/2 | - | ... Extra High **No Thinking** | Do not use: Anthropic returns 400 for thinking-off at `xhigh`, so what Cursor sends is unknown |
+| `claude-fable-5-1-high` | 0/3 | - | Fable 5.1 300K High No Thinking | `Model Blocked` (entitlement, unchanged) |
+| `grok-4.7-high` | 1/3 | - | Grok 4.7 256K High | stream teardown |
+| `grok-4.7-low-fast` | 0/3 | - | Grok 4.7 256K Low Fast | stream teardown |
+| `composer-2.5` | 0/3 | - | Composer 2.5 | stream teardown |
+
+Five things this sweep established:
+
+**1. Flat IDs run the 300K variant, whatever the label says.** Every Claude
+flat ID ran a "300K" model, although `--list-models` labels the Opus and Fable
+IDs "1M". Thinking shows in the init name too: flat Haiku and Fable IDs ran
+"No Thinking"; use the `-thinking-` IDs where thinking matters.
+
+**2. A ping is not a brief on Opus 5.5.** Opus 5.5 `high` passed every ping and
+failed real briefs with `RetriableError: [resource_exhausted]` until the
+retry-with-backoff added to `scripts/dispatch-cursor-worker.sh` got one through
+in 4.5 minutes. Opus 5 thinking-high did the same brief in 24s. Route hard
+Cursor briefs to `claude-opus-5-thinking-high` until a re-test shows Opus 5.5
+taking briefs without retries.
+
+**3. Every `gpt-*` row has an expiry date.** OpenAI announced it will end
 Cursor's model access after SpaceX acquired Cursor; "The proposed cutoff date is
-**November 12, 2026**, although it is not yet final." No new OpenAI model has
-reached Cursor - there is no GPT-6, Astra, Sol 6.x or Luna 6 ID at all - and a
-bring-your-own OpenAI key "will not cover features such as Tab, Auto, Cloud
-Agents, Automations, or Cursor CLI." Route GPT-6 briefs to the Codex CLI. The
-sweep control `gpt-5.3-codex-low-fast` dies with the rest, so the next sweep
-needs a non-OpenAI control: `claude-4.6-sonnet-medium` or `gemini-3-flash`, both
-3/3 in the August sweep, are the candidates - re-establish one at n>=6 first.
+**November 12, 2026**, although it is not yet final." No GPT-6 ID exists on
+Cursor (256 IDs, none match), and a bring-your-own OpenAI key "will not cover
+features such as Tab, Auto, Cloud Agents, Automations, or Cursor CLI." Route
+GPT-6 briefs to the Codex CLI. **The sweep control is now `gemini-3-flash`**
+(16/16 lifetime); keep `gpt-5.3-codex-low-fast` alongside it only until the
+cutoff.
 
-**2. Rows from builds before v2026.09.28 prove the transport, not the model.**
+**4. Grok and Composer are still broken on the CLI.** Grok 4.7 - now Cursor's
+flagship and without the `cursor-` prefix - scored 1/6 across two tiers, and
+`composer-2.5` 0/3, all stream teardowns. The pattern from Grok 4.5 / 4.6
+carried straight over.
+
+**5. Rows from builds before v2026.09.28 prove the transport, not the model.**
 The v2026.09.28 changelog: "The CLI runs the exact model you pick. `--model`
 and `/model` now run the model you choose even when its ID starts with another
 model's ID. Previously the CLI could silently run the shorter base model
-instead." Every sweep in this concept ran on 2026.08.11 or 2026.08.25, and many
-measured IDs begin with a shorter valid ID (`claude-opus-5` is a prefix of
-`claude-opus-5-thinking-high`). A pass there shows *a* model answered. Update
-the CLI (`agent update`; the installer now pins 2026.10.01-e373342) and confirm
-which model ran from the `model` field of the first `system`/`init` event in
-`--output-format stream-json`.
+instead." The older tables below ran on 2026.08.11 / 2026.08.25. Re-measure a
+row on 2026.09.28+ with the init event before relying on it; the four re-checked
+today (Codex 5.3 Low Fast, Gemini 3 Flash, Opus 5 thinking-high, Fable 5.1)
+ran the model their ID names.
 
-**3. The new Claude models are documented, not measured.** Cursor documents
-Opus 5.5 ("Zero Data Retention compatible"; "Works well as a coordinator for
-subagents"), Sonnet 5.5 and Haiku 5.5, but publishes no flat CLI slug list for
-them. Staff on the forum: "`--model` only accepts the full variant string (base
-id plus every parameter, in order)," for example
-`'claude-opus-4-8[thinking=true,context=1m,effort=high,fast=false]'`, and "The
-flat `claude-sonnet-5-high` id resolves to the 300K variant" with no thinking.
-So a flat `claude-opus-5-5-high` may not be the thinking variant Cursor
-recommends. Take exact IDs from `agent models` after updating, and treat
-everything else here as DOCUMENTED-NOT-MEASURED.
+The `--model` variant-string syntax is also documented by Cursor staff -
+"`--model` only accepts the full variant string (base id plus every parameter,
+in order)," e.g.
+`'claude-opus-4-8[thinking=true,context=1m,effort=high,fast=false]'` - and is
+the only way to get the 1M context from the CLI. It was not measured here.
 
 ## Never Dispatch on `auto`
 
@@ -147,9 +176,9 @@ All 3/3. Prefer these; they are ordered by measured latency.
 
 | Model ID | avg | Note |
 |---|---|---|
-| `gpt-5.3-codex-low-fast` | 4-7s | Control arm, 21/21 across all sweeps. Cheapest reliable worker slot. |
+| `gpt-5.3-codex-low-fast` | 4-7s | 27/27 across all sweeps. Expires with the proposed 2026-11-12 OpenAI cutoff; `claude-haiku-5-5-thinking-medium` replaces it as the cheap slot. |
 | `glm-5.2-high` | 4s | |
-| `gemini-3-flash` | 4s | |
+| `gemini-3-flash` | 4s | The sweep control from 2026-10-08 (16/16). |
 | `gpt-5.6-luna-high` | 5s | Fastest GPT-5.6 tier. Tool use confirmed on a real brief. |
 | `gpt-5.4-medium-fast` | 5s | |
 | `gpt-5.4-mini-medium` | 5s | |
@@ -169,7 +198,7 @@ All 3/3. Prefer these; they are ordered by measured latency.
 | `claude-4-sonnet` | 7s | |
 | `claude-sonnet-5-medium` | 8s | Anthropic — see caveat below |
 | `claude-fable-5-medium` | 8s | 3/3 on 2026-08-13, but the whole Fable family was **entitlement-blocked** on the same account on 2026-09-10. Do not route here without re-pinging. |
-| `claude-opus-5-thinking-high` | 9s | Strongest verified worker. Use for hard briefs. |
+| `claude-opus-5-thinking-high` | 9s | Strongest verified worker. Use for hard briefs. Re-confirmed 2026-10-08 on 2026.10.01 (20-28s, real brief 24s). |
 | `gemini-3.1-pro` | 9s | |
 | `cursor-grok-4.5-low-fast` | 9s | 9/9. The ONLY reliable Grok ID of 14 tested. |
 | `gemini-3.5-flash` | 10s | |
@@ -185,7 +214,7 @@ All 3/3. Prefer these; they are ordered by measured latency.
 | `gpt-5.4-nano-medium` | 0/3 | invalid ID |
 | `gpt-5.4-nano-low` | 0/1 | invalid ID |
 | `claude-opus-4-7-medium-fast` | 0/3 | provider error |
-| `composer-2.5` | 1/4 | stream teardown |
+| `composer-2.5` | 1/4, then 0/3 on 2026-10-08 | stream teardown |
 | `composer-2.5-fast` | 1/3 | stream teardown |
 | `cursor-grok-4.5-high-fast` | 7/9 | stream teardown — passed 3/3 once, then 4/6. Not reliable. |
 | `cursor-grok-4.5-low` | 1/3 | stream teardown |
@@ -208,7 +237,7 @@ Grok 4.6 came in around 3/24 with every single tier failing, and Grok 4.5 around
 otherwise broken family — there is no cheaper Grok fallback if it regresses, so
 prefer a GPT ID for anything load-bearing.
 
-## Five Failure Classes, and the Retry Policy for Each
+## Six Failure Classes, and the Retry Policy for Each
 
 This mapping is the actionable part; the score tables are supporting evidence.
 
@@ -216,7 +245,8 @@ This mapping is the actionable part; the score tables are supporting evidence.
 |---|---|---|
 | `ActionRequiredError: AI Model Not Found` | ~3-4s | **No.** The ID is invalid. Retrying burns every attempt. Fix the ID. |
 | `ActionRequiredError: Model Blocked` | ~3-13s | **No.** The ID is valid; this *account* isn't entitled to it. For Fable, "requests to these models fail until the model's data retention policy is approved" - an admin approves it under the dashboard's `restricted_models` page. Otherwise route to a different model. |
-| `RetriableError: WritableIterable is closed` | ~26-48s | **Yes** — this is the only retryable class. |
+| `RetriableError: WritableIterable is closed` | ~26-48s | **Yes** — stream teardown before any work. |
+| `RetriableError: [resource_exhausted] Error` | ~22-28s | **Yes, with backoff** — provider capacity (or a team quota; the client cannot tell). Seen only on Opus 5.5, 2026-10-08. The script backs off 15s x attempt. |
 | `NonRetriableError: Provider Error` | ~3s | **No.** Upstream is down. Vendor labels it non-retriable; switch model or wait. |
 | `auto` producing any of the above | ~31s | **No.** Pass an explicit `--model` instead. |
 
@@ -231,10 +261,11 @@ Blocked` row in this table is a fact about the measured account, not about the
 model — unlike an invalid ID, which is wrong everywhere. Re-check it yourself
 before concluding a model is unavailable to you.
 
-`scripts/dispatch-cursor-worker.sh` implements exactly this: it greps for
-`WritableIterable is closed` and retries only that, surfacing everything else to
-the parent immediately — so the new `Model Blocked` class already fails loudly
-on the first attempt without a script change.
+`scripts/dispatch-cursor-worker.sh` implements exactly this: it retries
+`WritableIterable is closed` immediately and `resource_exhausted` with backoff,
+and surfaces everything else to the parent on the first attempt - so `Model
+Blocked` and invalid IDs still fail loudly. The dirty-tree guard applies to both
+retryable classes.
 
 ## A Ping Proves the Transport, Not Tool Use
 
@@ -271,8 +302,13 @@ hypothesis, not a fact.
 - `references/raw/orchestrator-model-sweep-2026-09-10.md` — the Fable 5.1
   entitlement block, the fifth failure class, and GPT-6 Astra's absence from the
   227-ID list.
-- `references/raw/orchestrator-model-sweep-2026-10-08.md` — why nothing was
-  re-measured on 2026-10-08.
+- `references/raw/cursor-cli-model-sweep-2026-10-08.md` — the 2026-10-08
+  measurement on CLI 2026.10.01: init-event models, the `resource_exhausted`
+  class, real briefs, the `gemini-3-flash` control.
+- `references/raw/anthropic-prompting-claude-haiku-5-5-2026-10-08.md` — why
+  `claude-haiku-5-5-xhigh` "No Thinking" cannot be what it says.
+- `references/raw/orchestrator-model-sweep-2026-10-08.md` — the morning run,
+  when Cursor auth had expired.
 - `references/raw/cursor-forum-openai-models-after-nov-12-2026-10-08.md` — the
   proposed OpenAI cutoff. OpenAI's own announcement returned 403 to `curl`, so
   this forum summary of it is the saved source.

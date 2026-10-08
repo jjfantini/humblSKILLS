@@ -152,3 +152,10 @@ Entry shape:
 - Chose: B.
 - Why: same reasoning as the 2026-09-10 Grok/auto retirement - a reader who remembers the old claim needs to see it was withdrawn on evidence. The second error is the more important lesson: a September audit that only diffed fenced blocks passed a fabricated inline attribution.
 - Result: both corrected with a note. The audit now checks every fenced `text` block and every inline quote of four or more words against the concept's cited sources; remaining misses are illustrative examples only.
+
+### 2026-10-08 | Switch the Cursor dispatch default to Haiku 5.5 now, and keep Opus 5 thinking-high as the hard-brief ID over Opus 5.5
+- Context: `scripts/dispatch-cursor-worker.sh` defaulted to `gpt-5.3-codex-low-fast` (27/27 lifetime), which OpenAI's proposed 2026-11-12 cutoff will remove. Separately, Opus 5.5 is Anthropic's default parent and Cursor's recommended coordinator, and passed every ping on Cursor, but was throttled on real briefs.
+- Options: (A) keep the gpt-5.3 default until it breaks, (B) switch the default now to the cheapest measured non-OpenAI worker, (C) switch to Opus 5.5 because it is the vendor's recommendation. For hard briefs: (D) promote `claude-opus-5-5-high` on its 7/7 pings, (E) keep `claude-opus-5-thinking-high`, which took the same brief in 24s.
+- Chose: B and E.
+- Why: (A) makes the default fail on a known date with an error class (`Model Not Found` or similar) the script does not retry - a predictable outage. `claude-haiku-5-5-thinking-medium` clears the n>=6 rule and a real brief, and its `-thinking-` form avoids the flat ID's thinking-off variant. (C) and (D) repeat the 2026-08-13 lesson in a new shape: a ping proves transport, and only the brief exposed `resource_exhausted`. Vendor recommendation is not reachability.
+- Result: default changed; script now retries `resource_exhausted` with linear backoff (ponytail-marked; exponential if it keeps biting). Re-test Opus 5.5 on a real brief before promoting it on Cursor.

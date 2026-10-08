@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-08T15:43:13Z",
+  "generated_at": "2026-10-08T19:55:08Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "c6ae4586e2c3cdea648b0bab1c88f8703f218ad9"
+    "sha": "499863608f05559e18cede3644fcc2fe2577326c"
   },
   "skills": [
     {
@@ -648,7 +648,7 @@
     },
     {
       "name": "smart-orchestrate",
-      "version": "1.4.0",
+      "version": "1.4.1",
       "description": "Run a frontier-parent / cost-optimized-worker orchestration pattern across the Claude, Codex, and Cursor CLIs: decide whether to orchestrate at all, plan on a strong model, isolate in a worktree, dispatch bounded briefs to cheaper workers, and verify the whole. Carries the current measured lineup - Claude Opus 5.5 / Fable 5.1 parents with Sonnet 5.5 / Haiku 5.5 workers, GPT-6.1 Sol / GPT-6 Astra parents with GPT-6 Luna workers - and each vendor's official prompting practice for effort, autonomy, delegation and verification. Use when the user says \"orchestrate this\", \"farm this out to subagents\", \"plan then gate execution\", \"parent orchestrator\", \"multi-agent this feature\", \"which model should the orchestrator be\", or wants planning split from implementation across model tiers. Do NOT use for a single-file edit, for authoring commits (use smart-commit), or for the worktree/PR mechanics themselves (use smart-worktree-flow).\n",
       "category": "development",
       "tags": [
@@ -674,7 +674,7 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-orchestrate",
-      "dir_sha": "d4e70dee340ca9a4716e2900b49d33eeceb8a31e790ffe5be2235ea4f4271376"
+      "dir_sha": "ab637bb0aace2dfbcaa348a4c75d0827e5546077d744827d144532129cb79290"
     },
     {
       "name": "smart-skill",

@@ -10,19 +10,21 @@
 # closed" and exiting 1 after ~30s.
 #
 # THE PRIMARY FIX IS THE MODEL, NOT THE RETRY. See the full measured table in
-# references/wiki/orchestrate/routing/cursor-cli-models.md (30 verified-good
-# IDs, 19 verified-bad, measured 2026-08-13 with controls). Headlines:
+# references/wiki/orchestrate/routing/cursor-cli-models.md (measured 2026-08-13
+# and re-measured 2026-10-08 on CLI 2026.10.01, with controls). Headlines:
 #
 #   NEVER  auto                        0/12  never succeeded once
 #   NEVER  any cursor-grok-4.6-*       ~3/24 across all 8 tiers
-#   NEVER  composer-2.5[-fast]         1/4, 1/3
+#   NEVER  composer-2.5[-fast]         1/4, 1/3, 0/3 again on 2026-10-08
+#   NEVER  grok-4.7-*                  1/6 across two tiers, stream teardown
 #   NEVER  gpt-5.4-nano-*              invalid ID - --list-models over-reports
-#   GOOD   gpt-5.3-codex-low-fast      21/21  4-7s  <- the default below
-#          (every gpt-* ID is expected to leave Cursor at OpenAI's proposed
-#          2026-11-12 cutoff - set CURSOR_WORKER_MODEL to a measured non-OpenAI
-#          ID then, and route GPT-6 briefs to `codex exec` instead)
+#   GOOD   claude-haiku-5-5-thinking-medium  6/6  5-6s  <- the default below
+#          (real brief 15s; replaced gpt-5.3-codex-low-fast, 27/27, because
+#          every gpt-* ID is expected to leave Cursor at OpenAI's proposed
+#          2026-11-12 cutoff - route GPT-6 briefs to `codex exec` instead)
+#   GOOD   claude-sonnet-5-5-medium     6/6   5-8s  mid-tier
 #   GOOD   gpt-5.6-luna-high            3/3   5s    fastest verified
-#   GOOD   claude-opus-5-thinking-high  3/3   9s    hard briefs
+#   GOOD   claude-opus-5-thinking-high  3/3   9-28s hard briefs (Opus 5.5 throttled)
 #   GOOD   cursor-grok-4.5-low-fast     9/9   9s    only safe Grok ID
 #
 # `auto` lets Cursor route to whatever provider it likes, including one that is
@@ -40,7 +42,7 @@ set -uo pipefail
 
 WORKTREE="${1:?worktree path required}"
 BRIEF_FILE="${2:?brief file required}"
-MODEL="${3:-${CURSOR_WORKER_MODEL:-gpt-5.3-codex-low-fast}}"
+MODEL="${3:-${CURSOR_WORKER_MODEL:-claude-haiku-5-5-thinking-medium}}"
 MAX_ATTEMPTS="${CURSOR_WORKER_ATTEMPTS:-6}"
 
 BRIEF="$(cat "$BRIEF_FILE")"
@@ -68,9 +70,12 @@ for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
     exit 0
   fi
 
-  # Only the transport failure is retryable. Anything else is a real error the
-  # parent must read, not paper over.
-  if ! printf '%s' "$out" | grep -q 'WritableIterable is closed'; then
+  # Only the transport failure and provider capacity are retryable. Anything
+  # else is a real error the parent must read, not paper over.
+  # ponytail: linear backoff on resource_exhausted; exponential if it keeps biting.
+  if printf '%s' "$out" | grep -q 'resource_exhausted'; then
+    sleep $((attempt * 15))
+  elif ! printf '%s' "$out" | grep -q 'WritableIterable is closed'; then
     echo "cursor-worker: non-transport failure (rc=$rc), not retrying:" >&2
     printf '%s\n' "$out" >&2
     exit "$rc"
@@ -83,7 +88,7 @@ for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
     exit 3
   fi
 
-  echo "cursor-worker: attempt $attempt/$MAX_ATTEMPTS lost the stream, retrying." >&2
+  echo "cursor-worker: attempt $attempt/$MAX_ATTEMPTS failed retryably (stream or capacity), retrying." >&2
 done
 
 echo "cursor-worker: gave up after $MAX_ATTEMPTS attempts." >&2
