@@ -17,7 +17,10 @@
 #   NEVER  any cursor-grok-4.6-*       ~3/24 across all 8 tiers
 #   NEVER  composer-2.5[-fast]         1/4, 1/3
 #   NEVER  gpt-5.4-nano-*              invalid ID - --list-models over-reports
-#   GOOD   gpt-5.3-codex-low-fast      15/15  4-7s  <- the default below
+#   GOOD   gpt-5.3-codex-low-fast      21/21  4-7s  <- the default below
+#          (every gpt-* ID is expected to leave Cursor at OpenAI's proposed
+#          2026-11-12 cutoff - set CURSOR_WORKER_MODEL to a measured non-OpenAI
+#          ID then, and route GPT-6 briefs to `codex exec` instead)
 #   GOOD   gpt-5.6-luna-high            3/3   5s    fastest verified
 #   GOOD   claude-opus-5-thinking-high  3/3   9s    hard briefs
 #   GOOD   cursor-grok-4.5-low-fast     9/9   9s    only safe Grok ID

@@ -3,12 +3,19 @@ title: "Which Cursor CLI Model IDs Are Actually Reachable"
 context: orchestrate
 category: routing
 concept: cursor-cli-models
-description: "Reliability is per-model-ID, never auto, and --list-models advertises both invalid IDs and IDs your account is blocked from"
+description: "Reliability is per-model-ID, never auto, --list-models advertises both invalid and blocked IDs - and every gpt-* row expires at OpenAI's proposed 2026-11-12 Cursor cutoff"
 tags: cursor, cursor-agent, model-selection, reliability, worker, backend, cli
 sources:
   - "references/raw/cursor-cli-model-sweep-2026-08-13.md"
   - "references/raw/orchestrator-model-sweep-2026-09-10.md"
-last_ingested: 2026-09-10
+  - "references/raw/orchestrator-model-sweep-2026-10-08.md"
+  - "references/raw/cursor-forum-openai-models-after-nov-12-2026-10-08.md"
+  - "references/raw/cursor-cli-changelog-2026-10-08.md"
+  - "references/raw/cursor-forum-cli-bracket-overrides-172338-2026-10-08.md"
+  - "references/raw/cursor-model-claude-opus-5-5-2026-10-08.md"
+  - "references/raw/cursor-model-claude-fable-5-1-2026-10-08.md"
+  - "references/raw/cursor-enterprise-privacy-data-governance-2026-10-08.md"
+last_ingested: 2026-10-08
 ---
 
 ## This Concept Is About Backend Reachability, Not Task Difficulty
@@ -21,6 +28,44 @@ pick an ID from this table.
 Measured 2026-08-13 (`cursor-agent` 2026.08.11-e8db854, macOS arm64), 3 trials
 per arm, with `gpt-5.3-codex-low-fast` repeated as a control throughout — every
 control instance returned 3/3, so no vendor incident is confounding the numbers.
+
+## Read This First: Three Changes Since the Last Measurement (2026-10-08)
+
+Nothing below was re-measured on 2026-10-08 - the CLI's auth had expired - so
+the score tables are dated evidence, and these three facts bound how far to
+trust them.
+
+**1. Every `gpt-*` row has an expiry date.** OpenAI announced it will end
+Cursor's model access after SpaceX acquired Cursor; "The proposed cutoff date is
+**November 12, 2026**, although it is not yet final." No new OpenAI model has
+reached Cursor - there is no GPT-6, Astra, Sol 6.x or Luna 6 ID at all - and a
+bring-your-own OpenAI key "will not cover features such as Tab, Auto, Cloud
+Agents, Automations, or Cursor CLI." Route GPT-6 briefs to the Codex CLI. The
+sweep control `gpt-5.3-codex-low-fast` dies with the rest, so the next sweep
+needs a non-OpenAI control: `claude-4.6-sonnet-medium` or `gemini-3-flash`, both
+3/3 in the August sweep, are the candidates - re-establish one at n>=6 first.
+
+**2. Rows from builds before v2026.09.28 prove the transport, not the model.**
+The v2026.09.28 changelog: "The CLI runs the exact model you pick. `--model`
+and `/model` now run the model you choose even when its ID starts with another
+model's ID. Previously the CLI could silently run the shorter base model
+instead." Every sweep in this concept ran on 2026.08.11 or 2026.08.25, and many
+measured IDs begin with a shorter valid ID (`claude-opus-5` is a prefix of
+`claude-opus-5-thinking-high`). A pass there shows *a* model answered. Update
+the CLI (`agent update`; the installer now pins 2026.10.01-e373342) and confirm
+which model ran from the `model` field of the first `system`/`init` event in
+`--output-format stream-json`.
+
+**3. The new Claude models are documented, not measured.** Cursor documents
+Opus 5.5 ("Zero Data Retention compatible"; "Works well as a coordinator for
+subagents"), Sonnet 5.5 and Haiku 5.5, but publishes no flat CLI slug list for
+them. Staff on the forum: "`--model` only accepts the full variant string (base
+id plus every parameter, in order)," for example
+`'claude-opus-4-8[thinking=true,context=1m,effort=high,fast=false]'`, and "The
+flat `claude-sonnet-5-high` id resolves to the 300K variant" with no thinking.
+So a flat `claude-opus-5-5-high` may not be the thinking variant Cursor
+recommends. Take exact IDs from `agent models` after updating, and treat
+everything else here as DOCUMENTED-NOT-MEASURED.
 
 ## Never Dispatch on `auto`
 
@@ -170,10 +215,15 @@ This mapping is the actionable part; the score tables are supporting evidence.
 | Error | Speed | Retry? |
 |---|---|---|
 | `ActionRequiredError: AI Model Not Found` | ~3-4s | **No.** The ID is invalid. Retrying burns every attempt. Fix the ID. |
-| `ActionRequiredError: Model Blocked` | ~3-13s | **No.** The ID is valid; this *account* isn't entitled to it. Only an admin enabling the model fixes it. Route to a different model. |
+| `ActionRequiredError: Model Blocked` | ~3-13s | **No.** The ID is valid; this *account* isn't entitled to it. For Fable, "requests to these models fail until the model's data retention policy is approved" - an admin approves it under the dashboard's `restricted_models` page. Otherwise route to a different model. |
 | `RetriableError: WritableIterable is closed` | ~26-48s | **Yes** — this is the only retryable class. |
 | `NonRetriableError: Provider Error` | ~3s | **No.** Upstream is down. Vendor labels it non-retriable; switch model or wait. |
 | `auto` producing any of the above | ~31s | **No.** Pass an explicit `--model` instead. |
+
+A passing Fable ping on Cursor is weaker evidence than it looks: "When a
+request trips one of those guardrails, Cursor routes it to Claude Opus
+automatically so your work continues without an error." Check the init event's
+`model` field, not the exit code.
 
 `Model Blocked` is the only class that is **environment-specific**: the same ID
 may be 3/3 on another Cursor account whose admin has enabled it. So a `Model
@@ -221,3 +271,17 @@ hypothesis, not a fact.
 - `references/raw/orchestrator-model-sweep-2026-09-10.md` — the Fable 5.1
   entitlement block, the fifth failure class, and GPT-6 Astra's absence from the
   227-ID list.
+- `references/raw/orchestrator-model-sweep-2026-10-08.md` — why nothing was
+  re-measured on 2026-10-08.
+- `references/raw/cursor-forum-openai-models-after-nov-12-2026-10-08.md` — the
+  proposed OpenAI cutoff. OpenAI's own announcement returned 403 to `curl`, so
+  this forum summary of it is the saved source.
+- `references/raw/cursor-cli-changelog-2026-10-08.md` — the prefix-ID fix in
+  v2026.09.28 and the team-restriction exit.
+- `references/raw/cursor-forum-cli-bracket-overrides-172338-2026-10-08.md` —
+  staff-confirmed `--model` variant syntax.
+- `references/raw/cursor-model-claude-opus-5-5-2026-10-08.md` and
+  `references/raw/cursor-model-claude-fable-5-1-2026-10-08.md` — Opus 5.5 ZDR and
+  coordinator notes; Fable approval and silent Opus fallback.
+- `references/raw/cursor-enterprise-privacy-data-governance-2026-10-08.md` —
+  which models fall outside Cursor's ZDR agreements.
