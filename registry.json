@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-08T15:38:38Z",
+  "generated_at": "2026-10-08T15:43:13Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "97dad7dcac74c1da4cfa8026a831b91e5f76d966"
+    "sha": "c6ae4586e2c3cdea648b0bab1c88f8703f218ad9"
   },
   "skills": [
     {
@@ -674,7 +674,7 @@
         "references/patterns.md"
       ],
       "path": "skills/smart-orchestrate",
-      "dir_sha": "5238ebe0fff3526516d13cce008fe98972fc6bf1961645789674b25a9b5f2465"
+      "dir_sha": "d4e70dee340ca9a4716e2900b49d33eeceb8a31e790ffe5be2235ea4f4271376"
     },
     {
       "name": "smart-skill",
