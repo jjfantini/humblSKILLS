@@ -1,5 +1,5 @@
 ---
-title: "Eleven Orchestration Anti-Patterns and What Each Costs"
+title: "Fourteen Orchestration Anti-Patterns and What Each Costs"
 context: orchestrate
 category: anti-patterns
 concept: avoid
@@ -9,10 +9,14 @@ sources:
   - "references/raw/orchestrate-SKILL.md"
   - "references/raw/anthropic-prompting-claude-fable-5-1-2026-09-10.md"
   - "references/raw/openai-gpt-6-astra-latest-model-2026-09-10.md"
-last_ingested: 2026-09-10
+  - "references/raw/anthropic-optimizing-for-cost-and-intelligence-2026-10-08.md"
+  - "references/raw/openai-codex-models-2026-10-08.md"
+  - "references/raw/cursor-cli-changelog-2026-10-08.md"
+  - "references/raw/cursor-model-claude-fable-5-1-2026-10-08.md"
+last_ingested: 2026-10-08
 ---
 
-## The Eleven
+## The Fourteen
 
 | Anti-pattern | What it actually costs |
 |---|---|
@@ -27,20 +31,26 @@ last_ingested: 2026-09-10
 | Naming a model in the brief but not an effort level | The dominant cost variable stays at the harness default (usually `high`), so a mechanical rename pays frontier thinking |
 | Reusing one prompt appendix across vendors | The two frontier families need **opposite** delegation nudges; a shared "don't spawn subagents" line brakes the model that was already under-delegating |
 | Adopting a model ID because `--list-models` or a docs page lists it | Listing proves neither validity nor entitlement. Measured 2026-09-10: all ten `claude-fable-5-1-*` IDs listed, 0/9 on dispatch |
+| Orchestrating work one model could do at lower effort | Anthropic measured it: "On work a single model could handle alone, the same model at lower effort was cheaper every time." The coordination overhead buys nothing |
+| Running a worker at Codex `ultra` | The worker spawns its own subagents - on its own model unless configured - so parent-owned dispatch and disjoint file scopes both break |
+| Treating a passing ping as proof of which model answered | Cursor builds before v2026.09.28 could silently run a shorter base model, and Cursor reroutes guardrail-tripping Fable requests to Opus. Read the `model` field of the init event |
 
 ## The Pattern Behind the Pattern
 
-Seven of the eleven are the same mistake: **a boundary that was supposed to be
+Seven of the fourteen are the same mistake: **a boundary that was supposed to be
 explicit was left implicit**. Scope, file ownership, commit authority, return
 shape, and now effort level are all cheap to state at dispatch time and
 expensive to reconstruct afterwards.
 
 Two — parent-does-everything and skipped verification — are the degenerate cases
 where orchestration collapses back into a single undifferentiated stream, at
-which point the frontier model is paying for typing.
+which point the frontier model is paying for typing. Their mirror image is
+orchestrating work that never needed splitting: the cheapest correct answer is
+often one model with its effort turned down.
 
-The last two are newer and share a root: **treating a model as a name rather
-than a measured, entitled, prompt-shaped backend.** A vendor's docs tell you how
+Three more - the shared appendix, the listed-not-measured ID, and the
+unverified ping - share a root: **treating a model as a name rather than a
+measured, entitled, prompt-shaped backend.** A vendor's docs tell you how
 a model behaves; only a ping tells you whether your account can reach it, and
 only the vendor's own guide tells you which default it will under-deliver on.
 
@@ -49,4 +59,10 @@ only the vendor's own guide tells you which default it will under-deliver on.
 - `references/raw/orchestrate-SKILL.md` — the original eight.
 - `references/raw/anthropic-prompting-claude-fable-5-1-2026-09-10.md` and
   `references/raw/openai-gpt-6-astra-latest-model-2026-09-10.md` — the opposite
-  delegation defaults behind anti-pattern ten.
+  delegation defaults behind the shared-appendix row.
+- `references/raw/anthropic-optimizing-for-cost-and-intelligence-2026-10-08.md`
+  — lower effort beats orchestrating single-model work.
+- `references/raw/openai-codex-models-2026-10-08.md` — what `ultra` does.
+- `references/raw/cursor-cli-changelog-2026-10-08.md` and
+  `references/raw/cursor-model-claude-fable-5-1-2026-10-08.md` — the prefix-ID
+  bug and the silent Fable-to-Opus reroute.

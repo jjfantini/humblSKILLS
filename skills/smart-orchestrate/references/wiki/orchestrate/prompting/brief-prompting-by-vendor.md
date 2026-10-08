@@ -3,13 +3,18 @@ title: "Which Vendor Prompt Lines Belong in a Worker Brief"
 context: orchestrate
 category: prompting
 concept: brief-prompting-by-vendor
-description: "The brief template is vendor-neutral; the fix for a given model's default failure is not - and two vendors need opposite delegation nudges"
+description: "The brief template is vendor-neutral; the fix for a given model's default failure is not - Fable over-delegates, GPT-6 under-delegates, and the cheap Claude workers stop early"
 tags: brief, prompting, vendor, anthropic, openai, delegation, dispatch
 sources:
   - "references/raw/anthropic-prompting-claude-fable-5-1-2026-09-10.md"
   - "references/raw/openai-gpt-6-astra-latest-model-2026-09-10.md"
   - "references/raw/orchestrate-SKILL.md"
-last_ingested: 2026-09-10
+  - "references/raw/anthropic-prompting-claude-opus-5-5-2026-10-08.md"
+  - "references/raw/anthropic-prompting-claude-sonnet-5-5-2026-10-08.md"
+  - "references/raw/anthropic-prompting-claude-haiku-5-5-2026-10-08.md"
+  - "references/raw/openai-latest-model-2026-10-08.md"
+  - "references/raw/anthropic-prompting-claude-fable-5-1-2026-10-08.md"
+last_ingested: 2026-10-08
 ---
 
 ## The Brief Stays Vendor-Neutral; the Appendix Does Not
@@ -32,20 +37,27 @@ paying frontier thinking.
 
 ## The Vendor Defaults Point in Opposite Directions
 
-| | Claude Fable 5.1 | GPT-6 Astra |
-|---|---|---|
-| Subagent delegation | Over-delegates; **damp** it | Under-delegates; **encourage** it |
-| Asking vs assuming | Assumes and continues; may end a turn describing next steps | Asks a clarifying question and stops |
-| File edits | Rewrites whole files more than needed | — |
-| Testing | Commits more tests than asked | Runs broader test suites than the change warrants |
-| Formatting | Uses *less* bold/lists than earlier models | Uses *more* lists/tables/Markdown |
-| Instruction sensitivity | — | Highly sensitive to `AGENTS.md` / skill files; can stall silently |
+| | Claude Fable 5.1 | Claude Opus 5.5 | Claude Sonnet 5.5 / Haiku 5.5 | GPT-6 family (Astra, 6.1 Sol, Luna) |
+|---|---|---|---|---|
+| Subagent delegation | Over-delegates; **damp** it | Not documented; the Opus 5 damping block is the stated starting point | Sonnet at `xhigh`/`max` launches its own reviewer subagents; **stop** it | Under-delegates; **encourage** it - and never run a worker at `ultra` |
+| Asking vs assuming | Assumes and continues; may end a turn describing next steps | Ends turns on a text-only progress update; the harness must nudge | Checks in early at `low`/`medium` on long tasks | Asks a clarifying question and stops |
+| Scope | Rewrites whole files more than needed | - | Sonnet adds unrequested tests, docs and files at every effort | - |
+| Testing | Commits more tests than asked | - | Skips the check at `low` (Haiku also at `medium`) | Runs broader test suites than the change warrants |
+| Formatting | Uses *less* bold/lists than earlier models | - | - | Uses *more* lists/tables/Markdown |
+| Instruction sensitivity | - | - | - | Highly sensitive to `AGENTS.md` / skill files; can stall silently |
+| "Show your reasoning" in a brief | May be declined (`reasoning_extraction`) | May be declined (`reasoning_extraction`) | Sonnet: may be declined | - |
+
+A dash means the vendor's current guide says nothing about that behaviour for
+that model - not that the behaviour is absent. Fill a cell from a vendor page or
+a measurement, never by analogy with a sibling model.
 
 The delegation row is the trap. A prompt library that carries one
 "don't spawn subagents unnecessarily" line and pastes it into every brief brakes
 the model that was already under-delegating, while the formatting row means an
 anti-formatting rule written for an older Claude will over-correct Fable 5.1
-into wall-of-text handoffs.
+into wall-of-text handoffs. The two cheap Claude workers fail in the opposite
+direction to Fable: they stop *early*, so their appendix is the keep-working and
+verify blocks, not a damping line.
 
 **Incorrect (one appendix for every worker):**
 
@@ -84,11 +96,16 @@ Appendix — GPT-6 Astra worker:
   concerns justify it.
 ```
 
-That appendix is *abridged for the example* — the lines are trimmed and
+For a Haiku 5.5 or Sonnet 5.5 worker the appendix is different in kind: the
+model's keep-working block plus the shared verification paragraph, both in
+`anthropic-claude-5-5.md`, and `Effort: medium` rather than `low`.
+
+That GPT-6 appendix is *abridged for the example* — the lines are trimmed and
 re-indented to fit a brief. In a real dispatch, paste the unabridged blocks.
 
-Full verbatim blocks for both vendors live in
-`references/wiki/orchestrate/prompting/anthropic-fable-5-1.md` and
+Full verbatim blocks live in
+`references/wiki/orchestrate/prompting/anthropic-fable-5-1.md`,
+`references/wiki/orchestrate/prompting/anthropic-claude-5-5.md` and
 `references/wiki/orchestrate/prompting/openai-gpt-6-astra.md`. Pick from there
 rather than paraphrasing — both vendors note that specific wordings carry the
 effect.

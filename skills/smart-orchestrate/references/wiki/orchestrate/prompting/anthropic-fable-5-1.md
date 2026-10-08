@@ -8,8 +8,22 @@ tags: anthropic, fable-5-1, effort, autonomy, subagents, prompting, parent, work
 sources:
   - "references/raw/anthropic-prompting-claude-fable-5-1-2026-09-10.md"
   - "references/raw/anthropic-claude-prompting-best-practices-2026-09-10.md"
-last_ingested: 2026-09-10
+  - "references/raw/anthropic-models-overview-2026-10-08.md"
+  - "references/raw/anthropic-prompting-claude-fable-5-1-2026-10-08.md"
+last_ingested: 2026-10-08
 ---
+
+Fable 5.1 is the *escalation* Claude parent, not the default: Anthropic now
+says to start with Opus 5.5 and use Fable 5.1 "for demanding reasoning and
+long-horizon agentic work, or when your evals on Claude Opus 5.5 at higher
+effort still fall short." For Opus 5.5, Sonnet 5.5 and Haiku 5.5 see
+`references/wiki/orchestrate/prompting/anthropic-claude-5-5.md`.
+
+**Never ask a Fable 5.1 worker to write out its reasoning.** Added to the guide
+after the 2026-09-10 snapshot: "Prompts, skills, and tool descriptions that ask
+the model to write out its thinking or reasoning may be declined with the
+`reasoning_extraction` category. Ask for a short explanation or a summary of the
+actions taken instead." The handoff contract's `Summary` is that summary.
 
 ## Effort Is the Routing Dial, Not the Model Name
 
@@ -131,9 +145,10 @@ a round trip, and wall clock.
 First privately list what you need next; then request every item that doesn't depend on another's result in this one response.
 ```
 
-Keep the word *privately*. Anthropic's note: without it "the model sometimes
-answers the reminder instead of the user." Send it as a turn-scoped system
-message after each set of tool results, never by rewriting an earlier turn.
+Paste the sentence as written. (An earlier version of this concept attributed a
+note about the word *privately* to Anthropic; the snapshot contains no such note,
+so it was removed.) Send it as a turn-scoped system message after each set of
+tool results, never by rewriting an earlier turn.
 
 ## Do Not Rewrite History Mid-Run
 
@@ -185,3 +200,8 @@ work directly rather than delegating.
 - `references/raw/anthropic-claude-prompting-best-practices-2026-09-10.md` — the
   cross-model guide; source for the subagent-orchestration and overeagerness
   sections.
+- `references/raw/anthropic-models-overview-2026-10-08.md` — Fable 5.1's place
+  behind Opus 5.5 as the default.
+- `references/raw/anthropic-prompting-claude-fable-5-1-2026-10-08.md` — the
+  re-fetched guide; its only substantive addition is the `reasoning_extraction`
+  paragraph quoted above. The 2026-09-10 snapshot is kept for diffing.

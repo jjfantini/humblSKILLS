@@ -1,29 +1,109 @@
 ---
-title: "Prompting GPT-6 Astra as a Director or Worker"
+title: "Prompting the GPT-6 Family (Astra, 6.1 Sol, Luna) as Director or Worker"
 context: orchestrate
 category: prompting
 concept: openai-gpt-6-astra
-description: "Astra asks instead of assuming and delegates less than you want - both are prompt-fixable, and skill files can silently outrank the brief"
-tags: openai, gpt-6-astra, codex, delegation, autonomy, prompting, instruction-following
+description: "One prompt set covers the whole GPT-6 family; Astra asks instead of assuming and delegates less than you want, skill files can silently outrank the brief, and ultra is parent-only"
+tags: openai, gpt-6-astra, gpt-6-1-sol, gpt-6-luna, codex, delegation, autonomy, prompting, instruction-following
 sources:
   - "references/raw/openai-gpt-6-astra-latest-model-2026-09-10.md"
-last_ingested: 2026-09-10
+  - "references/raw/openai-latest-model-2026-10-08.md"
+  - "references/raw/openai-models-2026-10-08.md"
+  - "references/raw/openai-model-gpt-6-astra-2026-10-08.md"
+  - "references/raw/openai-codex-models-2026-10-08.md"
+  - "references/raw/openai-codex-subagents-2026-10-08.md"
+  - "references/raw/openai-codex-non-interactive-mode-2026-10-08.md"
+  - "references/raw/openai-blog-rethinking-skills-and-prompts-for-gpt-6-astra-2026-10-08.md"
+  - "references/raw/orchestrator-model-sweep-2026-10-08.md"
+last_ingested: 2026-10-08
 ---
 
-## The Model and Its Effort Levels
+## The Family, and Which Member Goes Where
 
-`gpt-6-astra`, reached through the Responses API or the Codex CLI (`codex -m
-gpt-6-astra`). Reasoning effort is `low`, `high`, or `max` — **there is no
-`none`**, and `minimal` is gone. `temperature`, `top_p`, `logprobs` and
-`top_logprobs` are not accepted; sending them is a migration bug, not a tuning
-knob. Verified reachable from `codex-cli` 0.154.0 on 2026-09-10; see
-`references/wiki/orchestrate/routing/cursor-cli-models.md` for the Cursor CLI,
-which does not carry it.
+"GPT-6" is a family name, not a model ID: `codex -m gpt-6` returns a 400. The
+callable members, measured 6/6 each from `codex-cli` 0.160.0 on 2026-10-08:
 
-OpenAI's framing of the cost picture: Astra "achieves stronger results while
-using substantially fewer output tokens — delivering a lower estimated API cost
-per task than earlier models despite its higher per-token pricing." Per-token
-price is therefore the wrong number to route on. Cost per completed task is.
+| ID | OpenAI's positioning | API $/MTok in / out | Efforts | Slot in this skill |
+|---|---|---|---|---|
+| `gpt-6-astra` | "Frontier intelligence for the most demanding work." | $10 / $50 | `low` `medium` `high` `xhigh` `max`, plus `ultra` in Codex | Director for the hardest, most ambiguous plans |
+| `gpt-6.1-sol` | "Near-Astra performance for complex work at a lower cost." | $2 / $10 | `low` `medium` (default) `high` `xhigh` `max`, plus `ultra` in Codex | Default Codex parent; demanding workers |
+| `gpt-6-sol` | "Previous generation workhorse." | $2 / $10 | adds `none` | Fallback only |
+| `gpt-6-luna` | "Fast and affordable model for easier tasks." | $0.10 / $0.50 | adds `none`; **no `ultra`** | Cheap worker |
+
+GPT-6.1 is Sol only - `gpt-6.1-astra` and `gpt-6.1-luna` do not exist. A higher
+version number is not a higher tier: OpenAI ranks 6.1 Sol *below* Astra on
+capability and makes it the Codex default anyway - "For complex coding and
+agentic workflows, use GPT-6.1 Sol when available to your account and client.
+Use Luna for focused, repeatable tasks." Astra is kept for the work that "needs
+the strongest capability across steps and tools."
+
+**Effort correction.** An earlier version of this concept said Astra's effort
+was "`low`, `high`, or `max`". That was wrong: "`reasoning.effort` supports
+`low`, `medium`, `high`, `xhigh`, and `max`." Still true from that version:
+Astra and 6.1 Sol accept no `none`, no GPT-6 model accepts `minimal`, and with
+reasoning on, `temperature` / `top_p` are not accepted. Codex's own starting
+points for explicit settings: "start with `high` for GPT-6 Luna or `low` for
+GPT-6 Astra."
+
+OpenAI's framing of the cost picture: "Astra achieved stronger results using
+substantially fewer output tokens. Its estimated API cost per task was lower
+than earlier models despite its higher per-token pricing." Per-token price is
+therefore the wrong number to route on. Cost per completed task is.
+
+## `ultra` Is a Parent Setting, Never a Worker Setting
+
+In Codex, `ultra` "uses subagents to handle separate parts of a complex task in
+parallel. Choose it when you can divide the work into meaningful parts. Most
+tasks do not need Max or Ultra." It is not an API effort value, and "GPT-6 Luna
+supports reasoning efforts up to **Max**, but not **Ultra**" - the CLI accepted
+`ultra` on Luna in the 2026-10-08 sweep, which shows only that the value was
+passed through, not that anything was delegated.
+
+A worker at `ultra` spawns its own subagents. That breaks two rules this skill
+depends on: the parent owns every dispatch, and parallel workers hold disjoint
+file scopes. Never set it in a worker brief. On a Codex parent it is a choice to
+let Codex own the fan-out instead of this skill's briefs - and then the next
+section applies.
+
+## Codex Subagents Inherit the Parent's Model
+
+"If you don't configure a subagent model or `model_reasoning_effort`, the
+subagent inherits the parent agent's model and reasoning effort." An Astra
+parent that fans out natively therefore fans out on Astra pricing. Set
+`agents.default_subagent_model` (and `default_subagent_reasoning_effort`) or a
+custom agent file, so native subagents land on `gpt-6-luna` or `gpt-6.1-sol` -
+the tiers OpenAI names for workers: `gpt-6.1-sol` "Start here for demanding
+agents"; `gpt-6-luna` "Use for fast, narrowly scoped agents handling clear,
+repeatable, or high-volume work." Local Codex releases spawn agents only "after
+a direct request or applicable project or skill instruction," so a brief that
+says nothing about delegation gets none.
+
+## Dispatching a Codex Worker: Sandbox and Stdin
+
+"By default, `codex exec` runs in a read-only sandbox." A worker that must edit
+files needs `--sandbox workspace-write` (`--full-auto` is deprecated). Send the
+brief on stdin:
+
+```text
+printf '%s' "$BRIEF" | codex exec -m gpt-6-luna -c model_reasoning_effort=high \
+  --sandbox workspace-write --skip-git-repo-check -C "$WORKTREE" -
+```
+
+On the measuring machine, a brief over roughly 1,000 characters passed as the
+prompt *argument* was killed instantly (rc=137, no output) four times; the same
+brief on stdin ran every time. The cause was not isolated - see
+`references/raw/orchestrator-model-sweep-2026-10-08.md` - but stdin is safe
+everywhere and a real brief is always longer than 1 KB.
+
+## One Prompt Set for the Whole Family
+
+OpenAI publishes no separate 6.1 Sol or Luna guide: "Use the following prompts
+as a starting point across the GPT-6 model family. They address behavior
+observed with GPT-6 Astra; evaluate them with your chosen model and workload."
+The reverse also holds - "Guidance that helps Sol or Luna may overconstrain
+GPT-6 Astra" - and "Previous models needed encouragement to run tests and check
+their work. GPT-6 Astra does that on its own." A testing nudge written for Luna
+becomes over-testing on Astra.
 
 ## The Four Behaviours That Matter to an Orchestration Run
 
@@ -126,8 +206,8 @@ was already under-delegating.
 If at any point you can parallelize work by delegating tasks to another agent (no matter if you are the root or subagent), you should do so using collaboration tools if it could save time or improve quality.
 ```
 
-Astra-to-Astra messages also need a legibility rule, because "messages between
-agents may contain grammar or spacing errors" — which matters here since a
+Astra-to-Astra messages also need a legibility rule - OpenAI: "Messages between
+agents may contain grammar or spacing errors." That matters here because a
 handoff contract is read by the parent and by a human:
 
 ```text
@@ -157,13 +237,29 @@ Astra "tends to use lists, tables and Markdown to make responses scannable."
 That is fine inside a handoff contract, which *is* a fixed structure, and wrong
 for the `Summary` field. If handoff summaries come back as nested bullets, the
 prose block and the slop-word blocklist are in
-`references/raw/openai-gpt-6-astra-latest-model-2026-09-10.md` under "Personality
-and writing style" — including a named blocklist ("delve", "leverage", "it's
+`references/raw/openai-latest-model-2026-10-08.md` under "Personality and
+writing style" — including a named blocklist ("delve", "leverage", "it's
 worth noting", "Bottom Line:", "X, not Y" contrastive framing).
 
 ## Sources
 
-- `references/raw/openai-gpt-6-astra-latest-model-2026-09-10.md` — OpenAI's
-  "Using GPT-6 Astra" guide (`developers.openai.com/api/docs/guides/latest-model`),
-  fetched as markdown 2026-09-10. Every block quoted above is verbatim from its
-  "Prompting best practices" section.
+- `references/raw/openai-latest-model-2026-10-08.md` - OpenAI's "Using GPT-6"
+  family guide (`developers.openai.com/api/docs/guides/latest-model`), fetched as
+  markdown 2026-10-08. Every prompt block quoted above is verbatim from its
+  "Prompting best practices" section; all of them are unchanged from the
+  2026-09-10 snapshot, which is kept for diffing.
+- `references/raw/openai-gpt-6-astra-latest-model-2026-09-10.md` - the earlier
+  "Using GPT-6 Astra" snapshot.
+- `references/raw/openai-models-2026-10-08.md` and
+  `references/raw/openai-model-gpt-6-astra-2026-10-08.md` - positioning, prices,
+  and Astra's five effort levels.
+- `references/raw/openai-codex-models-2026-10-08.md` - Codex default model,
+  `ultra`, and Luna's lack of it.
+- `references/raw/openai-codex-subagents-2026-10-08.md` - subagent model
+  inheritance, `default_subagent_model`, worker tiers and starting efforts.
+- `references/raw/openai-codex-non-interactive-mode-2026-10-08.md` - the
+  read-only default sandbox.
+- `references/raw/openai-blog-rethinking-skills-and-prompts-for-gpt-6-astra-2026-10-08.md`
+  - why Sol/Luna guidance can overconstrain Astra.
+- `references/raw/orchestrator-model-sweep-2026-10-08.md` - reachability, the
+  400 on `gpt-6`, and the argv kill.

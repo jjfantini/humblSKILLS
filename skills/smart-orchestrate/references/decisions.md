@@ -110,3 +110,45 @@ Entry shape:
 - Chose: C.
 - Why: they constrain different things and the conflict is only apparent. Non-blocking dispatch is about *concurrency within* a gate - the parent may dispatch worker B and keep reading code while worker A runs. Step 8 is about *sequencing across* gates - gate 2 may not open until gate 1 is verified and committed, because the commit is the baseline the next brief is written against. (A) would delete the only mechanism that makes a late phase's regression attributable; (B) would leave measured wall-clock savings on the table and let a future reader think the skill hadn't read the vendor guidance.
 - Result: `loop/session-loop.md` gains a two-row table separating "may overlap" from "must not overlap". Named here because the next session to read Anthropic's guidance will feel the same tension and should not re-litigate it.
+
+### 2026-10-08 | Opus 5.5 replaces Opus 5 as the default Claude parent, at `medium` not `max`
+- Context: `roles/parent-orchestrator.md` named Opus 5 at `max` as the default Claude parent and said "`max` for the plan itself". Since then Anthropic shipped Opus 5.5, moved Opus 5 to "Legacy models", and now writes "If you're unsure which model to use, start with Claude Opus 5.5". Codex docs separately say to start Astra at `low`. Three effort conventions were in tension: the skill's `max`, Anthropic's `medium` default, and OpenAI's `low` start.
+- Options: (A) swap the model name and keep `max`, (B) adopt each vendor's stated default as the parent's starting effort and require a measured gain to go above it, (C) pick one skill-wide effort for every parent regardless of vendor.
+- Chose: B.
+- Why: (A) contradicts the vendor directly - the Opus 5.5 guide says "Reserve `xhigh` and `max` for work where you've measured a quality gain" and that at a given level Opus 5.5 "tends to think more per turn than Claude Opus 5, especially at `xhigh` and `max`", so carrying `max` across the upgrade buys longer turns, not a better plan. (C) fails because effort names do not transfer across models (the skill already says so); a single label lands at different thinking depths on Opus 5.5, Fable 5.1 and Astra. The cost page's SWE-bench Pro sweep backs B with numbers: Opus 5.5 `xhigh` is ~1.4 points over `high` for 2.5x the cost; `medium` is ~2.5 points under `high` at ~70% of the cost.
+- Result: parent table now reads Opus 5.5 `medium` (Claude), GPT-6.1 Sol `medium` (Codex), Fable 5.1 `high` and Astra `low`-and-raise as escalations. The "parent at `max`" line is explicitly retired so a reader who remembers it knows it was withdrawn on evidence.
+
+### 2026-10-08 | GPT-6.1 Sol is the default Codex parent; GPT-6 Astra stays the escalation director
+- Context: the user named "GPT-6 and GPT-6.1" as the new models. There is no `gpt-6` ID (400 on Codex, 404 model page); GPT-6.1 is Sol only. A version number suggests 6.1 Sol supersedes Astra, but OpenAI positions it as "Near-Astra performance for complex work at a lower cost" - below Astra on capability - while making it the Codex default "For complex coding and agentic workflows".
+- Options: (A) replace Astra with 6.1 Sol as director because it is newer, (B) keep Astra as the only Codex director, (C) 6.1 Sol as the default parent, Astra as the escalation for the hardest plans - mirroring Opus 5.5 / Fable 5.1 on the Claude side.
+- Chose: C.
+- Why: (A) mistakes recency for tier - OpenAI keeps Astra "for your most demanding work". (B) ignores OpenAI's own Codex recommendation and pays 5x per token for every parent turn. C follows both vendor statements at once and gives the two CLIs the same shape (cheaper default parent, frontier escalation), which keeps the parent-table logic one rule instead of two.
+- Result: both 6.1 Sol and Astra measured 6/6+ on codex-cli 0.160.0. The family mapping (no bare `gpt-6`, no 6.1 Astra/Luna) is written into `openai-gpt-6-astra.md` so the next session does not re-ping those IDs.
+
+### 2026-10-08 | Codex `ultra` is parent-only; Luna-at-`ultra` treated as unsupported despite the CLI accepting it
+- Context: Codex exposes an `ultra` effort described as "Maximum reasoning with automatic task delegation"; its docs say it "uses subagents to handle separate parts of a complex task in parallel" and that Luna does not support it. The 2026-10-08 sweep saw the CLI accept `ultra` on `gpt-6-luna` without error.
+- Options: (A) allow `ultra` on any slot the CLI accepts, (B) parent-only, never in a worker brief, (C) ban it entirely.
+- Chose: B.
+- Why: a worker that spawns its own subagents violates two invariants this skill rests on - the parent owns every dispatch, and parallel workers hold disjoint file scopes - and Codex subagents inherit the spawning model unless `agents.default_subagent_model` is set, so an `ultra` worker also multiplies cost silently. (C) is too strong: on a Codex parent `ultra` is a legitimate choice to let Codex own the fan-out. The Luna acceptance is a ping, which proves the value passed validation, not that anything delegated - the same "transport is not behaviour" lesson as the 2026-08-13 entries.
+- Result: rule written into `openai-gpt-6-astra.md`, `worker-agent.md`, the brief template's `Effort:` comment, and a new anti-pattern row.
+
+### 2026-10-08 | One `anthropic-claude-5-5` concept for three models; keep the `openai-gpt-6-astra` filename for the whole GPT-6 family
+- Context: three new Anthropic prompting pages (Opus/Sonnet/Haiku 5.5) and one OpenAI family page ("Using GPT-6") that replaced the Astra-only page at the same URL.
+- Options: (A) one concept per model (three Anthropic files, rename the OpenAI file per family member), (B) one Anthropic 5.5 concept plus the existing OpenAI concept widened to the family, (C) fold everything into the existing Fable and Astra concepts.
+- Chose: B.
+- Why: the Sonnet and Haiku guides share most of their blocks (keep-working, verification) with small wording differences that matter only when placed side by side - three files would duplicate the shared paragraph and hide the differences. Renaming the OpenAI file would break every cross-reference for no reader benefit; OpenAI itself says the prompts "address behavior observed with GPT-6 Astra" and apply "across the GPT-6 model family", so the filename stays accurate about where the guidance comes from. (C) would push the Fable concept past one-concept-per-file.
+- Result: 14 wiki concepts (was 13). Lint clean.
+
+### 2026-10-08 | Ship without re-measuring Cursor, and commit only cited, first-party snapshots
+- Context: `cursor-agent` auth had expired (`--list-models` and `update` both unauthenticated), the build was 2026.08.25 (pre prefix-ID fix), and an "Opus 5.5 is Experiencing 429s" incident was open. Research had also pulled ~100 vendor pages, including a CNBC article, HTML launch pages, and a copy of the local Codex model cache that carries an `identity` block.
+- Options: (A) block the release until the user logs Cursor in, (B) ship the Claude/Codex updates, mark every new Cursor ID DOCUMENTED-NOT-MEASURED and state why the old rows are now weaker evidence, (C) promote Cursor IDs from Cursor's docs.
+- Chose: B, and commit only the 23 snapshots a concept actually cites.
+- Why: (C) breaks this skill's own anti-pattern ("Adopting a model ID because a docs page lists it"). (A) holds the Claude and Codex corrections - which are measured - hostage to one CLI's auth. The repo is public, so third-party news HTML and a local cache with account identity stay out; the forum post that summarises OpenAI's cutoff is the saved source because OpenAI's own pages return 403 to curl.
+- Result: `cursor-cli-models.md` gains a "Read This First" section (cutoff, prefix-ID bug, bracket IDs). Re-measuring Cursor after `agent update` is the open follow-up.
+
+### 2026-10-08 | Correct two earlier errors in place, and say so
+- Context: the quote audit, extended this time to inline quotes, found two errors from the 2026-09-10 session: `openai-gpt-6-astra.md` said Astra effort is "`low`, `high`, or `max`" (the model page lists five levels; the old snapshot never said otherwise), and `anthropic-fable-5-1.md` attributed to Anthropic a note about the word *privately* that appears nowhere in the snapshot.
+- Options: (A) silently rewrite both, (B) correct both and leave a one-line note in the concept that the earlier text was wrong, (C) leave them and add a correction elsewhere.
+- Chose: B.
+- Why: same reasoning as the 2026-09-10 Grok/auto retirement - a reader who remembers the old claim needs to see it was withdrawn on evidence. The second error is the more important lesson: a September audit that only diffed fenced blocks passed a fabricated inline attribution.
+- Result: both corrected with a note. The audit now checks every fenced `text` block and every inline quote of four or more words against the concept's cited sources; remaining misses are illustrative examples only.
