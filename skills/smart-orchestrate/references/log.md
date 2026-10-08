@@ -199,3 +199,5 @@ Entry shape:
   - patterns.md: 1 entry. decisions.md: 6 entries.
 
 [LINT 2026-10-08] 14 wiki, 30 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[LINT 2026-10-08] 14 wiki, 31 raw. Hard: 0, Soft: 0. Regenerated _index.md.

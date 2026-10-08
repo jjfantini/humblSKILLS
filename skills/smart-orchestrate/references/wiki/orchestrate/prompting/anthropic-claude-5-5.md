@@ -14,6 +14,7 @@ sources:
   - "references/raw/anthropic-choosing-a-model-2026-10-08.md"
   - "references/raw/anthropic-api-and-data-retention-2026-10-08.md"
   - "references/raw/orchestrator-model-sweep-2026-10-08.md"
+  - "references/raw/anthropic-prompting-claude-fable-5-1-2026-10-08.md"
 last_ingested: 2026-10-08
 ---
 
@@ -185,7 +186,7 @@ this block stops the worker skipping it.
 
 ## Never Ask a Worker to Write Out Its Reasoning
 
-On Opus 5.5 and Sonnet 5.5, requests "that push the model to
+On Opus 5.5, Sonnet 5.5 and Fable 5.1, requests "that push the model to
 reproduce its internal reasoning in the response text may be declined with the
 `reasoning_extraction` category." A brief that says "explain your reasoning
 step by step" or asks for `<thinking>` tags in the handoff risks a refusal
@@ -211,3 +212,5 @@ which is the safe form; keep it that way.
   not among them.
 - `references/raw/orchestrator-model-sweep-2026-10-08.md` - reachability and
   real-brief results.
+- `references/raw/anthropic-prompting-claude-fable-5-1-2026-10-08.md` - the
+  same `reasoning_extraction` decline on Fable 5.1.

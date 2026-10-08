@@ -13,6 +13,7 @@ sources:
   - "references/raw/anthropic-prompting-claude-sonnet-5-5-2026-10-08.md"
   - "references/raw/anthropic-prompting-claude-haiku-5-5-2026-10-08.md"
   - "references/raw/openai-latest-model-2026-10-08.md"
+  - "references/raw/anthropic-prompting-claude-fable-5-1-2026-10-08.md"
 last_ingested: 2026-10-08
 ---
 
@@ -44,7 +45,7 @@ paying frontier thinking.
 | Testing | Commits more tests than asked | - | Skips the check at `low` (Haiku also at `medium`) | Runs broader test suites than the change warrants |
 | Formatting | Uses *less* bold/lists than earlier models | - | - | Uses *more* lists/tables/Markdown |
 | Instruction sensitivity | - | - | - | Highly sensitive to `AGENTS.md` / skill files; can stall silently |
-| "Show your reasoning" in a brief | - | May be declined (`reasoning_extraction`) | Sonnet: may be declined | - |
+| "Show your reasoning" in a brief | May be declined (`reasoning_extraction`) | May be declined (`reasoning_extraction`) | Sonnet: may be declined | - |
 
 A dash means the vendor's current guide says nothing about that behaviour for
 that model - not that the behaviour is absent. Fill a cell from a vendor page or

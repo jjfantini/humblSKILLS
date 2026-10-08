@@ -9,6 +9,7 @@ sources:
   - "references/raw/anthropic-prompting-claude-fable-5-1-2026-09-10.md"
   - "references/raw/anthropic-claude-prompting-best-practices-2026-09-10.md"
   - "references/raw/anthropic-models-overview-2026-10-08.md"
+  - "references/raw/anthropic-prompting-claude-fable-5-1-2026-10-08.md"
 last_ingested: 2026-10-08
 ---
 
@@ -17,6 +18,12 @@ says to start with Opus 5.5 and use Fable 5.1 "for demanding reasoning and
 long-horizon agentic work, or when your evals on Claude Opus 5.5 at higher
 effort still fall short." For Opus 5.5, Sonnet 5.5 and Haiku 5.5 see
 `references/wiki/orchestrate/prompting/anthropic-claude-5-5.md`.
+
+**Never ask a Fable 5.1 worker to write out its reasoning.** Added to the guide
+after the 2026-09-10 snapshot: "Prompts, skills, and tool descriptions that ask
+the model to write out its thinking or reasoning may be declined with the
+`reasoning_extraction` category. Ask for a short explanation or a summary of the
+actions taken instead." The handoff contract's `Summary` is that summary.
 
 ## Effort Is the Routing Dial, Not the Model Name
 
@@ -195,3 +202,6 @@ work directly rather than delegating.
   sections.
 - `references/raw/anthropic-models-overview-2026-10-08.md` — Fable 5.1's place
   behind Opus 5.5 as the default.
+- `references/raw/anthropic-prompting-claude-fable-5-1-2026-10-08.md` — the
+  re-fetched guide; its only substantive addition is the `reasoning_extraction`
+  paragraph quoted above. The 2026-09-10 snapshot is kept for diffing.

@@ -77,7 +77,7 @@ cost/latency trade-off - see
 
 | CLI    | Parent / director model | Effort |
 |--------|-------------------------|--------|
-| Claude | **Opus 5.5** (`claude-opus-5-5`) is the default - Anthropic: "start with Claude Opus 5.5 for most workloads." $4 / $20 per MTok, not a Covered Model, so ZDR-compatible. 6/6 on Claude Code 2.1.294, 2026-10-08. | `medium` (its default); `high` for the plan when evals justify it |
+| Claude | **Opus 5.5** (`claude-opus-5-5`) is the default - Anthropic: "start with Claude Opus 5.5 for most workloads." $4 / $20 per MTok; not a Covered Model, so Fable's retention veto does not apply (Cursor states it is "Zero Data Retention compatible"). 6/6 on Claude Code 2.1.294, 2026-10-08. | `medium` (its default); `high` for the plan when evals justify it |
 | Claude | **Fable 5.1** (`claude-fable-5-1`) for "demanding reasoning and long-horizon agentic work, or when your evals on Claude Opus 5.5 at higher effort still fall short." 2.5x Opus 5.5's per-token price; 30-day retention, no ZDR. | Start `high`; `medium` where evals hold |
 | Codex  | **GPT-6.1 Sol** (`gpt-6.1-sol`) is the default - OpenAI's Codex recommendation "for complex coding and agentic workflows." 6/6 on `codex-cli` 0.160.0. | `medium` (its default); `high` for the plan |
 | Codex  | **GPT-6 Astra** (`gpt-6-astra`) for the hardest, most ambiguous plans - "the strongest capability across steps and tools," at 5x 6.1 Sol's per-token price. 9/9 as the sweep control. | Codex's stated start is `low`; raise for the plan |
