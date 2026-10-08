@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.55.1-pre](https://github.com/jjfantini/humblSKILLS/compare/v2.55.0...v2.55.1-pre) (2026-10-08)
+
+
+### Bug Fixes
+
+* **smart-orchestrate:** measure Cursor CLI and retire the OpenAI default ([8b91884](https://github.com/jjfantini/humblSKILLS/commit/8b9188421c961d3e37fd4525355ad16d5dc705f0))
+* **smart-orchestrate:** measure Cursor CLI and retire the OpenAI default ([4998636](https://github.com/jjfantini/humblSKILLS/commit/499863608f05559e18cede3644fcc2fe2577326c))
+
 ## [2.55.0](https://github.com/jjfantini/humblSKILLS/compare/v2.54.0...v2.55.0) (2026-10-08)
 
 
