@@ -19,7 +19,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 #### anti-patterns
 
-- [avoid.md](wiki/orchestrate/anti-patterns/avoid.md) - Eleven Orchestration Anti-Patterns and What Each Costs
+- [avoid.md](wiki/orchestrate/anti-patterns/avoid.md) - Fourteen Orchestration Anti-Patterns and What Each Costs
 
 #### closeout
 
@@ -40,9 +40,10 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 #### prompting
 
+- [anthropic-claude-5-5.md](wiki/orchestrate/prompting/anthropic-claude-5-5.md) - Prompting Claude Opus 5.5, Sonnet 5.5 and Haiku 5.5 for Orchestration
 - [anthropic-fable-5-1.md](wiki/orchestrate/prompting/anthropic-fable-5-1.md) - Prompting Claude Fable 5.1 as an Orchestrator or Worker
 - [brief-prompting-by-vendor.md](wiki/orchestrate/prompting/brief-prompting-by-vendor.md) - Which Vendor Prompt Lines Belong in a Worker Brief
-- [openai-gpt-6-astra.md](wiki/orchestrate/prompting/openai-gpt-6-astra.md) - Prompting GPT-6 Astra as a Director or Worker
+- [openai-gpt-6-astra.md](wiki/orchestrate/prompting/openai-gpt-6-astra.md) - Prompting the GPT-6 Family (Astra, 6.1 Sol, Luna) as Director or Worker
 
 #### roles
 
@@ -58,12 +59,36 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 ## Raw Sources
 
+- [anthropic-api-and-data-retention-2026-10-08.md](raw/anthropic-api-and-data-retention-2026-10-08.md) - cited by: references/wiki/orchestrate/prompting/anthropic-claude-5-5.md, references/wiki/orchestrate/roles/parent-orchestrator.md, references/wiki/orchestrate/routing/model-selection.md
+- [anthropic-choosing-a-model-2026-10-08.md](raw/anthropic-choosing-a-model-2026-10-08.md) - cited by: references/wiki/orchestrate/prompting/anthropic-claude-5-5.md
+- [anthropic-claude-code-model-config-2026-10-08.md](raw/anthropic-claude-code-model-config-2026-10-08.md) - cited by: references/wiki/orchestrate/roles/worker-agent.md
+- [anthropic-claude-code-sub-agents-2026-10-08.md](raw/anthropic-claude-code-sub-agents-2026-10-08.md) - cited by: references/wiki/orchestrate/roles/worker-agent.md
 - [anthropic-claude-prompting-best-practices-2026-09-10.md](raw/anthropic-claude-prompting-best-practices-2026-09-10.md) - cited by: references/wiki/orchestrate/prompting/anthropic-fable-5-1.md
+- [anthropic-models-overview-2026-10-08.md](raw/anthropic-models-overview-2026-10-08.md) - cited by: references/wiki/orchestrate/prompting/anthropic-claude-5-5.md, references/wiki/orchestrate/prompting/anthropic-fable-5-1.md, references/wiki/orchestrate/roles/parent-orchestrator.md
+- [anthropic-optimizing-for-cost-and-intelligence-2026-10-08.md](raw/anthropic-optimizing-for-cost-and-intelligence-2026-10-08.md) - cited by: references/wiki/orchestrate/anti-patterns/avoid.md, references/wiki/orchestrate/roles/parent-orchestrator.md, references/wiki/orchestrate/routing/model-selection.md
 - [anthropic-prompting-claude-fable-5-1-2026-09-10.md](raw/anthropic-prompting-claude-fable-5-1-2026-09-10.md) - cited by: references/wiki/orchestrate/anti-patterns/avoid.md, references/wiki/orchestrate/contracts/brief-template.md, references/wiki/orchestrate/loop/session-loop.md, references/wiki/orchestrate/prompting/anthropic-fable-5-1.md, references/wiki/orchestrate/prompting/brief-prompting-by-vendor.md, references/wiki/orchestrate/roles/parent-orchestrator.md, references/wiki/orchestrate/routing/model-selection.md
+- [anthropic-prompting-claude-haiku-5-5-2026-10-08.md](raw/anthropic-prompting-claude-haiku-5-5-2026-10-08.md) - cited by: references/wiki/orchestrate/prompting/anthropic-claude-5-5.md, references/wiki/orchestrate/prompting/brief-prompting-by-vendor.md, references/wiki/orchestrate/roles/worker-agent.md
+- [anthropic-prompting-claude-opus-5-2026-10-08.md](raw/anthropic-prompting-claude-opus-5-2026-10-08.md) - cited by: references/wiki/orchestrate/prompting/anthropic-claude-5-5.md
+- [anthropic-prompting-claude-opus-5-5-2026-10-08.md](raw/anthropic-prompting-claude-opus-5-5-2026-10-08.md) - cited by: references/wiki/orchestrate/prompting/anthropic-claude-5-5.md, references/wiki/orchestrate/prompting/brief-prompting-by-vendor.md, references/wiki/orchestrate/roles/parent-orchestrator.md, references/wiki/orchestrate/routing/model-selection.md
+- [anthropic-prompting-claude-sonnet-5-5-2026-10-08.md](raw/anthropic-prompting-claude-sonnet-5-5-2026-10-08.md) - cited by: references/wiki/orchestrate/prompting/anthropic-claude-5-5.md, references/wiki/orchestrate/prompting/brief-prompting-by-vendor.md
+- [cursor-cli-changelog-2026-10-08.md](raw/cursor-cli-changelog-2026-10-08.md) - cited by: references/wiki/orchestrate/anti-patterns/avoid.md, references/wiki/orchestrate/routing/cursor-cli-models.md
 - [cursor-cli-model-sweep-2026-08-13.md](raw/cursor-cli-model-sweep-2026-08-13.md) - cited by: references/wiki/orchestrate/roles/worker-agent.md, references/wiki/orchestrate/routing/cursor-cli-models.md
+- [cursor-enterprise-privacy-data-governance-2026-10-08.md](raw/cursor-enterprise-privacy-data-governance-2026-10-08.md) - cited by: references/wiki/orchestrate/routing/cursor-cli-models.md
+- [cursor-forum-cli-bracket-overrides-172338-2026-10-08.md](raw/cursor-forum-cli-bracket-overrides-172338-2026-10-08.md) - cited by: references/wiki/orchestrate/routing/cursor-cli-models.md
+- [cursor-forum-openai-models-after-nov-12-2026-10-08.md](raw/cursor-forum-openai-models-after-nov-12-2026-10-08.md) - cited by: references/wiki/orchestrate/roles/worker-agent.md, references/wiki/orchestrate/routing/cursor-cli-models.md
+- [cursor-model-claude-fable-5-1-2026-10-08.md](raw/cursor-model-claude-fable-5-1-2026-10-08.md) - cited by: references/wiki/orchestrate/anti-patterns/avoid.md, references/wiki/orchestrate/routing/cursor-cli-models.md
+- [cursor-model-claude-opus-5-5-2026-10-08.md](raw/cursor-model-claude-opus-5-5-2026-10-08.md) - cited by: references/wiki/orchestrate/roles/parent-orchestrator.md, references/wiki/orchestrate/routing/cursor-cli-models.md
+- [openai-blog-rethinking-skills-and-prompts-for-gpt-6-astra-2026-10-08.md](raw/openai-blog-rethinking-skills-and-prompts-for-gpt-6-astra-2026-10-08.md) - cited by: references/wiki/orchestrate/prompting/openai-gpt-6-astra.md
+- [openai-codex-models-2026-10-08.md](raw/openai-codex-models-2026-10-08.md) - cited by: references/wiki/orchestrate/anti-patterns/avoid.md, references/wiki/orchestrate/prompting/openai-gpt-6-astra.md, references/wiki/orchestrate/roles/parent-orchestrator.md
+- [openai-codex-non-interactive-mode-2026-10-08.md](raw/openai-codex-non-interactive-mode-2026-10-08.md) - cited by: references/wiki/orchestrate/prompting/openai-gpt-6-astra.md
+- [openai-codex-subagents-2026-10-08.md](raw/openai-codex-subagents-2026-10-08.md) - cited by: references/wiki/orchestrate/prompting/openai-gpt-6-astra.md, references/wiki/orchestrate/roles/worker-agent.md, references/wiki/orchestrate/routing/model-selection.md
 - [openai-gpt-6-astra-latest-model-2026-09-10.md](raw/openai-gpt-6-astra-latest-model-2026-09-10.md) - cited by: references/wiki/orchestrate/anti-patterns/avoid.md, references/wiki/orchestrate/contracts/brief-template.md, references/wiki/orchestrate/prompting/brief-prompting-by-vendor.md, references/wiki/orchestrate/prompting/openai-gpt-6-astra.md
+- [openai-latest-model-2026-10-08.md](raw/openai-latest-model-2026-10-08.md) - cited by: references/wiki/orchestrate/prompting/brief-prompting-by-vendor.md, references/wiki/orchestrate/prompting/openai-gpt-6-astra.md
+- [openai-model-gpt-6-astra-2026-10-08.md](raw/openai-model-gpt-6-astra-2026-10-08.md) - cited by: references/wiki/orchestrate/prompting/openai-gpt-6-astra.md
+- [openai-models-2026-10-08.md](raw/openai-models-2026-10-08.md) - cited by: references/wiki/orchestrate/prompting/openai-gpt-6-astra.md
 - [orchestrate-SKILL.md](raw/orchestrate-SKILL.md) - cited by: references/wiki/orchestrate/anti-patterns/avoid.md, references/wiki/orchestrate/closeout/commit-and-ship.md, references/wiki/orchestrate/contracts/brief-template.md, references/wiki/orchestrate/contracts/handoff-contract.md, references/wiki/orchestrate/isolation/worktree-first.md, references/wiki/orchestrate/loop/session-loop.md, references/wiki/orchestrate/prompting/brief-prompting-by-vendor.md, references/wiki/orchestrate/roles/parent-orchestrator.md, references/wiki/orchestrate/roles/worker-agent.md, references/wiki/orchestrate/routing/model-selection.md
 - [orchestrator-model-sweep-2026-09-10.md](raw/orchestrator-model-sweep-2026-09-10.md) - cited by: references/wiki/orchestrate/roles/parent-orchestrator.md, references/wiki/orchestrate/roles/worker-agent.md, references/wiki/orchestrate/routing/cursor-cli-models.md, references/wiki/orchestrate/routing/model-selection.md
+- [orchestrator-model-sweep-2026-10-08.md](raw/orchestrator-model-sweep-2026-10-08.md) - cited by: references/wiki/orchestrate/prompting/anthropic-claude-5-5.md, references/wiki/orchestrate/prompting/openai-gpt-6-astra.md, references/wiki/orchestrate/roles/parent-orchestrator.md, references/wiki/orchestrate/roles/worker-agent.md, references/wiki/orchestrate/routing/cursor-cli-models.md
 
 ---
 

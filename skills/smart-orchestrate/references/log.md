@@ -170,3 +170,32 @@ Entry shape:
     reconciliation).
 
 [LINT 2026-09-10] 13 wiki, 6 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[INGEST 2026-10-08] Added the Claude 5.5 family and GPT-6.1 / GPT-6 family to the
+  parent and worker tables, with each vendor's current prompting practice.
+  - Raw: 23 vendor snapshots fetched verbatim with curl (Anthropic models
+    overview, Opus/Sonnet/Haiku 5.5 and Opus 5 prompting guides, cost and
+    intelligence guide, data retention, choosing a model, Claude Code sub-agents
+    and model-config; OpenAI "Using GPT-6", models, Astra model page, Codex models,
+    subagents and non-interactive pages, the Astra skills blog; Cursor Opus 5.5 and
+    Fable 5.1 pages, CLI changelog, privacy doc, two forum threads) plus
+    orchestrator-model-sweep-2026-10-08.md.
+  - New: prompting/anthropic-claude-5-5.
+  - Measured: Opus/Sonnet/Haiku 5.5 6/6 each on Claude Code 2.1.294; GPT-6.1
+    Sol, 6 Sol, Luna 6/6 each on codex-cli 0.160.0; no bare `gpt-6`; real briefs
+    9/9 on Haiku 5.5, Sonnet 5.5, Luna, 6.1 Sol. Codex argv prompts over ~1 KB
+    killed (rc=137); stdin works. Cursor not re-measured (auth expired).
+  - Updated 9 concepts: parent-orchestrator (first "don't orchestrate" gate,
+    Opus 5.5 / GPT-6.1 Sol defaults, Fable / Astra escalation, `max` retired),
+    worker-agent (measured worker table, Claude Code routing notes), model-selection
+    (tier examples, ZDR scope), cursor-cli-models (OpenAI cutoff, prefix-ID bug,
+    bracket IDs, Fable approval path), openai-gpt-6-astra (family table, effort
+    correction, `ultra`, subagent inheritance, stdin), brief-prompting-by-vendor
+    (five-model comparison), anthropic-fable-5-1 (escalation role, removed an
+    unsupported attribution), brief-template (no `ultra`), avoid (11 -> 14).
+  - SKILL.md 1.3.0 -> 1.4.0: description names the new lineup, first gate in
+    When to Use, 3 routing pointers, Example 3, 4 troubleshooting entries.
+  - Quote audit extended to inline quotes; found and fixed 2 prior-session errors.
+  - patterns.md: 1 entry. decisions.md: 6 entries.
+
+[LINT 2026-10-08] 14 wiki, 30 raw. Hard: 0, Soft: 0. Regenerated _index.md.

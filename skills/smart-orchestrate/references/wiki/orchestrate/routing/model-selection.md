@@ -9,7 +9,11 @@ sources:
   - "references/raw/orchestrate-SKILL.md"
   - "references/raw/anthropic-prompting-claude-fable-5-1-2026-09-10.md"
   - "references/raw/orchestrator-model-sweep-2026-09-10.md"
-last_ingested: 2026-09-10
+  - "references/raw/anthropic-optimizing-for-cost-and-intelligence-2026-10-08.md"
+  - "references/raw/anthropic-prompting-claude-opus-5-5-2026-10-08.md"
+  - "references/raw/anthropic-api-and-data-retention-2026-10-08.md"
+  - "references/raw/openai-codex-subagents-2026-10-08.md"
+last_ingested: 2026-10-08
 ---
 
 ## Routing Guidelines
@@ -18,10 +22,16 @@ These are judgment calls, not hard rules. Bias cheap and narrow; escalate when u
 
 | Signal | Prefer | Effort |
 |---|---|---|
-| Clear brief, small blast radius, mechanical change | Fastest / cheapest worker | `low` |
-| Multi-file but well-specified; some judgment | Mid-tier worker (e.g. Sonnet 5, Terra), or a frontier model dialled down | `medium` |
-| Ambiguous design, high blast radius, tricky correctness | Stronger worker (e.g. Opus 5, Fable 5.1) or keep on parent | `high` |
-| Cross-cutting architecture, phase planning, final integration check | Parent frontier only | `high`, `max` for the plan itself |
+| Clear brief, small blast radius, mechanical change | Cheapest worker (Haiku 5.5, GPT-6 Luna) | Haiku `medium`, Luna `high` - their own vendors' starting points |
+| Multi-file but well-specified; some judgment | Mid-tier worker (Sonnet 5.5, GPT-6.1 Sol), or a frontier model dialled down | `medium` |
+| Ambiguous design, high blast radius, tricky correctness | Stronger worker (Opus 5.5, GPT-6 Astra) or keep on parent | `medium`-`high` |
+| Cross-cutting architecture, phase planning, final integration check | Parent only | The parent's default; `xhigh`/`max` only where a measured gain exists |
+
+**Before routing anything, check the work should be split at all.** Anthropic's
+cost guide: "On work a single model could handle alone, the same model at lower
+effort was cheaper every time." Turning one model's effort down is a routing
+option that sits above every row of this table - see
+`references/wiki/orchestrate/roles/parent-orchestrator.md`.
 
 This table is deliberately generic so it survives model churn. For which
 concrete `cursor-agent --model` IDs are actually reachable — and which are
@@ -31,10 +41,10 @@ then pick a verified ID there.
 
 ## Routing Is Now Two Axes: Tier and Effort
 
-On the current frontier models (Claude Fable 5.1, GPT-6 Astra) the reasoning
-effort carries most of the cost/latency trade-off, and Anthropic states it
-plainly: *"Effort is the primary control for trading off intelligence, latency,
-and cost."* Two consequences for the table above:
+On the current frontier models (Claude Opus 5.5, Fable 5.1, the GPT-6 family)
+the reasoning effort carries most of the cost/latency trade-off, and Anthropic
+states it plainly: *"Effort is the primary control for trading off intelligence,
+latency, and cost."* Two consequences for the table above:
 
 1. **A cheap slot no longer implies a small model.** Fable 5.1 at `low` is, per
    Anthropic's own comparison, "often competitive with Claude Opus and Claude
@@ -43,7 +53,9 @@ and cost."* Two consequences for the table above:
    better one because the model keeps its capability ceiling for the parts of the
    brief that need it.
 2. **Effort names don't transfer across models.** A sweep run on one model tells
-   you nothing about where the same label sits on another. Re-measure per model.
+   you nothing about where the same label sits on another. Opus 5.5 at `medium`
+   "matches or exceeds Claude Opus 5 at `high`," so an effort copied across the
+   upgrade overpays. Re-measure per model.
 
 **A routing decision that names only the model is incomplete.** It leaves the
 dominant cost variable at the harness default. Write both into the brief — see
@@ -57,7 +69,8 @@ veto its answer outright:
 - **Data retention.** Fable 5.1 carries 30-day retention and is not offered
   under zero data retention without express authorization — Cursor tags every
   `claude-fable-5-1-*` ID `(NO ZDR)`. Proprietary code plus a ZDR requirement
-  means the ID is unusable regardless of how well it scores.
+  means the ID is unusable regardless of how well it scores. Opus 5.5, Sonnet
+  5.5 and Haiku 5.5 are not Covered Models, so the veto does not reach them.
 - **Account entitlement, per CLI.** A model your organisation has not enabled
   fails in ~3s with `ActionRequiredError: Model Blocked`, no matter how correct
   the routing was. Availability is a property of the *backend account*, not the
@@ -97,5 +110,13 @@ a leaf file nothing imports is a cheapest-worker task.
 - `references/raw/orchestrate-SKILL.md` — the tier table and escalation signals.
 - `references/raw/anthropic-prompting-claude-fable-5-1-2026-09-10.md` — effort as
   the primary cost control, and the `low`-tier cost comparison.
+- `references/raw/anthropic-prompting-claude-opus-5-5-2026-10-08.md` — Opus 5.5
+  at `medium` vs Opus 5 at `high`.
+- `references/raw/anthropic-optimizing-for-cost-and-intelligence-2026-10-08.md`
+  — lower effort on one model beats splitting work a single model can do.
+- `references/raw/anthropic-api-and-data-retention-2026-10-08.md` — which models
+  are Covered Models.
+- `references/raw/openai-codex-subagents-2026-10-08.md` — Luna's and Astra's
+  starting efforts.
 - `references/raw/orchestrator-model-sweep-2026-09-10.md` — the entitlement-block
   measurements.
