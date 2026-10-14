@@ -7,6 +7,7 @@ description: "Keep each user's task source private while sharing one pickup work
 tags: configuration, todos, privacy, notion
 sources:
   - "references/raw/User request.txt"
+  - "references/raw/Task sync request.txt"
 last_ingested: 2026-10-14
 command: scripts/pickup.py
 ---
@@ -16,6 +17,8 @@ command: scripts/pickup.py
 Embedding the author's database ID makes a shared skill read the wrong person's tasks.
 Save settings at `$XDG_CONFIG_HOME/humblskills/smart-pickup.json`, defaulting to `~/.config/humblskills/smart-pickup.json`.
 Keep real config, source IDs, and fetched tasks outside the skill package.
+Smart-handoff also loads this profile with `context --cwd <session-start-folder>` for optional task sync.
+Configure once for both skills; neither maintains a separate account or project mapping.
 
 1. Read existing personal config, relevant instructions, and an installed to-do skill first.
    Explicit task-list references are stronger evidence than similarly named search results.
@@ -40,6 +43,8 @@ Keep real config, source IDs, and fetched tasks outside the skill package.
 **Correct:** verify each user's actual list and save references outside the package.
 
 `todos` accepts `provider`, `source`, optional `fields`, `closed_statuses`, and `scope_values`.
+When handoff marks a status-based task complete, it uses the first `closed_statuses` entry only after confirming it is a completion state in the live schema.
+Order a valid completion state first, and leave the row unchanged if that mapping cannot be verified.
 `provider` identifies a connected service or `file`; it grants no access.
 `fields` maps `title`, `status`, `project`, `priority`, and `due` to observed names.
 `scope_values` maps directory names to exact values in the `project` field.

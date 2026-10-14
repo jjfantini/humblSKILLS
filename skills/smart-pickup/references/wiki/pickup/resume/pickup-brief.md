@@ -7,6 +7,7 @@ description: "Combine handoff claims, current evidence, and tasks without resumi
 tags: verification, briefing, todos, continuation
 sources:
   - "references/raw/User request.txt"
+  - "references/raw/Task sync request.txt"
 last_ingested: 2026-10-14
 ---
 
@@ -20,6 +21,10 @@ Verify what the next step relies on instead of redoing every historical check.
 Consult the configured source with the resolved workstream scope.
 Keep task titles and source links in the user-facing brief, never shareable skill memory.
 Reconcile task overlap with handoff next steps without creating, editing, or completing tasks during pickup.
+Smart-handoff's task-sync results are a snapshot, so recheck its linked tasks against the current configured source.
+If a linked task is now complete, do not present the old next step as open work solely because the handoff still lists it.
+Report conflicts with current project evidence; never reopen or duplicate tasks during pickup.
+If the handoff reports partial or unavailable sync, check the source now and distinguish untracked next steps from existing tasks.
 Do not infer an assignee from the connected account alone.
 If access is unavailable, explain once and continue local orientation.
 

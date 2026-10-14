@@ -40,3 +40,10 @@ Entry shape:
 - Chose: B - align the producer with the consumer and keep pickup folder-local.
 - Why: Automatic ancestor/sibling selection mixes distinct work; explicit-path transfers cover exceptions.
 - Result: Nested Git and non-Git round trips, explicit session-start directory, and workstream ignore checks pass.
+
+### 2026-10-14 | Use one task profile for handoff writes and pickup reads
+- Context: Handoff task changes must appear in the next pickup without keeping separate client or skill settings.
+- Options: (A) separate profiles, (B) one external profile and helper context, (C) embed task IDs in the skill package.
+- Chose: B - handoff loads pickup's existing profile and scope; pickup reconciles task links with live status.
+- Why: Keeps private account data outside the package and prevents stale snapshots from recreating completed work.
+- Result: A connected Notion smoke test verified scoped task creation, verified completion, duplicate reuse, and the next pickup showing only the remaining open task.

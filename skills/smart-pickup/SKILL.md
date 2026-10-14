@@ -11,7 +11,7 @@ license: MIT
 compatibility: Requires Python 3.9+, bash for brain lint, and read access to handoff files. External task sources need an already connected tool or a local file. Credentials are never stored by this skill.
 metadata:
   author: maxwellmeston
-  version: 1.0.1
+  version: 1.1.0
   category: meta
   tags: [handoff, session-resume, task-lists, agent-interop, configuration]
   platforms: [claude-code, codex, cursor]
@@ -27,6 +27,7 @@ metadata:
 
 Resume with the same handoff and personal task source in either agent.
 Personal settings live outside this shareable skill.
+Smart-handoff uses the same settings to create and complete relevant tasks; pickup reads their live state.
 
 ## Brain Protocol
 
