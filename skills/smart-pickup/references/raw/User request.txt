@@ -1,0 +1,3 @@
+I want mine to be linked to my notion for Todos like the / pickup is for Claude rn. But, I want this to be applicable to others (this will be shared). So, we need some like configure option that figures out where their todo lists live. Yeah? Understood? Does that help you help me?
+
+Cool - let's also see if part of the setup script can initiate this notion type page for them
