@@ -15,11 +15,11 @@ description: >
   agents you keep supervising yourself, or for authoring commits or PR
   descriptions.
 license: MIT
-compatibility: Requires bash, git (optional but recommended), POSIX utilities (grep, sed, find), python3 for scripts/lint.sh, and a writable /tmp. Optional task sync needs smart-pickup configuration and a connected task tool or writable local list.
+compatibility: Requires bash, git (optional but recommended), POSIX utilities (grep, sed, find), python3 for scripts/lint.sh, and a writable /tmp. Optional task sync needs smart-pickup configuration and a connected task tool or writable local list. The optional reminder hook needs python3 and Claude Code or Codex hooks.
 allowed-tools: "Bash(bash:*) Bash(git:*) Bash(mkdir:*) Bash(humblskills:*) Read Write Edit Glob Grep"
 metadata:
   author: jjfantini
-  version: "1.2.0"
+  version: "1.3.0"
   category: meta
   tags: [handoff, context-transfer, session, agent-interop, codex, cursor, humblskill]
   platforms: [claude-code, cursor, codex]
@@ -173,6 +173,9 @@ Read `references/_brain.md`. Wiki concept shape: `references/_template.md`.
 
 **Creating and completing tasks for the next pickup:**
 `references/wiki/handoff/tasks/task-source-sync.md`
+
+**Optional reminder to offer a handoff after real work (onboarding, install, uninstall):**
+`references/wiki/handoff/lifecycle/session-nudge.md`
 
 ## Examples
 

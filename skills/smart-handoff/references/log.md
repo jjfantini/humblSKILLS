@@ -46,3 +46,7 @@ Entry shape:
 [QUERY 2026-10-14] Template gained a Prior handoff row filled only when the session resumed from a handoff; task sync can complete a configured done checkbox. 26 checks pass.
 
 [LINT 2026-10-14] 7 wiki, 2 raw. Hard: 0, Soft: 4. Regenerated _index.md.
+
+[QUERY 2026-10-14] Added the optional session-nudge Stop hook with an idempotent installer for Claude Code and per-project Codex. Live: a fresh Claude Code session and a fresh Codex session each offered one handoff after editing; replaying five noisy real sessions cut 53 nudges to 9.
+
+[LINT 2026-10-14] 8 wiki, 3 raw. Hard: 0, Soft: 4. Regenerated _index.md.

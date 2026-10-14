@@ -28,6 +28,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 #### lifecycle
 
+- [session-nudge.md](wiki/handoff/lifecycle/session-nudge.md) - Remind The Agent To Offer A Handoff
 - [temp-vs-persist.md](wiki/handoff/lifecycle/temp-vs-persist.md) - Keep Handoffs In Their Starting Workstream Folder
 
 #### security
@@ -46,6 +47,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 ## Raw Sources
 
+- [Nudge request.txt](raw/Nudge request.txt) - cited by: references/wiki/handoff/lifecycle/session-nudge.md
 - [Tandem request.txt](raw/Tandem request.txt) - cited by: references/wiki/handoff/capture/session-context.md, references/wiki/handoff/lifecycle/temp-vs-persist.md
 - [Task sync request.txt](raw/Task sync request.txt) - cited by: references/wiki/handoff/tasks/task-source-sync.md
 
@@ -56,5 +58,6 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 - [scripts/lint.sh](../scripts/lint.sh)
 - [scripts/preflight.sh](../scripts/preflight.sh)
 - [scripts/scan-secrets.sh](../scripts/scan-secrets.sh)
+- [scripts/session-nudge.py](../scripts/session-nudge.py)
 
 <!-- GENERATED:END -->

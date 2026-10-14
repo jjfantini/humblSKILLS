@@ -55,3 +55,11 @@ when adding cases.
    delimiter collides with an alternation) and `grep` reads a leading
    `-----BEGIN` as flags — hence literal bash substitution for masking and
    `grep -E -e "$re"` everywhere.
+
+`scripts/session-nudge.py` (`tests/test_session_nudge.py`, run by `run.sh`)
+
+- silent with no workstream edits, or edits only under tool folders or elsewhere
+- nudges once, then waits for both the quiet period and new edits
+- a handoff write resets it until new work; Codex `apply_patch` and shell `>`/`tee` writes count
+- loop guard and missing transcript stay silent
+- installer is idempotent, keeps other hooks and settings, uninstalls cleanly, and requires `--project` for Codex

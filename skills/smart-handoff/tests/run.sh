@@ -152,6 +152,9 @@ if [[ $pf_bad_code -eq 2 ]]; then ok "missing starting directory exits 2"; else 
 
 $VERBOSE && echo "$pf" | sed 's/^/       /'
 
+# Optional Stop-hook nudge: parsing, timing, handoff reset, and installer.
+if python3 "$SKILL_ROOT/tests/test_session_nudge.py" >/dev/null 2>&1; then ok "session nudge checks"; else bad "session nudge checks"; fi
+
 echo
 echo "$pass passed, $fail failed"
 [[ $fail -eq 0 ]] || exit 1
