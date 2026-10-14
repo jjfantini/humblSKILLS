@@ -23,7 +23,7 @@ This is agent-mediated work through the current client's connected tool, not bac
    If the skill or profile is missing, save the handoff and report task sync unavailable with a configure suggestion.
    Explicit `todos: null` disables sync without falling back to another list.
 2. Use the returned source, field mappings, closed states, and `todo_scope` for both reads and writes.
-   If `todo_scope_unmapped` is true, report the missing mapping and skip task writes.
+   If `todo_scope_unmapped` is true, report the missing mapping, offer smart-pickup's add-category flow once, and skip task writes until it resolves.
    Never replace a scoped lookup with an all-project lookup.
    Discover provider tools from the current catalog; connector names vary between clients.
 3. Fetch the live schema before writing and inspect existing tasks in that scope, including closed tasks when checking duplicates or completion.
@@ -37,7 +37,8 @@ This is agent-mediated work through the current client's connected tool, not bac
    Set the resolved project value and a verified open state; leave unknown owners, priorities, and dates unset.
 5. Complete only matching tasks this session actually finished, with verified evidence.
    For status-based sources, use the first configured `closed_statuses` entry only after verifying it is a completion state in the live schema.
-   If it is not a valid completion state or no completion state is configured, report the missing mapping and leave the row unchanged.
+   For a configured `done` checkbox, verify the property is a checkbox in the live schema, then check it.
+   If neither is configured or the live schema does not match, report the missing mapping and leave the row unchanged.
    Assumed progress, proposed work, and partially completed tasks stay open.
    Append completion evidence without replacing existing task content.
 6. Verify the resulting rows and record their links under the handoff's Done or Next Steps section, with a short task-sync result.

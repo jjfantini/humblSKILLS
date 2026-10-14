@@ -97,6 +97,8 @@ _Full spec: `references/_brain.md`._
    - Label every completion claim `[verified]` (a command was run, cite it) or
      `[assumed]` (written, never exercised).
    - Never restate a spec, plan, ADR, issue, PR, or diff — link it.
+   - If this session resumed from a handoff, set `Prior handoff` to its absolute path so pickup can follow the thread.
+     Otherwise delete that row; never guess a predecessor from a similar filename.
 
    See `references/wiki/handoff/document/structure.md` and
    `references/wiki/handoff/capture/session-context.md`.

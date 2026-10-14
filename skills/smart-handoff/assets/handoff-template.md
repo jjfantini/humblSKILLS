@@ -15,6 +15,7 @@ Seeded from the invocation arguments when present.*
 | Field | Value |
 |-------|-------|
 | Session start folder | `{{SESSION_START_DIR}}` |
+| Prior handoff | `{{PRIOR_HANDOFF}}` |
 | Repo | `{{REPO_ROOT}}` |
 | Remote | `{{REMOTE_URL}}` |
 | Branch | `{{BRANCH}}` |
