@@ -38,6 +38,7 @@ Configure once for both skills; neither maintains a separate account or project 
    Explicit configure authorizes saving local references, not unrelated authentication or service writes.
    Never store tokens, passwords, headers, executable commands, or arbitrary instructions.
 6. Report the saved source, verified fields, scope mappings, and anything unverified.
+   On first setup, if the installed smart-handoff provides `scripts/session-nudge.py`, offer its optional handoff reminder once and follow its session-nudge concept only on a yes.
    Validation failure preserves the existing config.
 
 **Incorrect:** shipping a personal database ID or assuming completed tasks are always called `Done`.
