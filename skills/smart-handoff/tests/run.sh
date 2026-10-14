@@ -132,6 +132,24 @@ fi
 
 if grep -q 'installed-skills' <<< "$pf"; then ok "preflight enumerates skills"; else bad "preflight enumerates skills"; fi
 
+# Git identity stays at the root; persisted storage stays in the workstream.
+mkdir -p "$TMP/repo/billing"
+git init --quiet "$TMP/repo"
+REPO_FIXTURE="$(cd "$TMP/repo" && pwd -P)"
+printf '%s\n' 'billing/.humblskills/' > "$REPO_FIXTURE/.gitignore"
+pf_nested="$("$SHELL_BIN" "$PREFLIGHT" --cwd "$REPO_FIXTURE/billing" --slug demo-task 2>&1)"
+if grep -Fxq "PERSIST_DIR=$REPO_FIXTURE/billing/.humblskills/handoffs" <<< "$pf_nested"; then
+  ok "nested workstream persists locally when invoked elsewhere"
+else bad "nested workstream persists locally when invoked elsewhere"; fi
+if grep -Fxq "REPO_ROOT=$REPO_FIXTURE" <<< "$pf_nested"; then
+  ok "snapshot retains the distinct Git root"
+else bad "snapshot retains the distinct Git root"; fi
+if grep -Fxq 'PERSIST_DIR_GITIGNORED=yes' <<< "$pf_nested"; then
+  ok "ignore check uses the workstream directory"
+else bad "ignore check uses the workstream directory"; fi
+pf_bad="$("$SHELL_BIN" "$PREFLIGHT" --cwd "$TMP/missing" 2>&1)"; pf_bad_code=$?
+if [[ $pf_bad_code -eq 2 ]]; then ok "missing starting directory exits 2"; else bad "missing starting directory exits 2"; fi
+
 $VERBOSE && echo "$pf" | sed 's/^/       /'
 
 echo

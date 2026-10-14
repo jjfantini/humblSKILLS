@@ -28,7 +28,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 #### lifecycle
 
-- [temp-vs-persist.md](wiki/handoff/lifecycle/temp-vs-persist.md) - Temp vs Persist - The One Question You Must Ask
+- [temp-vs-persist.md](wiki/handoff/lifecycle/temp-vs-persist.md) - Keep Handoffs In Their Starting Workstream Folder
 
 #### security
 
@@ -42,7 +42,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 ## Raw Sources
 
-(none yet)
+- [Tandem request.txt](raw/Tandem request.txt) - cited by: references/wiki/handoff/capture/session-context.md, references/wiki/handoff/lifecycle/temp-vs-persist.md
 
 ---
 

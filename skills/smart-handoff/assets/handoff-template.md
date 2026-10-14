@@ -1,7 +1,7 @@
 # {{TITLE}} — Session Handoff
 
 > **Lifecycle:** {{LIFECYCLE}} · **Created:** {{DATE}} · **From:** {{FROM_HARNESS}} → **To:** {{TO_HARNESS}}
-> Delete this file once the receiving agent has picked up the work. *(temp mode only — remove this line when persisting)*
+> Delete this file after the requested continuation finishes, if temporary cleanup was authorized. *(temp mode only - remove this line when persisting)*
 
 ## Objective
 
@@ -14,6 +14,7 @@ Seeded from the invocation arguments when present.*
 
 | Field | Value |
 |-------|-------|
+| Session start folder | `{{SESSION_START_DIR}}` |
 | Repo | `{{REPO_ROOT}}` |
 | Remote | `{{REMOTE_URL}}` |
 | Branch | `{{BRANCH}}` |

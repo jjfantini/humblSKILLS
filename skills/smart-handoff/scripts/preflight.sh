@@ -2,38 +2,42 @@
 # preflight.sh - one read-only snapshot of everything a handoff doc needs.
 #
 # Usage:
-#   bash scripts/preflight.sh [--slug <descriptive-name>]
+#   bash scripts/preflight.sh [--cwd <session-start-dir>] [--slug <descriptive-name>]
 #
 # Prints shell-style KEY=value lines plus fenced blocks. Read-only: creates
 # no directories and writes no files. The agent decides temp vs persist and
 # runs its own `mkdir -p` on the chosen dir.
 #
-# Exit codes: 0 always (absence of git/humblskills is reported, not fatal).
+# Exit codes: 0 for a snapshot; 2 for an invalid starting directory or arguments.
 
 set -uo pipefail
 
 SLUG=""
+START_DIR="$PWD"
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --slug) SLUG="${2:-}"; shift 2 ;;
+    --slug|--cwd)
+      if [[ $# -lt 2 || -z "$2" ]]; then echo "$1 requires a value" >&2; exit 2; fi
+      if [[ "$1" == "--slug" ]]; then SLUG="$2"; else START_DIR="$2"; fi
+      shift 2 ;;
     --help|-h)
       sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
       exit 0 ;;
-    *) echo "Unknown option: $1" >&2; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
+
+if ! cd "$START_DIR"; then exit 2; fi
+START_DIR="$(pwd -P)"
 
 DATE="$(date +%F)"
 TEMP_DIR="/tmp/.humblskills/handoffs"
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
-if [[ -n "$REPO_ROOT" ]]; then
-  PERSIST_DIR="$REPO_ROOT/.humblskills/handoffs"
-else
-  PERSIST_DIR="$PWD/.humblskills/handoffs"
-fi
+PERSIST_DIR="$START_DIR/.humblskills/handoffs"
 
 echo "HANDOFF_DATE=$DATE"
+echo "SESSION_START_DIR=$START_DIR"
 echo "TEMP_DIR=$TEMP_DIR"
 echo "PERSIST_DIR=$PERSIST_DIR"
 if [[ -n "$SLUG" ]]; then
@@ -83,7 +87,7 @@ fi
 
 # --------------------------------------------------- persist-dir git status
 if [[ -n "$REPO_ROOT" ]]; then
-  if git -C "$REPO_ROOT" check-ignore -q .humblskills 2>/dev/null; then
+  if git -C "$REPO_ROOT" check-ignore -q "$PERSIST_DIR/" 2>/dev/null; then
     echo "PERSIST_DIR_GITIGNORED=yes"
   else
     echo "PERSIST_DIR_GITIGNORED=no"
@@ -93,9 +97,7 @@ fi
 # ------------------------------------------------------- existing handoffs
 echo
 echo '```existing-handoffs'
-for d in "$TEMP_DIR" "$PERSIST_DIR"; do
-  [[ -d "$d" ]] && find "$d" -maxdepth 1 -name '*-handoff-*.md' 2>/dev/null | sort
-done
+[[ -d "$PERSIST_DIR" ]] && find "$PERSIST_DIR" -maxdepth 1 -name '*-handoff-*.md' 2>/dev/null | sort
 echo '```'
 
 # -------------------------------------------------------- installed skills
@@ -105,10 +107,10 @@ if command -v humblskills >/dev/null 2>&1; then
   humblskills list 2>/dev/null | head -80
 else
   echo "# humblskills CLI not on PATH - falling back to directory scan"
-  for d in "$HOME/.claude/skills" "$HOME/.cursor/skills" ".claude/skills" ".cursor/skills" "skills"; do
+  for d in "$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.cursor/skills" ".agents/skills" ".claude/skills" ".cursor/skills" "skills"; do
     [[ -d "$d" ]] || continue
     echo "## $d"
-    find "$d" -maxdepth 2 -name SKILL.md 2>/dev/null \
+    find -L "$d" -maxdepth 2 -name SKILL.md 2>/dev/null \
       | sed -E 's#/SKILL.md$##; s#.*/##' | sort
   done
 fi

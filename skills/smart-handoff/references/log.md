@@ -32,3 +32,7 @@ Entry shape:
 [LINT 2026-08-03] 6 wiki, 0 raw. Hard: 0, Soft: 6. Regenerated _index.md.
 
 [LINT 2026-08-03] 6 wiki, 0 raw. Hard: 0, Soft: 6. Regenerated _index.md.
+
+[QUERY 2026-10-14] Align persisted handoffs with smart-pickup workstream discovery: starting-folder output, explicit --cwd, and temporary transfers by exact path. Validated with 19 paired pickup checks and 22 handoff script checks.
+
+[LINT 2026-10-14] 6 wiki, 1 raw. Hard: 0, Soft: 4. Regenerated _index.md.
