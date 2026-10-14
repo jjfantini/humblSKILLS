@@ -19,6 +19,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 #### configuration
 
+- [add-category.md](wiki/pickup/configuration/add-category.md) - Add A Category For A Workstream
 - [notion-task-list.md](wiki/pickup/configuration/notion-task-list.md) - Create A Notion Task List During Setup
 - [personal-task-source.md](wiki/pickup/configuration/personal-task-source.md) - Discover And Configure A Personal Task Source
 
@@ -31,6 +32,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 ## Raw Sources
 
+- [Category request.txt](raw/Category request.txt) - cited by: references/wiki/pickup/configuration/add-category.md
 - [Tandem request.txt](raw/Tandem request.txt) - cited by: references/wiki/pickup/resume/workstream-selection.md
 - [Task sync request.txt](raw/Task sync request.txt) - cited by: references/wiki/pickup/configuration/personal-task-source.md, references/wiki/pickup/resume/pickup-brief.md
 - [User request.txt](raw/User request.txt) - cited by: references/wiki/pickup/configuration/notion-task-list.md, references/wiki/pickup/configuration/personal-task-source.md, references/wiki/pickup/resume/pickup-brief.md, references/wiki/pickup/resume/workstream-selection.md

@@ -20,10 +20,16 @@ Never automatically select from ancestors, descendants, or temporary directories
 Smart-handoff uses the same folder for persisted output by default and records it as `SESSION_START_DIR`.
 The Git root remains a separate repository fact; it does not override the workstream folder.
 
-Run `python3 scripts/pickup.py context` there, optionally with `--topic billing`.
-Choose the newest matching Markdown file by modification time, with filename as a tie-breaker.
-Read another same-day document only when its name/title or the selected handoff establishes the same topic.
+Run `python3 scripts/pickup.py context` there, optionally with `--topic "load visibility"`.
+Every topic word must appear in the filename or the document's `# ` title, in any order and case.
+The helper selects the newest match by modification time, with filename as a tie-breaker.
+It also returns `other_handoffs` (the next five matches with titles) and `other_handoff_count`.
 A shared date alone does not make two handoffs related.
+
+Handoffs form threads through their `Prior handoff` row.
+`superseded_by` lists same-folder handoffs that name the selected one as their prior.
+When it is non-empty, the selected document is an older step; say so and offer the newest successor before orienting.
+Read a prior handoff only when the selected one defers to it for a fact the next step needs; do not replay the whole thread.
 
 If the local folder is missing, empty, or has no topic match, the helper lists the newest matching handoff per workstream under configured `project_roots`, up to four project-directory levels deep.
 Fallback candidates are never automatically selected.

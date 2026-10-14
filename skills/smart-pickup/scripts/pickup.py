@@ -72,7 +72,7 @@ def validate(config):
         for key, value in mapping.items():
             string(key, f"todos.{name} key")
             string(value, f"todos.{name} value")
-    if set(fields) - {"title", "status", "project", "priority", "due"}:
+    if set(fields) - {"title", "status", "done", "project", "priority", "due"}:
         raise ValueError("unknown todos.fields semantic key")
     if any("/" in key or "\\" in key or key in (".", "..") for key in scopes):
         raise ValueError("scope_values keys must be single directory names")
@@ -81,6 +81,8 @@ def validate(config):
     string_list(todos.get("closed_statuses", []), "todos.closed_statuses")
     if todos.get("closed_statuses") and "status" not in fields:
         raise ValueError("closed_statuses requires a status field")
+    if todos.get("closed_statuses") and "done" in fields:
+        raise ValueError("use closed_statuses or a done checkbox field for completion, not both")
     return config
 
 
@@ -98,11 +100,37 @@ def save_config(config, destination):
             temporary.unlink()
 
 
+PRIOR_ROW = re.compile(r"^\|\s*\**\s*(?:prior|previous) handoffs?\s*\**\s*\|(.*)$", re.IGNORECASE | re.MULTILINE)
+
+
+def title(path):
+    with path.open(errors="replace") as file:
+        first = next((line.strip() for line in file if line.strip()), "")
+    return first[2:].strip() if first.startswith("# ") else ""
+
+
 def handoffs(directory, topic):
+    """Newest first; every topic word must appear in the filename or the document title."""
     if not directory.is_dir():
         return []
-    files = [p for p in directory.iterdir() if p.is_file() and p.suffix.lower() == ".md" and topic.casefold() in p.name.casefold()]
+    words = re.findall(r"[^\W_]+", topic.casefold())
+    if topic.strip() and not words:
+        return []
+    files = [p for p in directory.iterdir() if p.is_file() and p.suffix.lower() == ".md"]
+    if words:
+        files = [p for p in files if all(w in f"{p.name} {title(p)}".casefold() for w in words)]
     return sorted(files, key=lambda p: (p.stat().st_mtime_ns, p.name), reverse=True)
+
+
+def superseded_by(selected):
+    """Handoffs in the same folder whose Prior handoff row names the selected file."""
+    later = []
+    if selected.parent.parts[-2:] != (".humblskills", "handoffs"):
+        return later
+    for path in handoffs(selected.parent, ""):
+        if path != selected and any(selected.name in row for row in PRIOR_ROW.findall(path.read_text(errors="replace"))):
+            later.append(str(path))
+    return later
 
 
 def alternatives(roots, topic):
@@ -136,9 +164,11 @@ def context(cwd, config_file, topic="", explicit=None):
         selected = selected.resolve()
         if not selected.is_file() or selected.suffix.lower() != ".md":
             raise ValueError("explicit handoff must be an existing Markdown file")
+        others = []
     else:
         files = handoffs(cwd / ".humblskills" / "handoffs", topic)
         selected = files[0] if files else None
+        others = files[1:]
     candidates, warnings = ([], []) if selected else alternatives((config or {}).get("project_roots", []), topic)
     todos = (config or {}).get("todos")
     scope = None
@@ -152,6 +182,10 @@ def context(cwd, config_file, topic="", explicit=None):
         "starting_directory": str(cwd), "config_path": str(config_file),
         "needs_configuration": config is None, "settings": config,
         "selected_handoff": str(selected) if selected else None,
+        "selected_title": title(selected) if selected else None,
+        "superseded_by": superseded_by(selected) if selected else [],
+        "other_handoffs": [{"path": str(p), "title": title(p)} for p in others[:5]],
+        "other_handoff_count": len(others),
         "selection": "explicit" if explicit else ("local" if selected else "choose_workstream"),
         "candidates": [str(p) for p in candidates], "warnings": warnings,
         "todo_scope": scope,

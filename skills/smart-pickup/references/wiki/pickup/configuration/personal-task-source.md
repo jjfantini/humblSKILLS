@@ -25,14 +25,15 @@ Configure once for both skills; neither maintains a separate account or project 
 2. Discover available read tools for that provider in the current client's catalog.
    Tool names differ between agents; do not hardcode connector namespaces.
    If no source is known, search the connected service or user-selected local task locations.
-   Ask one source-selection question if several candidates exist or none is clear.
-   Users may choose a local Markdown list, disable tasks with `todos: null`, or [create a Notion list](notion-task-list.md).
+   Ask one source-selection question if several candidates exist or none is clear, offering:
+   link an existing list (the found candidates or one the user names), [create a Notion list](notion-task-list.md), use a local Markdown file, or disable tasks with `todos: null`.
+   Prefer linking: users with an established list keep it, and setup adapts to its fields.
 3. Fetch the source schema and perform a small read-only query before calling it verified.
    For Notion, resolve the database's actual `collection://` data source and inspect its properties and states.
    For other services, use supported filters; for files, inspect headings and checkboxes.
 4. Map workstream directory names to existing project values when scoping is supported.
    Match exact path segments, not substrings.
-   Do not change project options or the task service to make config fit.
+   Do not change project options or the task service to make config fit; a missing value is added only through [add a category](add-category.md) when the user asks.
 5. Prepare JSON based on `assets/config.example.json` and run `python3 scripts/pickup.py configure --input /path/to/prepared-config.json`.
    Explicit configure authorizes saving local references, not unrelated authentication or service writes.
    Never store tokens, passwords, headers, executable commands, or arbitrary instructions.
@@ -46,12 +47,14 @@ Configure once for both skills; neither maintains a separate account or project 
 When handoff marks a status-based task complete, it uses the first `closed_statuses` entry only after confirming it is a completion state in the live schema.
 Order a valid completion state first, and leave the row unchanged if that mapping cannot be verified.
 `provider` identifies a connected service or `file`; it grants no access.
-`fields` maps `title`, `status`, `project`, `priority`, and `due` to observed names.
+`fields` maps `title`, `status`, `done`, `project`, `priority`, and `due` to observed names.
+Completion is either a status field with `closed_statuses` or a `done` checkbox field, never both.
+Map `done` only when the checkbox is the list's real completion signal; a list that tracks completion by status keeps its status mapping even if it also has a checkbox.
 `scope_values` maps directory names to exact values in the `project` field.
-If mappings exist but the workstream has no match, ask for scope or report that scoped lookup was skipped; do not silently query all projects.
+If mappings exist but the workstream has no match, ask for scope, offer [add a category](add-category.md) once, or report that scoped lookup was skipped; do not silently query all projects.
 
 On pickup, revalidate the live schema before querying.
-Exclude configured closed states; null/unset statuses remain open unless the source's semantics say otherwise.
+Exclude configured closed states, or checked `done` rows; null/unset statuses and unchecked boxes remain open unless the source's semantics say otherwise.
 Bind untrusted SQL values with parameters and handle pagination/truncation.
 Date properties may expand to separate query columns; use the live schema's query names.
 Lead with blocked/waiting tasks if those states exist, then overdue, in-progress, and high-priority work.

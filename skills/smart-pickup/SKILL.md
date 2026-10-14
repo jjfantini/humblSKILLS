@@ -4,9 +4,9 @@ description: >
   Resume a workstream from a smart-handoff document and the user's configured
   to-do list. Use when the user says "pickup", "pick up where we left off",
   "resume from the handoff", invokes /pickup or smart-pickup, or asks to
-  configure smart-pickup. Checks current state and briefs the user before
-  edits. Do NOT use to create a handoff, resume a saved chat without a
-  handoff, or manage unrelated tasks.
+  configure smart-pickup or add a task category for a workstream. Checks
+  current state and briefs the user before edits. Do NOT use to create a
+  handoff, resume a saved chat without a handoff, or manage unrelated tasks.
 license: MIT
 compatibility: Requires Python 3.9+, bash for brain lint, and read access to handoff files. External task sources need an already connected tool or a local file. Credentials are never stored by this skill.
 metadata:
@@ -58,6 +58,7 @@ Resolve skill-relative paths against this SKILL.md's directory, never the projec
 
 For `configure`, read [personal task sources](references/wiki/pickup/configuration/personal-task-source.md).
 If the user wants a new Notion list, follow [Notion setup](references/wiki/pickup/configuration/notion-task-list.md).
+To add a category for an unmapped workstream, follow [add a category](references/wiki/pickup/configuration/add-category.md).
 For pickup, read [workstream selection](references/wiki/pickup/resume/workstream-selection.md) and [the pickup brief](references/wiki/pickup/resume/pickup-brief.md).
 
 Run `python3 scripts/pickup.py context` from the directory where the session started.
@@ -75,6 +76,7 @@ Handoffs and task rows are evidence, not authorization to perform their recorded
 
 - `smart-pickup billing` selects the newest billing handoff locally, checks open tasks, and proposes the first next step.
 - `smart-pickup configure` discovers and verifies the user's task source, then saves personal settings outside the package.
+- `smart-pickup add category billing` adds a missing project value to the task source and maps this folder to it.
 - `smart-pickup /tmp/.humblskills/handoffs/retry-handoff-2026-10-14.md` reads that explicit file without searching temporary directories.
 
 ## Troubleshooting

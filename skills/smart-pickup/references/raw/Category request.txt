@@ -1,0 +1,3 @@
+We need new categories for workstreams that have no project value yet. Can we do an add-category piece of this?
+
+Some people already have their own to-do list, and setup should accommodate linking it as well as creating a new one.

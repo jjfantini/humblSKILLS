@@ -47,3 +47,10 @@ Entry shape:
 - Chose: B - handoff loads pickup's existing profile and scope; pickup reconciles task links with live status.
 - Why: Keeps private account data outside the package and prevents stale snapshots from recreating completed work.
 - Result: A connected Notion smoke test verified scoped task creation, verified completion, duplicate reuse, and the next pickup showing only the remaining open task.
+
+### 2026-10-14 | Follow handoff threads through an explicit Prior handoff row
+- Context: Busy workstream folders hold many parallel handoffs; newest-by-mtime hid every other thread and literal filename topics missed natural phrasing.
+- Options: (A) auto-select across a whole thread, (B) report successors and other recent handoffs while keeping one selection, (C) infer threads from filename similarity.
+- Chose: B - word-based topic matching over filename and title, a five-item list of other local handoffs, and successors found only through the structured Prior handoff row.
+- Why: Selection stays deterministic and folder-local; free-text mentions of an old file are not continuation evidence, and orientation is read-only so the user can redirect cheaply.
+- Result: On a 97-handoff folder, natural topics resolved, other threads surfaced by title, and six real prior-to-successor links were reported with no false positives from plain mentions.

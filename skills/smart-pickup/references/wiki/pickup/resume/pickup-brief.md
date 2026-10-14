@@ -29,6 +29,8 @@ Do not infer an assignee from the connected account alone.
 If access is unavailable, explain once and continue local orientation.
 
 Reply with the absolute handoff path, where work stopped in two or three lines, relevant open tasks, what changed, and the first concrete next step.
+When no topic was given and `other_handoffs` is non-empty, end with one line naming up to three other recent threads by title and how to switch, such as `pickup load visibility`.
+Do not block on that choice; orientation is read-only, so the user can redirect.
 Distinguish current checks from snapshot claims and failed/unavailable checks.
 Use configured timezone unless the user or session explicitly provides another.
 Without configured timezone, use the session's user timezone and label displayed times.

@@ -53,6 +53,45 @@ class PickupTests(unittest.TestCase):
         self.assertEqual(pickup.context(self.cwd, self.config, "BILLING")["selected_handoff"], str(selected))
         self.assertIsNone(pickup.context(self.cwd, self.config, "*")["selected_handoff"])
 
+    def test_topic_words_match_slug_or_title(self):
+        slug = self.document(self.cwd, "release-v57-load-visibility-handoff-2026-10-12.md", 100)
+        titled = self.document(self.cwd, "notes-handoff-2026-10-13.md", 200)
+        titled.write_text("# Carrier Retry Backoff Handoff\n")
+        os.utime(titled, (200, 200))
+        self.assertEqual(pickup.context(self.cwd, self.config, "load visibility")["selected_handoff"], str(slug))
+        self.assertEqual(pickup.context(self.cwd, self.config, "V57 release")["selected_handoff"], str(slug))
+        self.assertEqual(pickup.context(self.cwd, self.config, "retry backoff")["selected_handoff"], str(titled))
+        self.assertIsNone(pickup.context(self.cwd, self.config, "retry visibility")["selected_handoff"])
+
+    def test_other_local_handoffs_are_listed_not_selected(self):
+        for index in range(7):
+            self.document(self.cwd, f"thread-{index}.md", 100 + index)
+        result = pickup.context(self.cwd, self.config)
+        self.assertTrue(result["selected_handoff"].endswith("thread-6.md"))
+        self.assertEqual(result["other_handoff_count"], 6)
+        self.assertEqual([Path(o["path"]).name for o in result["other_handoffs"]], [f"thread-{i}.md" for i in (5, 4, 3, 2, 1)])
+        self.assertEqual(result["other_handoffs"][0]["title"], "Handoff")
+
+    def test_successor_handoff_is_reported(self):
+        first = self.document(self.cwd, "retry-handoff-2026-10-01.md", 100)
+        successor = self.document(self.cwd, "retry-backoff-handoff-2026-10-02.md", 200)
+        successor.write_text(f"# Retry Backoff\n\n| Field | Value |\n|---|---|\n| Prior handoff | `{first}` |\n")
+        mention = self.document(self.cwd, "unrelated-handoff-2026-10-03.md", 50)
+        mention.write_text(f"# Unrelated\n\nSee {first.name} for history.\n")
+        result = pickup.context(self.cwd, self.config, explicit=str(first))
+        self.assertEqual(result["superseded_by"], [str(successor)])
+        self.assertEqual(pickup.context(self.cwd, self.config)["superseded_by"], [])
+        outside = self.root / "loose.md"
+        outside.write_text("# Loose\n")
+        self.assertEqual(pickup.context(self.cwd, self.config, explicit=str(outside))["superseded_by"], [])
+
+    def test_done_checkbox_completion(self):
+        todos = {"provider": "notion", "source": "collection://00000000-0000-4000-8000-000000000001", "fields": {"title": "Name", "done": "Done"}}
+        pickup.validate({"version": 1, "todos": todos})
+        todos.update(fields={"title": "Name", "done": "Done", "status": "Status"}, closed_statuses=["Done"])
+        with self.assertRaises(ValueError):
+            pickup.validate({"version": 1, "todos": todos})
+
     def test_equal_mtime_is_deterministic(self):
         self.document(self.cwd, "a.md", 100)
         selected = self.document(self.cwd, "z.md", 100)
