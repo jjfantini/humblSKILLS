@@ -11,7 +11,7 @@ files and re-run lint.
 
 Context -> categories. See `## Wiki` below for the concept enumeration.
 
-- **handoff** -> `capture`, `document`, `lifecycle`, `security`, `targets`
+- **handoff** -> `capture`, `document`, `lifecycle`, `security`, `targets`, `tasks`
 
 ## Wiki
 
@@ -28,7 +28,7 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 #### lifecycle
 
-- [temp-vs-persist.md](wiki/handoff/lifecycle/temp-vs-persist.md) - Temp vs Persist - The One Question You Must Ask
+- [temp-vs-persist.md](wiki/handoff/lifecycle/temp-vs-persist.md) - Keep Handoffs In Their Starting Workstream Folder
 
 #### security
 
@@ -38,11 +38,16 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 - [harness-tailoring.md](wiki/handoff/targets/harness-tailoring.md) - Tailor the Doc to the Receiving Harness
 
+#### tasks
+
+- [task-source-sync.md](wiki/handoff/tasks/task-source-sync.md) - Sync Handoff Tasks For The Next Pickup
+
 ---
 
 ## Raw Sources
 
-(none yet)
+- [Tandem request.txt](raw/Tandem request.txt) - cited by: references/wiki/handoff/capture/session-context.md, references/wiki/handoff/lifecycle/temp-vs-persist.md
+- [Task sync request.txt](raw/Task sync request.txt) - cited by: references/wiki/handoff/tasks/task-source-sync.md
 
 ---
 
