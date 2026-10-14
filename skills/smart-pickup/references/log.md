@@ -46,3 +46,7 @@ Entry shape:
 [QUERY 2026-10-14] Added thread-aware pickup: topic words match filename or title, other_handoffs lists the next five local threads, superseded_by follows Prior handoff rows, and a done checkbox is an alternative completion mapping. Setup now offers link-existing first. 23 checks pass.
 
 [LINT 2026-10-14] 5 wiki, 4 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[QUERY 2026-10-14] Topic selection now ranks instead of requiring every word: conversational filler is dropped, coverage then whole-word hits then recency decide, and a partial local pick reports stronger matches in other workstreams without switching. A full conversational request resolved to the intended handoff on a real 97-handoff folder.
+
+[LINT 2026-10-14] 5 wiki, 4 raw. Hard: 0, Soft: 0. Regenerated _index.md.

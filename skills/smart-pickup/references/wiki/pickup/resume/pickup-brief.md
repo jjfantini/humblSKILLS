@@ -28,7 +28,7 @@ If the handoff reports partial or unavailable sync, check the source now and dis
 Do not infer an assignee from the connected account alone.
 If access is unavailable, explain once and continue local orientation.
 
-Reply with the absolute handoff path, where work stopped in two or three lines, relevant open tasks, what changed, and the first concrete next step.
+Reply with the absolute handoff path (and `matched_words` when a topic was given), where work stopped in two or three lines, relevant open tasks, what changed, and the first concrete next step.
 When no topic was given and `other_handoffs` is non-empty, end with one line naming up to three other recent threads by title and how to switch, such as `pickup load visibility`.
 Do not block on that choice; orientation is read-only, so the user can redirect.
 Distinguish current checks from snapshot claims and failed/unavailable checks.

@@ -61,7 +61,37 @@ class PickupTests(unittest.TestCase):
         self.assertEqual(pickup.context(self.cwd, self.config, "load visibility")["selected_handoff"], str(slug))
         self.assertEqual(pickup.context(self.cwd, self.config, "V57 release")["selected_handoff"], str(slug))
         self.assertEqual(pickup.context(self.cwd, self.config, "retry backoff")["selected_handoff"], str(titled))
-        self.assertIsNone(pickup.context(self.cwd, self.config, "retry visibility")["selected_handoff"])
+        partial = pickup.context(self.cwd, self.config, "retry visibility")
+        self.assertEqual(partial["selected_handoff"], str(titled))
+        self.assertEqual(partial["matched_words"], ["retry"])
+        self.assertIsNone(pickup.context(self.cwd, self.config, "okta")["selected_handoff"])
+
+    def test_conversational_topic_ranks_whole_words(self):
+        target = self.document(self.cwd, "dashboard-auth-onboarding-handoff-2026-09-17.md", 100)
+        self.document(self.cwd, "authority-hedge-handoff-2026-09-23.md", 300)
+        self.document(self.cwd, "dashboard-ui-handoff-2026-10-01.md", 400)
+        self.document(self.cwd, "app-tag-auth-handoff-2026-09-11.md", 50)
+        result = pickup.context(self.cwd, self.config, "last time we talked about dashboard auth")
+        self.assertEqual(result["selected_handoff"], str(target))
+        self.assertEqual(result["matched_words"], ["dashboard", "auth"])
+        self.assertEqual(pickup.context(self.cwd, self.config, "auth")["selected_handoff"], str(target))
+        self.assertTrue(pickup.context(self.cwd, self.config, "where we left off")["selected_handoff"].endswith("dashboard-ui-handoff-2026-10-01.md"))
+
+    def test_partial_local_match_offers_stronger_workstream(self):
+        self.settings()
+        local = self.document(self.cwd, "dashboard-departures-handoff-2026-10-06.md", 300)
+        elsewhere = self.document(self.cwd.parent / "shipping", "dashboard-auth-handoff-2026-09-17.md", 100)
+        self.document(self.cwd.parent / "returns", "dashboard-ui-handoff-2026-10-01.md", 200)
+        result = pickup.context(self.cwd, self.config, "dashboard auth")
+        self.assertEqual(result["selected_handoff"], str(local))
+        self.assertFalse(result["topic_match_complete"])
+        self.assertEqual(result["candidates"], [str(elsewhere)])
+        empty = self.root / "projects" / "empty"
+        empty.mkdir()
+        fallback = pickup.context(empty, self.config, "dashboard auth")
+        self.assertIsNone(fallback["selected_handoff"])
+        self.assertEqual(fallback["candidates"], [str(elsewhere)])
+        self.assertTrue(pickup.context(self.cwd, self.config, "dashboard")["topic_match_complete"])
 
     def test_other_local_handoffs_are_listed_not_selected(self):
         for index in range(7):

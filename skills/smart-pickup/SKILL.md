@@ -62,7 +62,7 @@ To add a category for an unmapped workstream, follow [add a category](references
 For pickup, read [workstream selection](references/wiki/pickup/resume/workstream-selection.md) and [the pickup brief](references/wiki/pickup/resume/pickup-brief.md).
 
 Run `python3 scripts/pickup.py context` from the directory where the session started.
-Pass a topic with `--topic` or an explicit path with `--handoff`.
+Pass the user's words after the command unchanged with `--topic`, or an explicit path with `--handoff`; the helper ignores conversational filler.
 The JSON output selects files and loads settings; the helper never calls a task service.
 If config is missing, continue the local handoff read and offer configure once.
 Unavailable access is a partial result, not evidence that no tasks exist.

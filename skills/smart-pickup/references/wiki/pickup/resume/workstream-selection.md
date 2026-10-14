@@ -20,10 +20,12 @@ Never automatically select from ancestors, descendants, or temporary directories
 Smart-handoff uses the same folder for persisted output by default and records it as `SESSION_START_DIR`.
 The Git root remains a separate repository fact; it does not override the workstream folder.
 
-Run `python3 scripts/pickup.py context` there, optionally with `--topic "load visibility"`.
-Every topic word must appear in the filename or the document's `# ` title, in any order and case.
-The helper selects the newest match by modification time, with filename as a tie-breaker.
-It also returns `other_handoffs` (the next five matches with titles) and `other_handoff_count`.
+Run `python3 scripts/pickup.py context` there, passing the user's words unchanged, such as `--topic "last time we talked about dashboard auth"`.
+The helper drops conversational filler and ranks handoffs by topic words found in the filename or `# ` title: more words covered first, whole words over partial ones, then newest.
+`auth` therefore prefers `dashboard-auth` over `authority`; with no topic, the newest handoff wins.
+It returns `matched_words`, `other_handoffs` (the next five, with titles), and `other_handoff_count`.
+If `topic_match_complete` is false, the local pick matched only some words; any `candidates` are other workstreams that match more.
+Keep the local pick, name those stronger matches, and switch only if the user chooses.
 A shared date alone does not make two handoffs related.
 
 Handoffs form threads through their `Prior handoff` row.

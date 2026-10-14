@@ -109,17 +109,52 @@ def title(path):
     return first[2:].strip() if first.startswith("# ") else ""
 
 
+# Conversational filler in requests like "pick up where we left off on the last billing talk".
+# ponytail: fixed English list; replace with per-folder term rarity if non-English topics need it.
+FILLER = set("""a about after again all an and any are as at back be before between both but by can could
+continue continuing did discuss discussed discussing do doing earlier for from get had handoff
+handoffs has have i in into is it its just last left let lets me my of off on or our pick picking pickup
+previous previously resume resuming session sessions so talk talked talking that the then thing things this
+time to up was we were what when where which while with work worked working yesterday you""".split())
+
+
+def words(text):
+    return re.findall(r"[^\W_]+", text.casefold())
+
+
+def topic_words(topic):
+    return list(dict.fromkeys(w for w in words(topic) if w not in FILLER))
+
+
+def topic_match(path, wanted):
+    """Whole-word hits, then partial hits (3+ letters) in the filename or title."""
+    text = f"{path.name} {title(path)}"
+    present = set(words(text))
+    whole = [w for w in wanted if w in present]
+    partial = [w for w in wanted if w not in present and len(w) >= 3 and w in text.casefold()]
+    return whole, partial
+
+
+def score(path, wanted):
+    """More topic words covered wins, then more whole-word hits."""
+    whole, partial = topic_match(path, wanted)
+    return (len(whole) + len(partial), len(whole))
+
+
 def handoffs(directory, topic):
-    """Newest first; every topic word must appear in the filename or the document title."""
+    """Best topic match first, newest first among equals; no topic means newest first."""
     if not directory.is_dir():
         return []
-    words = re.findall(r"[^\W_]+", topic.casefold())
-    if topic.strip() and not words:
+    raw = words(topic)
+    if topic.strip() and not raw:
         return []
+    wanted = topic_words(topic)
     files = [p for p in directory.iterdir() if p.is_file() and p.suffix.lower() == ".md"]
-    if words:
-        files = [p for p in files if all(w in f"{p.name} {title(p)}".casefold() for w in words)]
-    return sorted(files, key=lambda p: (p.stat().st_mtime_ns, p.name), reverse=True)
+    newest = lambda p: (p.stat().st_mtime_ns, p.name)
+    if not wanted:
+        return sorted(files, key=newest, reverse=True)
+    scored = [(score(p, wanted), newest(p), p) for p in files]
+    return [p for points, _, p in sorted(scored, key=lambda item: item[:2], reverse=True) if points[0]]
 
 
 def superseded_by(selected):
@@ -148,6 +183,10 @@ def alternatives(roots, topic):
             candidates = handoffs(current / ".humblskills" / "handoffs", topic)
             if candidates:
                 found.add(candidates[0].resolve())
+    wanted = topic_words(topic)
+    if wanted and found:
+        best = max(score(p, wanted) for p in found)
+        found = {p for p in found if score(p, wanted) == best}
     return sorted(found, key=lambda p: (p.stat().st_mtime_ns, str(p)), reverse=True), warnings
 
 
@@ -169,7 +208,17 @@ def context(cwd, config_file, topic="", explicit=None):
         files = handoffs(cwd / ".humblskills" / "handoffs", topic)
         selected = files[0] if files else None
         others = files[1:]
-    candidates, warnings = ([], []) if selected else alternatives((config or {}).get("project_roots", []), topic)
+    wanted = topic_words(topic)
+    roots = (config or {}).get("project_roots", [])
+    complete = not (selected and wanted and not explicit) or score(selected, wanted)[0] == len(wanted)
+    if not selected:
+        candidates, warnings = alternatives(roots, topic)
+    elif not complete:
+        # A partial local match stays selected; stronger matches elsewhere are offered, never auto-selected.
+        candidates, warnings = alternatives(roots, topic)
+        candidates = [p for p in candidates if score(p, wanted) > score(selected, wanted)]
+    else:
+        candidates, warnings = [], []
     todos = (config or {}).get("todos")
     scope = None
     if todos:
@@ -183,6 +232,8 @@ def context(cwd, config_file, topic="", explicit=None):
         "needs_configuration": config is None, "settings": config,
         "selected_handoff": str(selected) if selected else None,
         "selected_title": title(selected) if selected else None,
+        "matched_words": sum(topic_match(selected, wanted), []) if selected and wanted else [],
+        "topic_match_complete": complete,
         "superseded_by": superseded_by(selected) if selected else [],
         "other_handoffs": [{"path": str(p), "title": title(p)} for p in others[:5]],
         "other_handoff_count": len(others),
