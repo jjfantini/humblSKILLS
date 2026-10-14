@@ -40,6 +40,10 @@ single most expensive thing a handoff can carry.*
 
 *Ordered, each independently startable, each naming the file it touches.*
 
+*When task sync is configured, link created or reused tasks beside their next steps
+and completed tasks beside verified Done items.
+Record sync as complete, partial, unavailable, or disabled; do not claim unverified writes.*
+
 ## Environment & Commands
 
 ```bash

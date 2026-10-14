@@ -6,7 +6,8 @@ description: >
   markdown file another agent, harness, or agent team can pick up cold.
   Redacts credentials, suggests the skills the receiving agent should install,
   and references specs, plans, ADRs, issues and diffs by path instead of
-  copying them. Use when the user says "hand this off", "handoff", "handover",
+  copying them. Optionally creates and completes tasks using smart-pickup's
+  configured task source. Use when the user says "hand this off", "handoff", "handover",
   "write a handoff doc", "pass this to codex", "moving to cursor", "continue
   this in Claude", "another agent is taking over", "context dump for the next
   session", or is about to switch harness, model, or teammate mid-task. Do NOT
@@ -14,11 +15,11 @@ description: >
   agents you keep supervising yourself, or for authoring commits or PR
   descriptions.
 license: MIT
-compatibility: Requires bash, git (optional but recommended), POSIX utilities (grep, sed, find), python3 for scripts/lint.sh, and a writable /tmp.
+compatibility: Requires bash, git (optional but recommended), POSIX utilities (grep, sed, find), python3 for scripts/lint.sh, and a writable /tmp. Optional task sync needs smart-pickup configuration and a connected task tool or writable local list.
 allowed-tools: "Bash(bash:*) Bash(git:*) Bash(mkdir:*) Bash(humblskills:*) Read Write Edit Glob Grep"
 metadata:
   author: jjfantini
-  version: "1.1.0"
+  version: "1.2.0"
   category: meta
   tags: [handoff, context-transfer, session, agent-interop, codex, cursor, humblskill]
   platforms: [claude-code, cursor, codex]
@@ -63,7 +64,8 @@ _Full spec: `references/_brain.md`._
 | 4 | Snapshot repo + skills | `scripts/preflight.sh` |
 | 5 | Draft the doc | Agent + `assets/handoff-template.md` |
 | 6 | Scan for leaked credentials | `scripts/scan-secrets.sh` |
-| 7 | Report the path + pickup prompt | Agent |
+| 7 | Sync the configured task source | Agent + connected task tool |
+| 8 | Report the path + pickup prompt | Agent |
 
 ### Step-by-step
 
@@ -105,7 +107,16 @@ _Full spec: `references/_brain.md`._
    yourself** and offer keychain transit with a delete-after-use instruction.
    See `references/wiki/handoff/security/secret-handling.md`.
 
-7. **Report.** Print the absolute path and the paste-ready Pickup Prompt.
+7. **Sync the configured task source.** Follow
+   `references/wiki/handoff/tasks/task-source-sync.md`.
+   Reuse smart-pickup's external profile and starting-folder scope.
+   Add agreed human-owned next steps once, and complete matching tasks only
+   when this session has verified completion evidence.
+   Record task links and sync results in this handoff, never in the shared brain.
+   Missing configuration or access leaves a usable handoff with sync explicitly unavailable.
+
+8. **Report.** Print the absolute path, the paste-ready Pickup Prompt, and
+   task links added, completed, reused, or left unsynced.
    Name the session-start folder so the receiver can launch pickup there.
    Temporary cleanup happens after the requested continuation finishes when authorized.
 
@@ -157,6 +168,9 @@ Read `references/_brain.md`. Wiki concept shape: `references/_template.md`.
 
 **Tailoring to Claude Code / Codex / Cursor / unknown:**
 `references/wiki/handoff/targets/harness-tailoring.md`
+
+**Creating and completing tasks for the next pickup:**
+`references/wiki/handoff/tasks/task-source-sync.md`
 
 ## Examples
 
@@ -235,3 +249,4 @@ Fix: cut to paths and URLs. See the no-duplication rule in
 - Doc stays under ~150 lines with zero pasted artifact contents.
 - At most two questions asked of the user (lifecycle, and target if unclear).
 - Temp-mode files do not survive the task — the Pickup Prompt says to delete.
+- Handoff task sync and pickup use the same configured source and project scope.
