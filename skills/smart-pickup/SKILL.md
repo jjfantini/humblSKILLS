@@ -15,6 +15,7 @@ metadata:
   category: meta
   tags: [handoff, session-resume, task-lists, agent-interop, configuration]
   platforms: [claude-code, codex, cursor]
+  requires: ["smart-handoff@>=1.2.0"]
   preserve:
     - references/raw/
     - references/wiki/
