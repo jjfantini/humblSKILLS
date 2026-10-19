@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-08T19:55:08Z",
+  "generated_at": "2026-10-19T15:50:20Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "499863608f05559e18cede3644fcc2fe2577326c"
+    "sha": "577cc34371ce5d783185acc6ec19066c3ced4d3a"
   },
   "skills": [
     {
@@ -705,7 +705,7 @@
         "use-smart-skill"
       ],
       "path": "skills/smart-skill",
-      "dir_sha": "0d73411b52add556bc9efec26d4126df05d6946988de7647ab06398a9ef9c21e"
+      "dir_sha": "0d91716ba4080d5ee74a43f775d895a68bc325b48abf615a132326ca02122369"
     },
     {
       "name": "smart-upload-thing",

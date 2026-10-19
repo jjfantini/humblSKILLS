@@ -1,0 +1,14 @@
+name: grok-build
+# Grok Build (xAI's coding agent CLI) discovers skills from ~/.grok/skills and
+# ./.grok/skills (walked up to the repo root), per docs.x.ai. Grok Bot, xAI's
+# desktop app, does NOT read this dir: its skills come from plugins and its
+# own private library, so it gets no adapter here.
+detect:
+  any_of:
+    - path_exists: ~/.grok
+    - path_exists: .grok
+install_targets:
+  user: ~/.grok/skills
+  project: .grok/skills
+default_scope: user
+transform: passthrough

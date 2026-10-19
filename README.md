@@ -122,8 +122,9 @@ Full skill catalog, generated from `registry.json`:
 ### Platforms
 
 Installs land in one canonical store (`~/.humblskills/skills/<skill>` by default)
-and are exposed per platform. `claude-code`, `cursor`, and `codex` get symlinks
-(`~/.claude/skills`, `~/.cursor/skills`, `~/.agents/skills`); **`claude-desktop`**
+and are exposed per platform. `claude-code`, `cursor`, `codex`, `pi`, and `grok-build` get
+symlinks (`~/.claude/skills`, `~/.cursor/skills`, `~/.agents/skills`,
+`~/.pi/agent/skills`, `~/.grok/skills`); **`claude-desktop`**
 gets an upload **zip** in `~/.humblskills/desktop/`, because Claude Desktop and
 claude.ai can't read skills off the filesystem — upload it at *Settings →
 Capabilities → Skills*, and re-upload after an update. Restrict targets with

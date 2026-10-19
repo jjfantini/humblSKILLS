@@ -37,7 +37,7 @@ from pathlib import Path
 # these drift.
 CATEGORIES = ("development", "design", "writing", "meta")
 ROLES = ("fde", "ds", "sdr")
-PLATFORMS = ("claude-code", "claude-desktop", "codex", "cursor", "pi")
+PLATFORMS = ("claude-code", "claude-desktop", "codex", "cursor", "grok-build", "pi")
 
 CATEGORY_HINTS = {
     "development": "git/workflow tooling, integrations, APIs, data and infra work",

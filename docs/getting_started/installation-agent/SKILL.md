@@ -102,8 +102,9 @@ Every command accepts **`--json`** (machine-readable output) and **`--yes`** (sk
 
 ### Platforms
 
-Installs go to every detected platform: `claude-code`, `cursor`, `codex`
-(symlinks into `~/.claude/skills`, `~/.cursor/skills`, `~/.agents/skills`) and
+Installs go to every detected platform: `claude-code`, `cursor`, `codex`, `pi`,
+`grok-build` (symlinks into `~/.claude/skills`, `~/.cursor/skills`,
+`~/.agents/skills`, `~/.pi/agent/skills`, `~/.grok/skills`) and
 `claude-desktop`, which writes an upload zip to `~/.humblskills/desktop/` because
 Claude Desktop and claude.ai can't read skills from disk. Restrict with
 `--platform`, or persist a default with

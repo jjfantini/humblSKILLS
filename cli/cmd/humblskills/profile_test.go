@@ -118,6 +118,37 @@ func TestProfileSet_ValidPlatforms(t *testing.T) {
 	}
 }
 
+// Adding a platform only steers future installs, so the save points at the
+// command that links already-installed skills to it — and stays quiet when
+// nothing was added.
+func TestProfileSet_AddedPlatformHintsBackfill(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	first := runCLIWithStdoutCapture(t,
+		"profile", "set", "platforms", "claude-code",
+		"--profile", s.ProfilePath,
+	)
+	if first.RunErr != nil {
+		t.Fatalf("run: %v", first.RunErr)
+	}
+	added := runCLIWithStdoutCapture(t,
+		"profile", "set", "platforms", "claude-code,grok-build",
+		"--profile", s.ProfilePath,
+	)
+	if added.RunErr != nil {
+		t.Fatalf("run: %v", added.RunErr)
+	}
+	if !strings.Contains(added.Out, "update --platforms") || !strings.Contains(added.Out, "grok-build") {
+		t.Errorf("no backfill hint for grok-build; out = %q", added.Out)
+	}
+	removed := runCLIWithStdoutCapture(t,
+		"profile", "set", "platforms", "grok-build",
+		"--profile", s.ProfilePath,
+	)
+	if strings.Contains(removed.Out, "update --platforms") {
+		t.Errorf("hint shown with no platform added; out = %q", removed.Out)
+	}
+}
+
 func TestProfileSet_UnknownPlatform(t *testing.T) {
 	s := testutil.NewSandbox(t)
 	res := runCLIWithStdoutCapture(t,

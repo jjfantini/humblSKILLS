@@ -125,6 +125,7 @@ func runProfileEditor(app *App) error {
 		return err
 	}
 	adapterList, p := pre.adapters, pre.profile
+	before := append([]string(nil), p.DefaultPlatforms...)
 
 	updated, saved, err := tui.RunProfileEditorWith(app.UI.Theme(), adapterList, p, tui.ProfileHeaderSpec{
 		Section: app.headerSection("Profile"),
@@ -144,6 +145,7 @@ func runProfileEditor(app *App) error {
 		return err
 	}
 	app.UI.Success("saved profile → %s", app.Config.ProfilePath)
+	hintPlatformBackfill(app, before, updated.DefaultPlatforms)
 	return nil
 }
 
@@ -244,6 +246,8 @@ func runProfileSet(app *App, key, value string) error {
 		return err
 	}
 
+	before := p.DefaultPlatforms
+
 	switch key {
 	case "platforms":
 		names := parseCSV(value)
@@ -298,7 +302,28 @@ func runProfileSet(app *App, key, value string) error {
 		return app.UI.JSON(p)
 	}
 	app.UI.Success("set %s → %s", key, value)
+	hintPlatformBackfill(app, before, p.DefaultPlatforms)
 	return nil
+}
+
+// hintPlatformBackfill points at `update --platforms` when a save adds a
+// platform: the profile only steers future installs, so skills already in the
+// store don't reach the new platform until update links them.
+func hintPlatformBackfill(app *App, before, after []string) {
+	had := make(map[string]struct{}, len(before))
+	for _, n := range before {
+		had[n] = struct{}{}
+	}
+	var added []string
+	for _, n := range after {
+		if _, ok := had[n]; !ok {
+			added = append(added, n)
+		}
+	}
+	if len(added) == 0 {
+		return
+	}
+	app.UI.Info("run `humblskills update --platforms` to link installed skills to %s", strings.Join(added, ", "))
 }
 
 func runProfileReset(app *App) error {
