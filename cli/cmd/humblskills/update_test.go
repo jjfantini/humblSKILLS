@@ -302,3 +302,71 @@ func TestUpdate_PlatformsBackfillsFromProfile(t *testing.T) {
 	}
 	assertContains(t, again.Out+again.Err, "every platform in your profile")
 }
+
+// A global install fans out to every selected platform regardless of the
+// skill's platforms[] (see installOne), and records a claude-desktop target
+// as install_mode "zip". Update must refresh that zip the same way, or
+// --check reports it as drifted forever while --all never touches it.
+func TestUpdate_GlobalInstallRefreshesDesktopZipOutsideAllowList(t *testing.T) {
+	s := testutil.NewSandbox(t)
+	enableClaudeCode(t, s)
+
+	regURL := seedTestRegistry(t, s, []testutil.SkillFixture{
+		{
+			Name: "foo", Version: "1.0.0", Platforms: []string{"claude-code"},
+			Files: testutil.SkillTree{"SKILL.md": sampleSkillMD},
+		},
+	})
+	installRes := runCLIWithStdoutCapture(t,
+		"install", "foo",
+		"--registry", regURL,
+		"--cache-dir", s.CacheDir,
+		"--manifest", s.ManifestPath,
+		"--profile", s.ProfilePath,
+		"--platform", "claude-code,claude-desktop",
+		"--global",
+		"--yes", "--json",
+	)
+	if installRes.RunErr != nil {
+		t.Fatalf("install: %v\n%s", installRes.RunErr, installRes.Err)
+	}
+	m, _ := manifest.Load(s.ManifestPath)
+	if d := m.FindOne("foo", "claude-desktop", "user"); d == nil || d.InstallMode != "zip" {
+		t.Fatalf("setup: want a zip claude-desktop target, manifest: %+v", m.Installations)
+	}
+
+	newBody := strings.Replace(sampleSkillMD, "version: 1.0.0", "version: 1.0.1", 1)
+	regURL = bumpRegistryVersion(t, s, newBody)
+
+	res := runCLIWithStdoutCapture(t,
+		"update",
+		"--manifest", s.ManifestPath,
+		"--cache-dir", s.CacheDir,
+		"--registry", regURL,
+		"--yes", "--all", "--json",
+	)
+	if res.RunErr != nil {
+		t.Fatalf("update: %v\n%s", res.RunErr, res.Err)
+	}
+
+	m, _ = manifest.Load(s.ManifestPath)
+	for _, inst := range m.Installations {
+		if inst.Version != "1.0.1" {
+			t.Errorf("%s still on %s after update", inst.Platform, inst.Version)
+		}
+	}
+
+	check := runCLIWithStdoutCapture(t,
+		"update",
+		"--manifest", s.ManifestPath,
+		"--cache-dir", s.CacheDir,
+		"--registry", regURL,
+		"--check", "--json",
+	)
+	if check.RunErr != nil {
+		t.Fatalf("update --check: %v\n%s", check.RunErr, check.Err)
+	}
+	if strings.Contains(check.Out, `"skill": "foo"`) {
+		t.Errorf("--check still reports drift after update:\n%s", check.Out)
+	}
+}

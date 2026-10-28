@@ -373,3 +373,54 @@ func TestPlanUpdatesFor_GlobalIgnoresAllowList(t *testing.T) {
 		t.Fatalf("global install should allow any platform, got %+v", plans)
 	}
 }
+
+func TestPlanUpdates_DroppedPlatformIsNotDrift(t *testing.T) {
+	reg := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/example/repo", SHA: "src"},
+		Skills: []registry.Skill{
+			{Name: "picky", Version: "1.1.0", DirSHA: "new", Platforms: []string{"claude-code"}},
+		},
+	}
+	m := &manifest.Manifest{
+		SchemaVersion: manifest.SchemaVersion,
+		Installations: []manifest.Installation{
+			{Skill: "picky", Version: "1.1.0", Platform: "claude-code", Scope: "user",
+				RegistryRef: "new", InstallMode: InstallModeLinked},
+			// cursor left platforms[]; installOne would skip it, so it
+			// must not keep the skill flagged.
+			{Skill: "picky", Version: "1.0.0", Platform: "cursor", Scope: "user",
+				RegistryRef: "old", InstallMode: InstallModeLinked},
+		},
+	}
+	if plans := PlanUpdates(reg, m, nil); len(plans) != 0 {
+		t.Fatalf("dropped-platform target should not be drift, got %+v", plans)
+	}
+}
+
+func TestPlanUpdates_FromVersionIsTheDriftedTarget(t *testing.T) {
+	reg := &registry.Registry{
+		SchemaVersion: registry.SchemaVersion,
+		Source:        registry.Source{Repo: "github.com/example/repo", SHA: "src"},
+		Skills: []registry.Skill{
+			{Name: "foo", Version: "1.1.0", DirSHA: "new", Platforms: []string{"claude-code"}},
+		},
+	}
+	m := &manifest.Manifest{
+		SchemaVersion: manifest.SchemaVersion,
+		Installations: []manifest.Installation{
+			{Skill: "foo", Version: "1.1.0", Platform: "claude-code", Scope: "user",
+				RegistryRef: "new", InstallMode: InstallModeGlobal},
+			{Skill: "foo", Version: "1.0.0", Platform: "claude-desktop", Scope: "user",
+				RegistryRef: "old", InstallMode: InstallModeZip},
+		},
+	}
+	plans := PlanUpdates(reg, m, nil)
+	if len(plans) != 1 {
+		t.Fatalf("want 1 plan for the stale desktop zip, got %+v", plans)
+	}
+	if plans[0].FromVersion != "1.0.0" || plans[0].FromDirSHA != "old" {
+		t.Errorf("From* should describe the drifted target, got %s/%s",
+			plans[0].FromVersion, plans[0].FromDirSHA)
+	}
+}

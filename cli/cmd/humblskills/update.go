@@ -207,6 +207,12 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 				scope  string
 				global bool
 			}
+			hasGlobal := false
+			for _, t := range plan.Targets {
+				if t.InstallMode == install.InstallModeGlobal {
+					hasGlobal = true
+				}
+			}
 			byGroup := map[targetGroup][]string{}
 			for _, t := range plan.Targets {
 				if _, ok := adapterKnown[t.Platform]; !ok {
@@ -215,7 +221,7 @@ func runUpdate(app *App, only []string, f updateFlags) error {
 				}
 				group := targetGroup{
 					scope:  t.Scope,
-					global: t.InstallMode == install.InstallModeGlobal,
+					global: install.JoinsGlobalRun(t.InstallMode, hasGlobal),
 				}
 				byGroup[group] = append(byGroup[group], t.Platform)
 			}

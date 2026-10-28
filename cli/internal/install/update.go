@@ -1,6 +1,8 @@
 package install
 
 import (
+	"slices"
+
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/manifest"
 	"github.com/jjfantini/humblSKILLS/cli/v2/internal/registry"
 )
@@ -124,14 +126,24 @@ func PlanUpdatesFor(reg *registry.Registry, m *manifest.Manifest, only, wantPlat
 		// A rename is drift by definition — the installed directory carries a
 		// name the registry no longer publishes — so it short-circuits the
 		// version/DirSHA comparison, which cannot decide it.
+		//
+		// Only targets the update can actually refresh count: a non-global
+		// target on a platform the skill no longer lists is dropped by
+		// installOne, so flagging it would report drift forever.
 		drifted := renamedFrom != ""
+		stale := insts[0]
+		refreshable := refreshableTarget(insts, regSkill)
 		for _, i := range insts {
 			if drifted {
 				break
 			}
+			if !refreshable(i) {
+				continue
+			}
 			if i.Version != regSkill.Version ||
 				i.RegistryRef != regSkill.DirSHA {
 				drifted = true
+				stale = i
 				break
 			}
 		}
@@ -140,15 +152,17 @@ func PlanUpdatesFor(reg *registry.Registry, m *manifest.Manifest, only, wantPlat
 			continue
 		}
 
-		first := insts[0]
+		// From* describe the drifted target, not insts[0]: when targets
+		// disagree, the first one may already be current and the plan
+		// would read "1.0.0 → 1.0.0".
 		plan := UpdatePlan{
 			Skill:        regSkill.Name,
 			RenamedFrom:  renamedFrom,
-			FromVersion:  first.Version,
+			FromVersion:  stale.Version,
 			ToVersion:    regSkill.Version,
-			FromSHA:      first.SourceSHA,
+			FromSHA:      stale.SourceSHA,
 			ToSHA:        reg.Source.SHA,
-			FromDirSHA:   first.RegistryRef,
+			FromDirSHA:   stale.RegistryRef,
 			ToDirSHA:     regSkill.DirSHA,
 			AddPlatforms: add,
 			LinkOnly:     !drifted,
@@ -161,6 +175,31 @@ func PlanUpdatesFor(reg *registry.Registry, m *manifest.Manifest, only, wantPlat
 		out = append(out, plan)
 	}
 	return out
+}
+
+// JoinsGlobalRun reports whether update should refresh a target in the
+// skill's global run. A claude-desktop zip installed alongside global links
+// came from that same run, which bypasses platforms[]; refreshing it in a
+// non-global run instead applies platforms[] and can silently drop it.
+func JoinsGlobalRun(installMode string, skillHasGlobal bool) bool {
+	return installMode == InstallModeGlobal ||
+		(installMode == InstallModeZip && skillHasGlobal)
+}
+
+// refreshableTarget returns a predicate for whether update will rewrite a
+// target, mirroring the allow-list rule in installOne.
+func refreshableTarget(insts []manifest.Installation, s registry.Skill) func(manifest.Installation) bool {
+	hasGlobal := false
+	for _, i := range insts {
+		if i.InstallMode == InstallModeGlobal {
+			hasGlobal = true
+		}
+	}
+	return func(i manifest.Installation) bool {
+		return len(s.Platforms) == 0 ||
+			JoinsGlobalRun(i.InstallMode, hasGlobal) ||
+			slices.Contains(s.Platforms, i.Platform)
+	}
 }
 
 // missingPlatforms returns the wanted platforms this skill isn't installed on
