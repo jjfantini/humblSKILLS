@@ -1,0 +1,3 @@
+We should get a connection between the two. I like that my handoffs close or create tasks and my pickups bring them in.
+
+Make that behavior reusable with each user's configured task list, while keeping account references outside the shared skill.

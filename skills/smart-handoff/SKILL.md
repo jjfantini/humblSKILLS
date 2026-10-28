@@ -6,7 +6,8 @@ description: >
   markdown file another agent, harness, or agent team can pick up cold.
   Redacts credentials, suggests the skills the receiving agent should install,
   and references specs, plans, ADRs, issues and diffs by path instead of
-  copying them. Use when the user says "hand this off", "handoff", "handover",
+  copying them. Optionally creates and completes tasks using smart-pickup's
+  configured task source. Use when the user says "hand this off", "handoff", "handover",
   "write a handoff doc", "pass this to codex", "moving to cursor", "continue
   this in Claude", "another agent is taking over", "context dump for the next
   session", or is about to switch harness, model, or teammate mid-task. Do NOT
@@ -14,11 +15,11 @@ description: >
   agents you keep supervising yourself, or for authoring commits or PR
   descriptions.
 license: MIT
-compatibility: Requires bash, git (optional but recommended), POSIX utilities (grep, sed, find), python3 for scripts/lint.sh, and a writable /tmp.
+compatibility: Requires bash, git (optional but recommended), POSIX utilities (grep, sed, find), python3 for scripts/lint.sh, and a writable /tmp. Optional task sync needs smart-pickup configuration and a connected task tool or writable local list. The optional reminder hook needs python3 and Claude Code or Codex hooks.
 allowed-tools: "Bash(bash:*) Bash(git:*) Bash(mkdir:*) Bash(humblskills:*) Read Write Edit Glob Grep"
 metadata:
   author: jjfantini
-  version: "1.0.0"
+  version: "1.3.0"
   category: meta
   tags: [handoff, context-transfer, session, agent-interop, codex, cursor, humblskill]
   platforms: [claude-code, cursor, codex]
@@ -35,6 +36,7 @@ metadata:
 Turn a live session into one document a cold agent can act on. The receiving
 agent may be Claude, Codex, Cursor, or a team of them — so the doc carries
 **intent, state, and access instructions**, and links to everything else.
+Resolve this skill's scripts and references against the loaded SKILL.md's directory and invoke scripts by absolute path; the session's starting folder stays separate.
 
 ## Brain Protocol (read BEFORE creating anything)
 
@@ -57,12 +59,13 @@ _Full spec: `references/_brain.md`._
 | Step | What | Driver |
 |------|------|--------|
 | 1 | Seed from the arguments | Agent |
-| 2 | Ask: temp or persist? | Agent (one question) |
+| 2 | Resolve the starting folder and lifecycle | Agent |
 | 3 | Infer the receiving harness | Agent (ask only if no signal) |
 | 4 | Snapshot repo + skills | `scripts/preflight.sh` |
 | 5 | Draft the doc | Agent + `assets/handoff-template.md` |
 | 6 | Scan for leaked credentials | `scripts/scan-secrets.sh` |
-| 7 | Report the path + pickup prompt | Agent |
+| 7 | Sync the configured task source | Agent + connected task tool |
+| 8 | Report the path + pickup prompt | Agent |
 
 ### Step-by-step
 
@@ -72,16 +75,18 @@ _Full spec: `references/_brain.md`._
    means the doc is about the retry logic, tailored to Codex — everything
    unrelated gets one line in Artifacts or nothing at all.
 
-2. **Ask temp or persist** unless the arguments already answered it. Default is
-   temp. See `references/wiki/handoff/lifecycle/temp-vs-persist.md`.
-   - temp → `/tmp/.humblskills/handoffs/`
-   - persist → `<repo>/.humblskills/handoffs/`
+2. **Persist in the session's starting folder by default.** Capture that folder from the session context before changing directories.
+   Use `<session-start-folder>/.humblskills/handoffs/`, even when the subject repository or Git root is elsewhere.
+   Honor an explicit destination supplied by the user.
+   Temporary handoffs use `/tmp/.humblskills/handoffs/` only when requested and require an explicit-path pickup prompt.
+   See `references/wiki/handoff/lifecycle/temp-vs-persist.md`.
 
 3. **Infer the receiving harness** from the arguments and conversation; ask one
    question only if there is no signal. See
    `references/wiki/handoff/targets/harness-tailoring.md`.
 
-4. **Snapshot.** `bash scripts/preflight.sh --slug <descriptive-name>` returns
+4. **Snapshot.** Run the skill's `scripts/preflight.sh --cwd <session-start-folder> --slug <descriptive-name>` from any directory.
+   It returns
    the date, both resolved file paths, branch, HEAD, dirty and unpushed counts,
    status, diffstat, recent commits, which instruction files exist, and the
    installed skill list. Read-only — it creates nothing.
@@ -92,6 +97,8 @@ _Full spec: `references/_brain.md`._
    - Label every completion claim `[verified]` (a command was run, cite it) or
      `[assumed]` (written, never exercised).
    - Never restate a spec, plan, ADR, issue, PR, or diff — link it.
+   - If this session resumed from a handoff, set `Prior handoff` to its absolute path so pickup can follow the thread.
+     Otherwise delete that row; never guess a predecessor from a similar filename.
 
    See `references/wiki/handoff/document/structure.md` and
    `references/wiki/handoff/capture/session-context.md`.
@@ -102,13 +109,22 @@ _Full spec: `references/_brain.md`._
    yourself** and offer keychain transit with a delete-after-use instruction.
    See `references/wiki/handoff/security/secret-handling.md`.
 
-7. **Report.** Print the absolute path and the paste-ready Pickup Prompt. In
-   temp mode, state that the receiving agent should delete the file when done.
+7. **Sync the configured task source.** Follow
+   `references/wiki/handoff/tasks/task-source-sync.md`.
+   Reuse smart-pickup's external profile and starting-folder scope.
+   Add agreed human-owned next steps once, and complete matching tasks only
+   when this session has verified completion evidence.
+   Record task links and sync results in this handoff, never in the shared brain.
+   Missing configuration or access leaves a usable handoff with sync explicitly unavailable.
+
+8. **Report.** Print the absolute path, the paste-ready Pickup Prompt, and
+   task links added, completed, reused, or left unsynced.
+   Name the session-start folder so the receiver can launch pickup there.
+   Temporary cleanup happens after the requested continuation finishes when authorized.
 
 ## Non-Negotiables
 
-- **One question about lifecycle, at most one about the target.** Everything
-  else is inferred. Do not interview the user.
+- **Use the starting folder and persisted lifecycle unless the user specifies otherwise.** Ask about the receiving agent only when needed; a neutral pickup prompt works for either client.
 - **No duplicated artifact content.** Paths and URLs only.
 - **No credential values.** Retrieval commands only — `op read`,
   `security find-generic-password`, `gh auth token`.
@@ -149,21 +165,26 @@ Read `references/_brain.md`. Wiki concept shape: `references/_template.md`.
 **Redaction, keychain/1Password transit, delete-after-use:**
 `references/wiki/handoff/security/secret-handling.md`
 
-**temp vs persist paths, cleanup, gitignore posture:**
+**Workstream paths, temp vs persist, cleanup, gitignore posture:**
 `references/wiki/handoff/lifecycle/temp-vs-persist.md`
 
 **Tailoring to Claude Code / Codex / Cursor / unknown:**
 `references/wiki/handoff/targets/harness-tailoring.md`
 
+**Creating and completing tasks for the next pickup:**
+`references/wiki/handoff/tasks/task-source-sync.md`
+
+**Optional reminder to offer a handoff after real work (onboarding, install, uninstall):**
+`references/wiki/handoff/lifecycle/session-nudge.md`
+
 ## Examples
 
 ### Example 1: throwaway handoff to Codex, mid-task
 
-User says: "hand this off so codex can finish the retry logic"
+User says: "write a temporary handoff so codex can finish the retry logic"
 
 Actions:
-1. Target inferred as Codex, subject inferred as the retry work — no question
-   about either. Ask only: temp or persist? User says temp.
+1. Target, subject, and temporary lifecycle are explicit; no lifecycle question is needed.
 2. `bash scripts/preflight.sh --slug retry-backoff` → branch `feat/http-retry`,
    3 dirty files, 2 unpushed commits, `AGENTS.md` present, `smart-commit`
    installed.
@@ -189,7 +210,7 @@ Actions:
 1. "keep it in the repo" → persist, no lifecycle question. No target named →
    ask once; user says "probably Cursor" → tailor to `.cursor/rules`.
 2. `bash scripts/preflight.sh --slug linear-sync` → `PERSIST_FILE=` under
-   `<repo>/.humblskills/handoffs/`, `PERSIST_DIR_GITIGNORED=no`.
+   `<session-start-folder>/.humblskills/handoffs/`, `PERSIST_DIR_GITIGNORED=no`.
 3. Notice step 3 needs the Linear API token the user pasted earlier and never
    flagged. Raise it: offer `security add-generic-password -s handoff-transit
    -a linear-api` for the user to run in a real terminal, cite the read command
@@ -212,8 +233,8 @@ Fix: rewrite the placeholder into one of those forms. Do not add `--strict`
 bypasses or delete the check.
 
 **`preflight.sh` prints `REPO_ROOT=none`**
-Cause: invoked outside a git repo. Persist mode falls back to `$PWD`.
-Fix: confirm the directory with the user and use absolute paths in Artifacts.
+Cause: the session's starting folder is outside a Git repository.
+Fix: persist in that same starting folder and use absolute paths in Artifacts; the folder still defines the pickup workstream.
 
 **Receiving agent asks questions the doc should have answered**
 Cause: Next Steps were written as goals, not actions, or files were unnamed.
@@ -233,3 +254,4 @@ Fix: cut to paths and URLs. See the no-duplication rule in
 - Doc stays under ~150 lines with zero pasted artifact contents.
 - At most two questions asked of the user (lifecycle, and target if unclear).
 - Temp-mode files do not survive the task — the Pickup Prompt says to delete.
+- Handoff task sync and pickup use the same configured source and project scope.
