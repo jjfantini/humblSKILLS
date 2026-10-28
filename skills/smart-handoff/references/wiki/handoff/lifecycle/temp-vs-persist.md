@@ -1,91 +1,58 @@
 ---
-title: "Temp vs Persist - The One Question You Must Ask"
+title: "Keep Handoffs In Their Starting Workstream Folder"
 context: handoff
 category: lifecycle
 concept: temp-vs-persist
-description: "Most handoffs are disposable; writing them into a repo by default pollutes history with stale context nobody deletes"
-tags: lifecycle, paths, temp, persist, cleanup, gitignore
-sources: []
-last_ingested: 2026-08-03
+description: "Use the same starting-folder contract for producing and consuming handoffs."
+tags: lifecycle, paths, workstream, persist, cleanup
+sources:
+  - "references/raw/Tandem request.txt"
+last_ingested: 2026-10-14
 command: scripts/preflight.sh
 ---
 
-## Ask Before Writing
+## Resolve The Starting Folder First
 
-A handoff has exactly two lifecycles, and the user picks. Ask once, up front,
-unless the invocation already answered it:
+A Git root and a session workstream can differ.
+Saving under the Git root makes a handoff invisible to pickup launched in a nested workstream.
+Capture the session's starting folder from the user/session context before changing directories.
+Persist there by default, unless the user supplies another destination or requests a temporary handoff.
 
 | Mode | Path | Lifecycle |
 |------|------|-----------|
-| **temp** (default) | `/tmp/.humblskills/handoffs/<slug>-handoff-<date>.md` | created, consumed, deleted |
-| **persist** | `<repo>/.humblskills/handoffs/<slug>-handoff-<date>.md` | kept as a durable record |
+| **persist** (default) | `<session-start-folder>/.humblskills/handoffs/<slug>-handoff-<date>.md` | durable workstream record |
+| **temp** (explicit) | `/tmp/.humblskills/handoffs/<slug>-handoff-<date>.md` | explicit-path transfer |
 
-`scripts/preflight.sh --slug <name>` prints both resolved paths as
-`TEMP_FILE=` / `PERSIST_FILE=` so there is nothing to assemble by hand.
+Run the skill's `scripts/preflight.sh --cwd <session-start-folder> --slug <name>`.
+`SESSION_START_DIR`, `PERSIST_DIR`, and `PERSIST_FILE` identify the workstream; `REPO_ROOT` describes Git state separately.
+Passing `--cwd` keeps the destination stable when the agent has moved into a subject repository or the skill directory.
+Normal preflight lists existing handoffs only from the workstream's own folder, not a global temporary directory.
 
-Signals that answer the question without asking: "temporary", "throwaway",
-"just for this handoff", "delete after" → temp. "keep this", "commit it",
-"save it in the repo", "for the team" → persist.
+## Persisted Handoffs And Pickup
 
-## Temp Mode
+Write to the resolved `PERSIST_FILE` and include the session-start-folder row in the document.
+Use absolute artifact paths when work spans repositories.
+Normal smart-pickup in the same starting folder selects that folder's newest matching handoff.
+It does not automatically select from ancestors, siblings, descendants, or temporary folders.
+If the local folder has no match, pickup asks rather than silently switching workstreams.
+Do not move or rewrite old misplaced handoffs; link a relevant predecessor explicitly when needed.
 
-```bash
-mkdir -p /tmp/.humblskills/handoffs
-```
+Do not change `.gitignore` automatically.
+Preflight reports whether the actual workstream handoff directory is ignored; otherwise report that the file will appear in Git status.
+Persisted handoffs have no delete-after-use banner.
 
-`/tmp` survives across processes but not reboots, which is the correct TTL for
-a document meant to be read once. Keep the lifecycle banner in the doc so the
-receiving agent knows to delete it:
+## Explicit Temporary Transfer
 
-```markdown
-> **Lifecycle:** temporary — delete this file once you have picked up the work.
-```
+Only use temporary storage when requested.
+Include the exact file path in the receiving prompt because normal pickup never scans `/tmp`.
+If smart-pickup is installed, the receiving agent can invoke it with that explicit path.
+Do not delete the document during orientation; cleanup occurs after the requested continuation finishes if authorized by the temporary lifecycle.
 
-Deletion is the receiving agent's job, not a background timer. Say so in the
-Pickup Prompt:
+## Non-Git Starting Folders
 
-```
-Read /tmp/.humblskills/handoffs/oauth-token-refresh-handoff-2026-08-03.md,
-continue from "Next Steps", then delete the file.
-```
+The folder contract is identical without Git.
+`REPO_ROOT=none` does not invalidate the starting folder or require another lifecycle question.
+Use absolute paths in the document.
 
-## Persist Mode
-
-```bash
-mkdir -p "$REPO_ROOT/.humblskills/handoffs"
-```
-
-Two things to get right:
-
-1. **Do not touch `.gitignore` on your own.** `preflight.sh` reports
-   `PERSIST_DIR_GITIGNORED=yes|no`. If it is `no`, tell the user the file will
-   show up in `git status` and let them decide whether to commit it or ignore
-   it. Silently adding an ignore rule hides a document they asked to keep.
-2. **Drop the delete-after-use banner.** Replace it with the reason it is being
-   kept, so a reader six weeks later knows whether it is still live:
-   ```markdown
-   > **Lifecycle:** persisted — record of the OAuth migration handoff to Codex.
-   ```
-
-## Non-Git Directories
-
-If `preflight.sh` reports `REPO_ROOT=none`, persist mode falls back to
-`$PWD/.humblskills/handoffs`. Confirm that is what the user meant before
-writing, and use absolute paths throughout the Artifacts section — relative
-paths are meaningless to an agent started from a different directory.
-
-### Incorrect
-
-```markdown
-| Spec | `./docs/spec.md` | the contract |
-```
-
-### Correct
-
-```markdown
-| Spec | `/Users/dev/projects/api/docs/spec.md` | the contract |
-```
-
-## Sources
-
-- (none) - authored from the smart-handoff design session.
+**Incorrect:** starting in a nested billing workstream but writing its handoff at the repository root.
+**Correct:** persist in billing's own `.humblskills/handoffs/`, then launch pickup in billing.

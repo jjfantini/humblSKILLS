@@ -1,7 +1,7 @@
 # {{TITLE}} — Session Handoff
 
 > **Lifecycle:** {{LIFECYCLE}} · **Created:** {{DATE}} · **From:** {{FROM_HARNESS}} → **To:** {{TO_HARNESS}}
-> Delete this file once the receiving agent has picked up the work. *(temp mode only — remove this line when persisting)*
+> Delete this file after the requested continuation finishes, if temporary cleanup was authorized. *(temp mode only - remove this line when persisting)*
 
 ## Objective
 
@@ -14,6 +14,8 @@ Seeded from the invocation arguments when present.*
 
 | Field | Value |
 |-------|-------|
+| Session start folder | `{{SESSION_START_DIR}}` |
+| Prior handoff | `{{PRIOR_HANDOFF}}` |
 | Repo | `{{REPO_ROOT}}` |
 | Remote | `{{REMOTE_URL}}` |
 | Branch | `{{BRANCH}}` |
@@ -38,6 +40,10 @@ single most expensive thing a handoff can carry.*
 3. {{third_action}}
 
 *Ordered, each independently startable, each naming the file it touches.*
+
+*When task sync is configured, link created or reused tasks beside their next steps
+and completed tasks beside verified Done items.
+Record sync as complete, partial, unavailable, or disabled; do not claim unverified writes.*
 
 ## Environment & Commands
 

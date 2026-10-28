@@ -5,8 +5,9 @@ category: capture
 concept: session-context
 description: "The receiving agent starts productive instead of re-investigating what this session already learned"
 tags: capture, context, git, transcript, recall
-sources: []
-last_ingested: 2026-08-03
+sources:
+  - "references/raw/Tandem request.txt"
+last_ingested: 2026-10-14
 command: scripts/preflight.sh
 ---
 
@@ -22,7 +23,8 @@ Both halves are required. The live conversation supplies **why**; git supplies
 
 ## Default Capture: Live Context + Git
 
-Run `bash scripts/preflight.sh --slug <descriptive-name>` first. It returns
+Capture the session's starting folder before changing directories, then run the skill's `scripts/preflight.sh --cwd <session-start-folder> --slug <descriptive-name>` first.
+It returns
 the date, both destination directories, branch, HEAD, dirty-file count,
 unpushed-commit count, status, diffstat, last 10 commits, which instruction
 files exist, and the installed skill list — one read-only call, no writes.
