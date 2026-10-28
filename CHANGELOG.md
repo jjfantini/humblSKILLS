@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.57.0-pre](https://github.com/jjfantini/humblSKILLS/compare/v2.56.1-pre...v2.57.0-pre) (2026-10-28)
+
+
+### Features
+
+* **build-registry:** add --platforms-base to catch skills dropping a platform ([fe106b5](https://github.com/jjfantini/humblSKILLS/commit/fe106b52bc4f273cdf2e27a3e8b5f63963dfcc1a))
+
 ## [2.56.1-pre](https://github.com/jjfantini/humblSKILLS/compare/v2.56.0...v2.56.1-pre) (2026-10-28)
 
 
