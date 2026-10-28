@@ -129,3 +129,6 @@ check, is in smart-skill's
    `make registry`; after editing smart-skill's scripts,
    `bash skills/smart-skill/tests/run.sh`.
 4. PRs merge with a merge commit (`gh pr merge --merge`), never squash.
+5. A skill keeps every platform it already lists in `metadata.platforms`. Dropping
+   one strands every copy installed there, so CI's `platforms-kept` job fails the
+   PR; add the platform back instead.

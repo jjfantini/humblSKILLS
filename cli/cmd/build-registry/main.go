@@ -5,6 +5,7 @@
 //
 //	go -C cli run ./cmd/build-registry
 //	go -C cli run ./cmd/build-registry --check
+//	go -C cli run ./cmd/build-registry --platforms-base base-registry.json
 package main
 
 import (
@@ -38,8 +39,21 @@ func main() {
 		ref       = flag.String("ref", "", "source ref name (default: git branch or env GITHUB_REF_NAME)")
 		sha       = flag.String("sha", "", "source commit sha (default: git HEAD or env GITHUB_SHA)")
 		check     = flag.Bool("check", false, "exit non-zero if the generated content would differ from --out")
+		platBase  = flag.String("platforms-base", "", "only check that no skill drops a platform listed in this registry.json (e.g. the PR base's)")
 	)
 	flag.Parse()
+
+	if *platBase != "" {
+		adapterList, err := adapters.Load()
+		if err == nil {
+			err = checkPlatformsKept(*skillsDir, *platBase, adapters.NameSet(adapterList))
+		}
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "build-registry:", err)
+			os.Exit(1)
+		}
+		return
+	}
 
 	if err := run(*skillsDir, *outFile, *repo, *ref, *sha, *check); err != nil {
 		fmt.Fprintln(os.Stderr, "build-registry:", err)
