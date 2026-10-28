@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.56.1-pre](https://github.com/jjfantini/humblSKILLS/compare/v2.56.0...v2.56.1-pre) (2026-10-28)
+
+
+### Bug Fixes
+
+* **update:** refresh desktop zips of global installs and stop phantom drift ([da128da](https://github.com/jjfantini/humblSKILLS/commit/da128da7f2f933f924b79cc187e60ba8aa225a59))
+* **update:** refresh desktop zips of global installs and stop phantom drift ([b641504](https://github.com/jjfantini/humblSKILLS/commit/b641504840f98f22497d71fe6b8e5ce757d0aa3c)), closes [#311](https://github.com/jjfantini/humblSKILLS/issues/311)
+
 ## [2.56.0](https://github.com/jjfantini/humblSKILLS/compare/v2.55.1...v2.56.0) (2026-10-20)
 
 
