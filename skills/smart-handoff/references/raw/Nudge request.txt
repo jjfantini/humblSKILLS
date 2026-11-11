@@ -1,0 +1,3 @@
+A workspace Stop hook nudged for a handoff after nearly every reply, and fired after read-only sessions because other sessions had changed files that day.
+
+Scope the reminder to the current session's own edits, re-nudge on time plus new edits rather than every reply, and offer it as an optional piece during onboarding.

@@ -32,3 +32,21 @@ Entry shape:
 [LINT 2026-08-03] 6 wiki, 0 raw. Hard: 0, Soft: 6. Regenerated _index.md.
 
 [LINT 2026-08-03] 6 wiki, 0 raw. Hard: 0, Soft: 6. Regenerated _index.md.
+
+[QUERY 2026-10-14] Align persisted handoffs with smart-pickup workstream discovery: starting-folder output, explicit --cwd, and temporary transfers by exact path. Validated with 19 paired pickup checks and 22 handoff script checks.
+
+[LINT 2026-10-14] 6 wiki, 1 raw. Hard: 0, Soft: 4. Regenerated _index.md.
+
+[QUERY 2026-10-14] Added optional shared task-source sync: handoff creates agreed tasks once and completes only verified work; pickup reads the same live source and scope. Live Notion test verified create/complete/read, duplicate reuse, scope isolation, and preserved task content. No personal account references or task rows are shipped.
+
+[LINT 2026-10-14] 7 wiki, 2 raw. Hard: 0, Soft: 4. Regenerated _index.md.
+
+[LINT 2026-10-14] 7 wiki, 2 raw. Hard: 0, Soft: 4. Regenerated _index.md.
+
+[QUERY 2026-10-14] Template gained a Prior handoff row filled only when the session resumed from a handoff; task sync can complete a configured done checkbox. 26 checks pass.
+
+[LINT 2026-10-14] 7 wiki, 2 raw. Hard: 0, Soft: 4. Regenerated _index.md.
+
+[QUERY 2026-10-14] Added the optional session-nudge Stop hook with an idempotent installer for Claude Code and per-project Codex. Live: a fresh Claude Code session and a fresh Codex session each offered one handoff after editing; replaying five noisy real sessions cut 53 nudges to 9.
+
+[LINT 2026-10-14] 8 wiki, 3 raw. Hard: 0, Soft: 4. Regenerated _index.md.
