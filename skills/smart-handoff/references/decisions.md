@@ -66,3 +66,10 @@ Entry shape:
 - Chose: B.
 - Why: `EXAMPLE` is the single most common placeholder marker in real docs and no leaked credential contains it. Removing it would trade a lower false-negative rate on a value that cannot be live for a higher false-positive rate on every doc that says `AKIA…EXAMPLE`. False positives are what make a scanner get disabled.
 - Result: fixture became `AKIA` + `ZZTESTKEY000000Q`, still assembled at runtime so no literal credential shape is committed.
+
+### 2026-10-14 | Share pickup configuration for task continuity
+- Context: A handoff should create and complete relevant tasks that the next pickup reads, across clients and users.
+- Options: (A) hardcode a task account in handoff, (B) keep separate per-skill profiles, (C) reuse smart-pickup's external profile through its context helper.
+- Chose: C - one private task source and project mapping, handoff writes agreed changes and pickup reads live state.
+- Why: Avoids account leakage and configuration drift, while explicit disabled or unmapped sources prevent unrelated task writes.
+- Result: Live connected-tool smoke test verified creation, completion with preserved evidence, duplicate reuse, and scoped pickup excluding completed and unrelated tasks.

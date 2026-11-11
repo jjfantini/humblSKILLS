@@ -34,6 +34,10 @@ new shell environment.
 - `TEMP_FILE` matches `<slug>-handoff-<YYYY-MM-DD>.md` under
   `/tmp/.humblskills/handoffs/`
 - emits the `installed-skills` block
+- `--cwd` preserves the session-start folder when invoked elsewhere; persisted handoffs stay local even inside a larger Git repository
+- Git root and workstream storage stay separate; ignore status is checked for the actual workstream directory, and an invalid starting directory exits 2
+
+When smart-pickup is installed alongside this skill, `python3 ../smart-pickup/scripts/test_pickup.py` also checks producer-to-consumer round trips in nested Git and non-Git workstreams.
 
 ## Fixture rule
 

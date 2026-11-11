@@ -52,6 +52,11 @@ no repo.
 
 ## Write Actions, Not Tool Calls
 
+When smart-pickup is installed, include the session-start folder and exact document path in the pickup prompt.
+Claude can use `/pickup` there; Codex can use `$smart-pickup` there.
+An explicit path is required for temporary handoffs, and a neutral "follow smart-pickup with this path" prompt works across clients.
+Persisted workstream handoffs remain discoverable by normal pickup without copying their paths.
+
 The one rule that survives every harness: describe **what must happen**, not
 which tool does it.
 
