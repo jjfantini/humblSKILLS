@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "project_roots": ["~/projects"],
+  "todos": {
+    "provider": "file",
+    "source": "~/tasks/tasks.md"
+  }
+}
