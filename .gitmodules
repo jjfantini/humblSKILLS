@@ -1,0 +1,3 @@
+[submodule "skill-optimization/external/SkillOpt"]
+	path = skill-optimization/external/SkillOpt
+	url = https://github.com/microsoft/SkillOpt

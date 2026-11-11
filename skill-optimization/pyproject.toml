@@ -1,0 +1,38 @@
+[project]
+name = "pindex"
+version = "0.0.0"
+description = "pindex — with a SkillOpt integration for optimizing agent skills via textual gradient descent"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # SkillOpt itself, vendored unmodified as a git submodule and installed
+    # EDITABLE. Editable is required: SkillOpt's `configs/` and the `.md`
+    # prompt files under `skillopt/prompts/` are not shipped as package data,
+    # so a non-editable install would break the reflect stage at runtime.
+    "skillopt",
+]
+
+[project.optional-dependencies]
+# Only needed for the SDK-based `claude_code_exec` target backend. The default
+# `claude_chat` backend shells out to the local `claude` CLI and needs nothing here.
+claude = ["claude-agent-sdk>=0.1.0"]
+dev = ["pytest>=8.0", "ruff>=0.4"]
+
+[tool.uv]
+# pindex is a workspace/virtual project, not a distributable package: install
+# its dependencies into the environment but do not try to build `pindex` itself.
+package = false
+
+[tool.uv.sources]
+skillopt = { path = "external/SkillOpt", editable = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["skillopt_lab/tests"]
