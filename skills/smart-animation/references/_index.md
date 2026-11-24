@@ -91,7 +91,9 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 
 #### isometric
 
+- [isometric-build-kit.md](wiki/scene/isometric/isometric-build-kit.md) - Isometric Build Kit: Write the Engine, Sprites, and Chart Helpers
 - [isometric-demo-scenes.md](wiki/scene/isometric/isometric-demo-scenes.md) - Isometric Demo Scenes: SVG First, Three.js When Earned
+- [isometric-nextjs-components.md](wiki/scene/isometric/isometric-nextjs-components.md) - Isometric Scenes as Next.js Components with Charts and Visual Aids
 
 ### video
 
@@ -118,10 +120,12 @@ Context -> categories. See `## Wiki` below for the concept enumeration.
 - [hyperframes-motion-reel-skill.md](raw/hyperframes-motion-reel-skill.md) - cited by: references/wiki/video/loop/reference-assets.md, references/wiki/video/loop/sound.md
 - [hyperframes-planning.md](raw/hyperframes-planning.md) - cited by: references/wiki/video/loop/plan.md, references/wiki/video/loop/reference-style.md
 - [hyperframes.md](raw/hyperframes.md) - cited by: references/wiki/video/loop/reference-assets.md, references/wiki/video/loop/render-engine.md, references/wiki/video/loop/self-critique.md, references/wiki/video/loop/sound.md
-- [isometric-3d-models-skill.md](raw/isometric-3d-models-skill.md) - cited by: references/wiki/scene/isometric/isometric-demo-scenes.md
+- [isometric-3d-models-skill.md](raw/isometric-3d-models-skill.md) - cited by: references/wiki/scene/isometric/isometric-build-kit.md, references/wiki/scene/isometric/isometric-demo-scenes.md, references/wiki/scene/isometric/isometric-nextjs-components.md
 - [liquid-gooey.md](raw/liquid-gooey.md) - cited by: references/wiki/lib/gooey/gooey-usage.md
 - [metal-fx.md](raw/metal-fx.md) - cited by: references/wiki/lib/metal/metal-usage.md
 - [motion-react.md](raw/motion-react.md) - cited by: references/wiki/lib/motion-react/motion-react-usage.md
+- [nextjs-isometric-engine-details.md](raw/nextjs-isometric-engine-details.md) - cited by: references/wiki/scene/isometric/isometric-build-kit.md
+- [nextjs-isometric-port-notes.md](raw/nextjs-isometric-port-notes.md) - cited by: references/wiki/scene/isometric/isometric-build-kit.md, references/wiki/scene/isometric/isometric-nextjs-components.md
 - [react-bits.md](raw/react-bits.md) - cited by: references/wiki/lib/react-bits/react-bits-usage.md
 - [reference-product-film-2026-10-20.md](raw/reference-product-film-2026-10-20.md) - cited by: references/wiki/video/loop/reference-style.md
 - [thinking-orbs.md](raw/thinking-orbs.md) - cited by: references/wiki/lib/orbs/orbs-usage.md

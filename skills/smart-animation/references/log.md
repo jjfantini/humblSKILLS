@@ -157,3 +157,11 @@ Entry shape:
     visualization requests to it.
 
 [LINT 2026-11-23] 24 wiki, 20 raw. Hard: 0, Soft: 0. Regenerated _index.md.
+
+[INGEST 2026-11-24] Merged develop into feat/smart-animation-isometric-scenes. Dropped this branch's duplicate raw copy and
+  motion/isometric/demo-scenes.md (superseded by scene/isometric/isometric-demo-scenes.md). Kept and moved the two
+  additions to scene/isometric with unique stems: isometric-build-kit.md (complete helper, sprite, layering, frame and
+  chart/Gantt code plus a quality bar, from raw/nextjs-isometric-engine-details.md) and isometric-nextjs-components.md
+  (engine / wrapper / board split, clock policy, linked chart and Gantt aids, from raw/nextjs-isometric-port-notes.md).
+
+[LINT 2026-11-24] 26 wiki, 22 raw. Hard: 0, Soft: 0. Regenerated _index.md.

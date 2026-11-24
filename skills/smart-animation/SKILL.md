@@ -114,6 +114,12 @@ and `references/wiki/motion/principles/accessibility.md` (reduced-motion floor +
 - **Isometric or 3D scene, warehouse or site visualization, digital-twin demo, any Three.js work:**
   Read `references/wiki/scene/isometric/isometric-demo-scenes.md` (SVG first, Three.js when the camera
   must move; sim clock, data triggers, SCENE API, headless screenshots at checkpoints).
+- **Writing the scene code** (projection, box/fy/fx/ftext, sprites, itineraries, actor layering,
+  dirty-checked frames, chart and Gantt helpers) and the quality bar a finished scene must meet:
+  Read `references/wiki/scene/isometric/isometric-build-kit.md`.
+- **The scene inside a Next.js / React app** (imperative engine, client wrapper, a board that owns the
+  sim clock, linked chart, Gantt, stat row, tooltips): Read
+  `references/wiki/scene/isometric/isometric-nextjs-components.md`.
 
 **And route video work (a rendered MP4, not live UI motion):**
 

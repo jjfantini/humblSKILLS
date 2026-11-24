@@ -66,7 +66,8 @@ KPI cards -> scene -> control bar (play/pause, clock, scrubber, rate, trigger bu
 
 The kit uses true isometric (`C = .866 = cos 30°`, `SC = .5 = sin 30°`: each floor axis runs at 30° on
 screen, not the 2:1 pixel-art slope), so `P(x,y,z) = [ox+(x-y)*C*s, oy+(x+y)*SC*s - z*s]`,
-and 1 unit ≈ 1 m. Copy `P`, `pts`, `poly`, `box`, `fy`, `fx` and `ftext` from the raw source. The fit is
+and 1 unit ≈ 1 m. The raw source only sketches `P`, `pts`, `poly`, `box`, `fy`, `fx` and `ftext`; write them
+from `isometric-build-kit.md`, which has the complete code. The fit is
 `s = min(22, 640/((W+D)*C))` and `ox = (680-(W+D)*C*s)/2 + D*C*s`. Set `oy` from the tallest height
 plus the tallest floating tag.
 
