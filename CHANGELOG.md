@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.60.0](https://github.com/jjfantini/humblSKILLS/compare/v2.59.0...v2.60.0) (2026-11-25)
+
+
+### Features
+
+* **skills:** add smart-app-store-review skill ([c03e7de](https://github.com/jjfantini/humblSKILLS/commit/c03e7de34c85e28ba8f50eeb8860e0b9d5117839))
+* **skills:** add smart-app-store-review skill ([4dcc162](https://github.com/jjfantini/humblSKILLS/commit/4dcc162146d531646a6e7cfb6be2412d6b3a32d5))
+
 ## [2.60.0-pre](https://github.com/jjfantini/humblSKILLS/compare/v2.59.0...v2.60.0-pre) (2026-11-25)
 
 
