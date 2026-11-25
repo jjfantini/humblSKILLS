@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-23T23:35:51Z",
+  "generated_at": "2026-11-25T20:06:30Z",
   "source": {
     "repo": "github.com/jjfantini/humblSKILLS",
     "ref": "main",
-    "sha": "b24941e960be4ec8ab625845f0ac5d7c27b200e7"
+    "sha": "4dcc162146d531646a6e7cfb6be2412d6b3a32d5"
   },
   "skills": [
     {
@@ -499,6 +499,38 @@
       ],
       "path": "skills/smart-animation",
       "dir_sha": "186984bfe8a6909b0e394c8c71bf81929efc27dab0c98c6f2ba58c024423bd3e"
+    },
+    {
+      "name": "smart-app-store-review",
+      "version": "1.0.0",
+      "description": "Audit an iOS, iPadOS, macOS, tvOS, watchOS or visionOS app (Swift, Objective-C, React Native, Expo) against every point of Apple's App Store Review Guidelines, clean up the mechanical rejection risks, and verify it is likely to pass review before submission. Scans for candidates, gates each one on evidence so imports alone never count as rejections, and reports findings with guideline numbers, file:line and fixes. Use when the user says \"will this pass App Store review\", \"app store review\", \"prepare for submission\", \"submit to the App Store\", \"check for rejection issues\", \"audit my app for Apple guidelines\", \"Apple rejected my app\", \"guideline 5.1.1\", \"is my paywall allowed\", or \"clean up before release\". Do NOT use for Google Play policy, App Store Connect API or fastlane automation, ASO and marketing copy, or general iOS code review unrelated to App Review.\n",
+      "category": "development",
+      "tags": [
+        "ios",
+        "app-store",
+        "app-review",
+        "apple",
+        "compliance",
+        "react-native",
+        "expo",
+        "swift",
+        "submission",
+        "humblskill"
+      ],
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "preserve": [
+        "references/raw/",
+        "references/wiki/",
+        "references/decisions.md",
+        "references/log.md",
+        "references/patterns.md"
+      ],
+      "path": "skills/smart-app-store-review",
+      "dir_sha": "a4e0dce0ae9f85bf7d137458b3372be96829f8a1ffaab2af8ca1cf74736479ce"
     },
     {
       "name": "smart-claude-init",
